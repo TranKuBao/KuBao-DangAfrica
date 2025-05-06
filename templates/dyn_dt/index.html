@@ -1,0 +1,35 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Profile {% endblock %} 
+
+<!-- Specific CSS goes HERE -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="card">
+                <div class="card-header p-2 ps-3">
+                    <h4 class="mb-0">Available Routes (defined in config.DYNAMIC_DATATB)</h4>
+                </div>
+                <div class="card-body">
+                    <ul class="">
+                        {% for link in routes %}
+                            <li class="">
+                                <a class="" href="{{ url_for('table_blueprint.model_dt', aPath=link) }}">{{ link }}</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}{% endblock javascripts %}
