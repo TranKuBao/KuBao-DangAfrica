@@ -32,6 +32,11 @@ def tables():
 def virtual_reality():
     return render_template('pages/virtual-reality.html', segment='virtual_reality')
 
+#bắt đầu code từ đây
+@blueprint.route('/targets')
+def targets():
+    
+    return render_template('targets/index-targets.html', segment='index_targets')
 
 def getField(column): 
     if isinstance(column.type, db.Text):
