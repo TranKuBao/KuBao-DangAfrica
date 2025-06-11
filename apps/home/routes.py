@@ -4,12 +4,93 @@ Copyright (c) 2019 - present AppSeed.us
 """
 import wtforms
 from apps.home import blueprint
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, jsonify
 from jinja2 import TemplateNotFound
 from flask_login import login_required, current_user
 from apps import db
 from apps.authentication.models import Users
 from flask_wtf import FlaskForm
+
+#bắt đầu code từ đây
+@blueprint.route('/targets')
+def targets():
+    return render_template('targets/index-targets.html', segment='index_targets')
+
+
+@blueprint.route('/api/add_targets', methods=['POST'])
+def add_targets():
+    """API để thêm một target mới"""
+    try:
+        # Lấy dữ liệu JSON từ request
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No input data provided'}), 400
+        else:
+            data = request.form.to_dict()
+            
+        if not data:
+            return jsonify({'error': 'No input data provided'}), 400
+        
+        # Kiểm tra các trường bắt buộc
+        required_fields = ['hostname', 'ip_address', 'server_type']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        # Kiểm tra server_type hợp lệ
+        try:
+            server_type = ServerType(data['server_type'])
+        except ValueError:
+            return jsonify({'error': 'Invalid server_type value'}), 400
+
+        # Tạo dictionary cho các tham số tùy chọn
+        optional_fields = {
+            'os': data.get('os'),
+            'location': data.get('location'),
+            'status': data.get('status', 'active'),
+            'privilege_escalation': data.get('privilege_escalation', False),
+            'exploitation_level': data.get('exploitation_level'),
+            'incident_id': data.get('incident_id'),
+            'notes': data.get('notes')
+        }
+
+        # Tạo target mới
+        target = Targets.create_target(
+            hostname=data['hostname'],
+            ip_address=data['ip_address'],
+            server_type=server_type,
+            **{k: v for k, v in optional_fields.items() if v is not None}
+        )
+
+        # Trả về thông tin target vừa tạo
+        return jsonify({
+            'message': 'Target created successfully',
+            'target': target.to_dict()
+        }), 201
+
+    except InvalidUsage as e:
+        return jsonify({'error': str(e)}), 400
+    except SQLAlchemyError as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @blueprint.route('/')
 @blueprint.route('/index')
@@ -32,11 +113,7 @@ def tables():
 def virtual_reality():
     return render_template('pages/virtual-reality.html', segment='virtual_reality')
 
-#bắt đầu code từ đây
-@blueprint.route('/targets')
-def targets():
-    
-    return render_template('targets/index-targets.html', segment='index_targets')
+
 
 def getField(column): 
     if isinstance(column.type, db.Text):

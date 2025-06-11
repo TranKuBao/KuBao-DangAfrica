@@ -1,76 +1,144 @@
-<div class="row"  id="edittarget-hidden" hidden style="margin-top:25px !important;">
-      <div class="col-sm-8">
-          <div class="card">
-              <div class="card-header">
-                  <h5>Info target</h5>
-              </div>
-              <div class="card-block px-4">
-                <form class="row" method="POST">
-                    <input id="password" name="password" type="hidden" value="b'9d59c5c042ceb36d2dc8f3c3d5a55cfcc200bcaba5f084aafde39dc45bf58e47c468bba0a694c267036770b0791dfe48a0e9ea1aa41262a5f43d344f7ab2459632a122d0efe5d5281acb72cf4aa89cd9c32935d632c0368d116691f3e93620c3'">
-<input id="csrf_token" name="csrf_token" type="hidden" value="IjFmMDgzN2MzNWFjOTliOTIxNTYyNjY1M2FhNDRiZWNhYTZmMTQ5M2Yi.aD63cg.FXvAmUL8hT8vx2JzTGS9wJljM98">
-
-                    
-                        
-                            <div class="col-sm-6">
-                                <div class="form-group is-filled">
-                                    <label for="" class="form-label">Username (read-only) </label>
-                                    <input class="form-control" id="username" name="username" readonly="" type="text" value="admin" onfocus="focused(this)" onfocusout="defocused(this)">
-                                </div>
-                            </div>
-                        
-                    
-                        
-                            <div class="col-sm-6">
-                                <div class="form-group is-filled">
-                                    <label for="" class="form-label">Email (read-only) </label>
-                                    <input class="form-control" id="email" name="email" readonly="" type="text" value="admin@gmail.com" onfocus="focused(this)" onfocusout="defocused(this)">
-                                </div>
-                            </div>
-                        
-                    
-                        
-                            <input id="password" name="password" type="hidden" value="b'9d59c5c042ceb36d2dc8f3c3d5a55cfcc200bcaba5f084aafde39dc45bf58e47c468bba0a694c267036770b0791dfe48a0e9ea1aa41262a5f43d344f7ab2459632a122d0efe5d5281acb72cf4aa89cd9c32935d632c0368d116691f3e93620c3'">
-                        
-                    
-                        
-                            <div class="col-sm-6">
-                                <div class="form-group">
-                                    <label for="" class="form-label">Oauth Github (read-only) </label>
-                                    <input class="form-control" id="oauth_github" name="oauth_github" readonly="" type="text" value="" onfocus="focused(this)" onfocusout="defocused(this)">
-                                </div>
-                            </div>
-                        
-                    
-                        
-                            <div class="col-sm-6">
-                                <div class="form-group">
-                                    <label for="" class="form-label">Oauth Google (read-only) </label>
-                                    <input class="form-control" id="oauth_google" name="oauth_google" readonly="" type="text" value="" onfocus="focused(this)" onfocusout="defocused(this)">
-                                </div>
-                            </div>
-                        
-                    
-                        
-                            <div class="col-sm-12">
-                                <div class="form-group">
-                                    <label for="" class="form-label">Bio  </label>
-                                    <textarea class="form-control" id="bio" name="bio"></textarea>
-                                </div>
-                            </div>
-                        
-                    
-                        
-                            <input id="csrf_token" name="csrf_token" type="hidden" value="IjFmMDgzN2MzNWFjOTliOTIxNTYyNjY1M2FhNDRiZWNhYTZmMTQ5M2Yi.aD63cg.FXvAmUL8hT8vx2JzTGS9wJljM98">
-                        
-                    
-
-                    <div class="col-sm-12 mb-2">
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary">Submit</button>
-                        </div>
-                    </div>                                                
-                </form>
-              </div>
-          </div>
+<div
+  class="row"
+  id="edittarget-hidden"
+  hidden
+  style="margin-top: 25px !important"
+>
+  <div class="col-sm-8">
+    <div class="card">
+      <div class="card-header">
+        <h5>Info target</h5>
       </div>
+      <div class="card-block px-4">
+        <form class="row" method="POST">
+          <input id="Server_id" name="Server_id" type="hidden" value="" />
+
+          <div class="col-sm-6">
+            <div class="form-group is-filled">
+              <label for="" class="form-label">Hostname </label>
+              <input
+                class="form-control"
+                id="Hostname"
+                name="Hostname"
+                type="text"
+                value="Ku_bao"
+                onfocus="focused(this)"
+                onfocusout="defocused(this)"
+              />
+            </div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="form-group is-filled">
+              <label for="" class="form-label">Ip_address </label>
+              <input
+                class="form-control"
+                id="Ip_address"
+                name="Ip_address"
+                type="text"
+                value="0.0.0.0"
+                onfocus="focused(this)"
+                onfocusout="defocused(this)"
+              />
+            </div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="form-group is-filled">
+              <label for="" class="form-label">Server_type</label>
+              <input
+                class="form-control"
+                id="Server_type"
+                name="Server_type"
+                type="text"
+                value="backup_server"
+                onfocus="focused(this)"
+                onfocusout="defocused(this)"
+              />
+            </div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="form-group is-filled">
+              <label for="" class="form-label">Operating_system</label>
+              <input
+                class="form-control"
+                id="Operating_system"
+                name="Operating_system"
+                type="text"
+                value="backup_server"
+                onfocus="focused(this)"
+                onfocusout="defocused(this)"
+              />
+            </div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="form-group is-filled">
+              <label for="" class="form-label">Location</label>
+              <input
+                class="form-control"
+                id="Location"
+                name="Location"
+                type="text"
+                value="236-Hoang quốc việt"
+                onfocus="focused(this)"
+                onfocusout="defocused(this)"
+              />
+            </div>
+          </div>
+
+          <input id="Status" name="Status" type="hidden" value="" />
+
+          <div class="col-sm-6">
+            <div class="form-group is-filled">
+              <label for="" class="form-label">Privilege_escalation</label>
+              <input
+                class="form-control"
+                id="Privilege_escalation"
+                name="Privilege_escalation"
+                type="text"
+                value="backup_server"
+                onfocus="focused(this)"
+                onfocusout="defocused(this)"
+              />
+            </div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="form-group">
+              <label for="" class="form-label">Exploitation_level</label>
+              <input
+                class="form-control"
+                id="Exploitation_level"
+                name="Exploitation_level"
+                readonly=""
+                type="text"
+                value=""
+                onfocus="focused(this)"
+                onfocusout="defocused(this)"
+              />
+            </div>
+          </div>
+
+          <input id="Id_vul_in_target" name="Id_vul_in_target" type="hidden" value="" />
+
+          <div class="col-sm-12">
+            <div class="form-group">
+              <label for="" class="form-label">Notes </label>
+              <textarea class="form-control" id="Notes" name="Notes"></textarea>
+            </div>
+          </div>
+
+          
+
+          <div class="col-sm-12 mb-2">
+            <div class="form-group">
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
