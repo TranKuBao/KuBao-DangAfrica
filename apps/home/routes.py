@@ -10,6 +10,7 @@ from flask_login import login_required, current_user
 from apps import db
 from apps.authentication.models import Users
 from flask_wtf import FlaskForm
+from apps.models import Targets
 
 #bắt đầu code từ đây
 @blueprint.route('/targets')
@@ -21,59 +22,33 @@ def targets():
 def add_targets():
     """API để thêm một target mới"""
     try:
-        # Lấy dữ liệu JSON từ request
+        # Get JSON data from request
         data = request.get_json()
         if not data:
             return jsonify({'error': 'No input data provided'}), 400
-        else:
-            data = request.form.to_dict()
-            
-        if not data:
-            return jsonify({'error': 'No input data provided'}), 400
-        
-        # Kiểm tra các trường bắt buộc
-        required_fields = ['hostname', 'ip_address', 'server_type']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
 
-        # Kiểm tra server_type hợp lệ
-        try:
-            server_type = ServerType(data['server_type'])
-        except ValueError:
-            return jsonify({'error': 'Invalid server_type value'}), 400
-
-        # Tạo dictionary cho các tham số tùy chọn
-        optional_fields = {
-            'os': data.get('os'),
-            'location': data.get('location'),
-            'status': data.get('status', 'active'),
-            'privilege_escalation': data.get('privilege_escalation', False),
-            'exploitation_level': data.get('exploitation_level'),
-            'incident_id': data.get('incident_id'),
-            'notes': data.get('notes')
-        }
-
-        # Tạo target mới
-        target = Targets.create_target(
-            hostname=data['hostname'],
-            ip_address=data['ip_address'],
-            server_type=server_type,
-            **{k: v for k, v in optional_fields.items() if v is not None}
+        # Trích xuất và xử lý dữ liệu từ client
+        new_target = Targets.create_target(
+            hostname=data.get('Hostname'),
+            ip_address=data.get('Ip_address'),
+            server_type=data.get('Server_type'),
+            os=data.get('Operating_system'),
+            location=data.get('Location'),
+            status=data.get('Status'),
+            privilege_escalation=data.get('Privilege_escalation') == 'true',  # chuyển thành bool
+            exploitation_level=data.get('Exploitation_level'),
+            incident_id=data.get('Id_vul_in_target'),
+            notes=data.get('Notes')
         )
-
-        # Trả về thông tin target vừa tạo
+        #print(new_target)
         return jsonify({
-            'message': 'Target created successfully',
-            'target': target.to_dict()
+            'message': 'Target added successfully',
+            'target_id': new_target.server_id
         }), 201
 
-    except InvalidUsage as e:
-        return jsonify({'error': str(e)}), 400
-    except SQLAlchemyError as e:
-        return jsonify({'error': f'Database error: {str(e)}'}), 500
     except Exception as e:
-        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+        db.session.rollback()
+        return jsonify({'error': 'Server error', 'details': str(e)}), 500
 
 
 

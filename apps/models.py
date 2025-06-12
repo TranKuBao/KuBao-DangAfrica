@@ -201,20 +201,20 @@ class Targets(db.Model):
     server_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     hostname = db.Column(db.String(255), nullable=False)
     ip_address = db.Column(db.String(45), nullable=False)  # IPv6 support
-    server_type = db.Column(db.Enum(ServerType), nullable=False)
+    server_type = db.Column(db.String(50), nullable=False)
     os = db.Column(db.String(100), nullable=True)
     location = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(50), nullable=False, default='active')
-    privilege_escalation = db.Column(db.Boolean, default=False)
+    privilege_escalation = db.Column(db.String(100), nullable=True)
     exploitation_level = db.Column(db.String(100), nullable=True)
-    incident_id = db.Column(db.Integer, db.ForeignKey('incidents.incident_id'), nullable=True)
+    incident_id = db.Column(db.Integer, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
     
         
     def __init__(self, hostname, ip_address, server_type, os=None, location=None, 
-                 status='active', exploitation_level=False, security_patch_level=None, 
+                 status='active', privilege_escalation=None, exploitation_level=None, 
                  incident_id=None, notes=None):
         self.hostname = hostname
         self.ip_address = ip_address
@@ -223,7 +223,7 @@ class Targets(db.Model):
         self.location = location
         self.status = status
         self.exploitation_level = exploitation_level
-        self.security_patch_level = security_patch_level
+        self.privilege_escalation = privilege_escalation
         self.incident_id = incident_id
         self.notes = notes
     
@@ -254,8 +254,9 @@ class Targets(db.Model):
             target = cls(hostname=hostname, ip_address=ip_address, server_type=server_type, **kwargs)
             db.session.add(target)
             db.session.commit()
+            print(target)
             return target
-        except SQLAlchemyError as e:
+        except Exception as e:
             db.session.rollback()
             raise InvalidUsage(f"Error creating target: {str(e)}")
     

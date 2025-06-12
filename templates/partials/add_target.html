@@ -15,7 +15,7 @@
 
           <div class="col-sm-6">
             <div class="form-group is-filled">
-              <label for="" class="form-label">Hostname </label>
+              <label for="" class="form-label">URL </label>
               <input
                 class="form-control"
                 id="Hostname"
@@ -90,7 +90,8 @@
 
           <input id="Status" name="Status" type="hidden" value="" />
 
-          <div class="col-sm-6">
+          
+          <div class="col-sm-6" hidden>
             <div class="form-group is-filled">
               <label for="" class="form-label">Privilege_escalation</label>
               <input
@@ -104,15 +105,15 @@
               />
             </div>
           </div>
+           
 
-          <div class="col-sm-6">
+          <div class="col-sm-6" hidden>
             <div class="form-group">
               <label for="" class="form-label">Exploitation_level</label>
               <input
                 class="form-control"
                 id="Exploitation_level"
                 name="Exploitation_level"
-                readonly=""
                 type="text"
                 value=""
                 onfocus="focused(this)"
@@ -120,9 +121,9 @@
               />
             </div>
           </div>
-
+          
           <input id="Id_vul_in_target" name="Id_vul_in_target" type="hidden" value="" />
-
+          
           <div class="col-sm-12">
             <div class="form-group">
               <label for="" class="form-label">Notes </label>
