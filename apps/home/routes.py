@@ -17,6 +17,40 @@ from apps.models import Targets
 def targets():
     return render_template('targets/index-targets.html', segment='index_targets')
 
+# @blueprint.route('/api/targets', methods=['GET'])
+# def get_targets():
+#     # Lấy tham số phân trang và tìm kiếm
+#     page = request.args.get('page', 1, type=int)  # Số trang từ query string
+#     search_query = request.args.get('search', '', type=str).strip()  # Tìm kiếm từ query string
+#     print(f"[+] Tìm Kiếm targets với keySearch: {search_query}")
+#     per_page = 6  # Số item trên mỗi trang
+
+#     # Thực hiện tìm kiếm với phân trang
+#     targets_paginated, total_pages = Targets.search(search_query,page,per_page)
+    
+#     # Render partial template
+#     return render_template(
+#         'partials/partial_list_targets.html',
+#         targets=targets_paginated,
+#         page=page,
+#         total_pages=total_pages,
+#         loader=1
+#     )
+
+@blueprint.route('/api/targets', methods=['GET'])
+def get_all_targets():
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('search', '', type=str).strip()
+    per_page = 6
+    print(f"[x] page: {page} & search_querry={search_query}")
+    targets_paginated, total_pages = Targets.search(search_query, page, per_page)
+
+    html = render_template('partials/partial_list_targets.html', targets=targets_paginated, loader=0)
+
+    return jsonify({
+        'html': html,
+        'total_pages': total_pages
+    })
 
 @blueprint.route('/api/add_targets', methods=['POST'])
 def add_targets():
@@ -51,7 +85,15 @@ def add_targets():
         return jsonify({'error': 'Server error', 'details': str(e)}), 500
 
 
-
+@blueprint.route('/api/search_targets', methods=['GET'])
+def search_targets():
+    """API để hiển thị các target mới"""
+    try:
+        keyword = request.args.get('q', '')  # Lấy từ khóa từ URL query ?q=...
+        results = Targets.search(keyword)
+        return jsonify([target.to_dict() for target in results]), 200
+    except Exception as e:
+        return jsonify({'error': 'Server error', 'details': str(e)}), 500
 
 
 

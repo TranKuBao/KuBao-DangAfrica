@@ -1,480 +1,226 @@
-<div class="row my-3">
-    <div class="col-12">
-      <div class="card mb-4">
-        <div class="card-header pb-0">
-          <h6>Danh sách mục tiêu</h6>
-        </div>
-        <div class="card-body px-0 pt-0 pb-2">
-          <div class="table-responsive p-0">
-            <table class="table align-items-center mb-0">
-              <thead>
-                <tr>
-                  <th
-                    class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
-                  >
-                    Uname
-                  </th>
-                  <th
-                    class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
-                  >
-                    Type
-                  </th>
-                  <th
-                    class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
-                  >
-                    Status
-                  </th>
-                  <th
-                    class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
-                  >
-                    Detection_Date
-                  </th>
-                  <th class="text-secondary opacity-7"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <div class="d-flex px-2 py-1">
-                      <div>
-                        <img
-                          src="{{ url_for('static', filename='assets/img/team-2.jpg') }}"
-                          class="avatar avatar-sm me-3"
-                          alt="user1"
-                        />
-                      </div>
-                      <div class="d-flex flex-column justify-content-center">
-                        <h6 class="mb-0 text-sm">Linux kali 6.11.2-amd64</h6>
-                        <p class="text-xs text-secondary mb-0">
-                          2.1.3.9//dvov.org"
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="text-xs font-weight-bold mb-0">Web-server</p>
-                    <p class="text-xs text-secondary mb-0">
-                      ku_bao\baopr-whoami
-                    </p>
-                  </td>
-                  <td class="align-middle text-center text-sm">
-                    <span class="badge badge-sm bg-gradient-success"
-                      >Online</span
-                    >
-                  </td>
-                  <td class="align-middle text-center">
-                    <span class="text-secondary text-xs font-weight-bold"
-                      >23/04/18</span
-                    >
-                  </td>
-                  <td class="align-middle">
-                    <div class="dropdown float-lg-end  text-secondary font-weight-bold text-xs">
-                      <a
-                        class="cursor-pointer"
-                        id="dropdownTable"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        <i class="fa fa-ellipsis-v text-secondary"></i>
-                      </a>
-                      <ul
-                        class="dropdown-menu px-2 py-3 ms-sm-n4 ms-n5"
-                        aria-labelledby="dropdownTable"
-                      >
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xem</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Connect</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xóa</a
-                          >
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="d-flex px-2 py-1">
-                      <div>
-                        <img
-                          src="{{ url_for('static', filename='assets/img/team-2.jpg') }}"
-                          class="avatar avatar-sm me-3"
-                          alt="user1"
-                        />
-                      </div>
-                      <div class="d-flex flex-column justify-content-center">
-                        <h6 class="mb-0 text-sm">Linux kali 6.11.2-amd64</h6>
-                        <p class="text-xs text-secondary mb-0">
-                          2.1.3.9//dvov.org"
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="text-xs font-weight-bold mb-0">Web-server</p>
-                    <p class="text-xs text-secondary mb-0">
-                      ku_bao\baopr-whoami
-                    </p>
-                  </td>
-                  <td class="align-middle text-center text-sm">
-                    <span class="badge badge-sm bg-gradient-success"
-                      >Online</span
-                    >
-                  </td>
-                  <td class="align-middle text-center">
-                    <span class="text-secondary text-xs font-weight-bold"
-                      >23/04/18</span
-                    >
-                  </td>
-                  <td class="align-middle">
-                    <div class="dropdown float-lg-end ">
-                      <a
-                        class="cursor-pointer"
-                        id="dropdownTable"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        <i class="fa fa-ellipsis-v text-secondary"></i>
-                      </a>
-                      <ul
-                        class="dropdown-menu px-2 py-3 ms-sm-n4 ms-n5"
-                        aria-labelledby="dropdownTable"
-                      >
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xem</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Connect</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xóa</a
-                          >
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="d-flex px-2 py-1">
-                      <div>
-                        <img
-                          src="{{ url_for('static', filename='assets/img/team-2.jpg') }}"
-                          class="avatar avatar-sm me-3"
-                          alt="user1"
-                        />
-                      </div>
-                      <div class="d-flex flex-column justify-content-center">
-                        <h6 class="mb-0 text-sm">Linux kali 6.11.2-amd64</h6>
-                        <p class="text-xs text-secondary mb-0">
-                          2.1.3.9//dvov.org"
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="text-xs font-weight-bold mb-0">Web-server</p>
-                    <p class="text-xs text-secondary mb-0">
-                      ku_bao\baopr-whoami
-                    </p>
-                  </td>
-                  <td class="align-middle text-center text-sm">
-                    <span class="badge badge-sm bg-gradient-secondary"
-                      >Offline</span
-                    >
-                  </td>
-                  <td class="align-middle text-center">
-                    <span class="text-secondary text-xs font-weight-bold"
-                      >23/04/18</span
-                    >
-                  </td>
-                  <td class="align-middle">
-                    <div class="dropdown float-lg-end  ">
-                      <a
-                        class="cursor-pointer"
-                        id="dropdownTable"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        <i class="fa fa-ellipsis-v text-secondary"></i>
-                      </a>
-                      <ul
-                        class="dropdown-menu px-2 py-3 ms-sm-n4 ms-n5"
-                        aria-labelledby="dropdownTable"
-                      >
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xem</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Connect</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xóa</a
-                          >
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="d-flex px-2 py-1">
-                      <div>
-                        <img
-                          src="{{ url_for('static', filename='assets/img/team-2.jpg') }}"
-                          class="avatar avatar-sm me-3"
-                          alt="user1"
-                        />
-                      </div>
-                      <div class="d-flex flex-column justify-content-center">
-                        <h6 class="mb-0 text-sm">Linux kali 6.11.2-amd64</h6>
-                        <p class="text-xs text-secondary mb-0">
-                          2.1.3.9//dvov.org"
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="text-xs font-weight-bold mb-0">Web-server</p>
-                    <p class="text-xs text-secondary mb-0">
-                      ku_bao\baopr-whoami
-                    </p>
-                  </td>
-                  <td class="align-middle text-center text-sm">
-                    <span class="badge badge-sm bg-gradient-success"
-                      >Online</span
-                    >
-                  </td>
-                  <td class="align-middle text-center">
-                    <span class="text-secondary text-xs font-weight-bold"
-                      >23/04/18</span
-                    >
-                  </td>
-                  <td class="align-middle">
-                    <div class="dropdown float-lg-end  ">
-                      <a
-                        class="cursor-pointer"
-                        id="dropdownTable"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        <i class="fa fa-ellipsis-v text-secondary"></i>
-                      </a>
-                      <ul
-                        class="dropdown-menu px-2 py-3 ms-sm-n4 ms-n5"
-                        aria-labelledby="dropdownTable"
-                      >
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xem</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Connect</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xóa</a
-                          >
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="d-flex px-2 py-1">
-                      <div>
-                        <img
-                          src="{{ url_for('static', filename='assets/img/team-2.jpg') }}"
-                          class="avatar avatar-sm me-3"
-                          alt="user1"
-                        />
-                      </div>
-                      <div class="d-flex flex-column justify-content-center">
-                        <h6 class="mb-0 text-sm">Linux kali 6.11.2-amd64</h6>
-                        <p class="text-xs text-secondary mb-0">
-                          2.1.3.9//dvov.org"
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="text-xs font-weight-bold mb-0">Web-server</p>
-                    <p class="text-xs text-secondary mb-0">
-                      ku_bao\baopr-whoami
-                    </p>
-                  </td>
-                  <td class="align-middle text-center text-sm">
-                    <span class="badge badge-sm bg-gradient-secondary"
-                      >Offline</span
-                    >
-                  </td>
-                  <td class="align-middle text-center">
-                    <span class="text-secondary text-xs font-weight-bold"
-                      >23/04/18</span
-                    >
-                  </td>
-                  <td class="align-middle">
-                    <div class="dropdown float-lg-end  ">
-                      <a
-                        class="cursor-pointer"
-                        id="dropdownTable"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        <i class="fa fa-ellipsis-v text-secondary"></i>
-                      </a>
-                      <ul
-                        class="dropdown-menu px-2 py-3 ms-sm-n4 ms-n5"
-                        aria-labelledby="dropdownTable"
-                      >
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xem</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Connect</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xóa</a
-                          >
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="d-flex px-2 py-1">
-                      <div>
-                        <img
-                          src="{{ url_for('static', filename='assets/img/team-2.jpg') }}"
-                          class="avatar avatar-sm me-3"
-                          alt="user1"
-                        />
-                      </div>
-                      <div class="d-flex flex-column justify-content-center">
-                        <h6 class="mb-0 text-sm">Linux kali 6.11.2-amd64</h6>
-                        <p class="text-xs text-secondary mb-0">
-                          2.1.3.9//dvov.org"
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="text-xs font-weight-bold mb-0">Web-server</p>
-                    <p class="text-xs text-secondary mb-0">
-                      ku_bao\baopr-whoami
-                    </p>
-                  </td>
-                  <td class="align-middle text-center text-sm">
-                    <span class="badge badge-sm bg-gradient-secondary"
-                      >Offline</span
-                    >
-                  </td>
-                  <td class="align-middle text-center">
-                    <span class="text-secondary text-xs font-weight-bold"
-                      >23/04/18</span
-                    >
-                  </td>
-                  <td class="align-middle">
-                    <div class="dropdown float-lg-end  ">
-                      <a
-                        class="cursor-pointer"
-                        id="dropdownTable"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        <i class="fa fa-ellipsis-v text-secondary"></i>
-                      </a>
-                      <ul
-                        class="dropdown-menu px-2 py-3 ms-sm-n4 ms-n5"
-                        aria-labelledby="dropdownTable"
-                      >
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xem</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Connect</a
-                          >
-                        </li>
-                        <li>
-                          <a
-                            class="dropdown-item border-radius-md"
-                            href="javascript:;"
-                            >Xóa</a
-                          >
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+<!--Scrip phân trang-->
+<script>
+  // Biến toàn cục
+  let currentPage = 1;
+  let totalPages = {{ total_pages|default(1) }};
+  let visiblePages = 5;
+
+  // Khởi tạo phân trang
+  function initPagination() {
+    const searchinput = document.getElementById("id_search_target").value;
+    updatePaginationDisplay();
+    updateNavigationButtons();
+    updatePageInfo();
+    showContent(currentPage,searchinput);
+  }
+
+  
+
+  // Thêm nút trang
+  function addPageButton(pageNum) {
+    const container = document.getElementById("paginationContainer");
+    const button = document.createElement("div");
+    button.className = `page-item ${pageNum === currentPage ? "active" : ""}`;
+    button.innerHTML = `<span>${pageNum}</span>`;
+    button.onclick = () => goToPage(pageNum);
+    container.appendChild(button);
+  }
+
+  // Thêm dấu "..."
+  function addEllipsis() {
+    const container = document.getElementById("paginationContainer");
+    const ellipsis = document.createElement("div");
+    ellipsis.className = "page-item disabled";
+    ellipsis.innerHTML = "<span>...</span>";
+    ellipsis.style.cursor = "default";
+    container.appendChild(ellipsis);
+  }
+
+  // Chuyển trang
+  function goToPage(page) {
+    // Validation
+    if (!page || isNaN(page) || page < 1 || page > totalPages || page === currentPage) {
+        return;
+    }
+
+    const searchInput = document.getElementById("id_search_target");
+    if (!searchInput) {
+        console.error("Search input not found");
+        return;
+    }
+
+    const searchValue = searchInput.value;
+    currentPage = page;
+    showContent(page, searchValue);
+  }
+
+  // Cập nhật hiển thị phân trang
+  function updatePaginationDisplay() {
+    const container = document.getElementById("paginationContainer");
+    container.innerHTML = "";
+
+    // Tính toán range hiển thị
+    let startPage, endPage;
+
+    if (totalPages <= visiblePages) {
+      startPage = 1;
+      endPage = totalPages;
+    } else {
+      const halfVisible = Math.floor(visiblePages / 2);
+
+      if (currentPage <= halfVisible) {
+        startPage = 1;
+        endPage = visiblePages;
+      } else if (currentPage >= totalPages - halfVisible) {
+        startPage = totalPages - visiblePages + 1;
+        endPage = totalPages;
+      } else {
+        startPage = currentPage - halfVisible;
+        endPage = currentPage + halfVisible;
+      }
+    }
+
+    // Thêm "..." và trang đầu nếu cần
+    if (startPage > 1) {
+      addPageButton(1);
+      if (startPage > 2) {
+        addEllipsis();
+      }
+    }
+
+    // Thêm các trang trong range
+    for (let i = startPage; i <= endPage; i++) {
+      addPageButton(i);
+    }
+
+    // Thêm "..." và trang cuối nếu cần
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        addEllipsis();
+      }
+      addPageButton(totalPages);
+    }
+  }
+
+  // Cập nhật nút điều hướng
+  function updateNavigationButtons() {
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    //Nếu đang ở trang đầu tiên (currentPage === 1), thì nút "Previous" bị vô hiệu hóa (disabled = true), vì không còn trang nào trước đó.
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
+  }
+
+  // Cập nhật thông tin trang là cái số trang á
+  function updatePageInfo() {
+    document.getElementById("currentPageInfo").textContent = currentPage;
+    document.getElementById("totalPagesInfo").textContent = totalPages;
+  }
+
+  function updatePaginationForSearch() { // Cập nhật pagination sau khi search 
+    updatePaginationDisplay(); 
+    updateNavigationButtons(); 
+    pdatePageInfo(); }
+
+  // Hiển thị nội dung trang
+  function showContent(page, searchInput = "") { 
+    let url = `/api/targets?page=${page}`; 
+    if (searchInput.trim()) { 
+      url += `&search=${encodeURIComponent(searchInput.trim())}`; 
+    } 
+    // Thêm loading state 
+    document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>'; 
+    fetch(url) .then((response) => { 
+      if (!response.ok) { 
+        throw new Error(`HTTP error! Status: ${response.status}`); 
+      } 
+      return response.json(); 
+      // Thay đổi để nhận JSON }) 
+      .then((data) => { 
+        // Cập nhật totalPages từ API response 
+        if (data.total_pages) { 
+          totalPages = data.total_pages; 
+        } 
+        document.querySelector("#targetTableBody").innerHTML = data.html || data; 
+        updatePaginationDisplay(); 
+        updateNavigationButtons(); 
+        updatePageInfo(); 
+      }) .catch((error) => { 
+        console.error("Lỗi khi tải danh sách targets:", error); 
+        document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Lỗi tải dữ liệu</td></tr>'; 
+      }); 
+    }
+
+  // Cập nhật cài đặt phân trang
+  function updatePagination() {
+    const newTotalPages = parseInt(document.getElementById("totalPages").value);
+    const newVisiblePages = parseInt(
+      document.getElementById("visiblePages").value
+    );
+
+    if (newTotalPages > 0 && newTotalPages <= 100) {
+      totalPages = newTotalPages;
+      visiblePages = newVisiblePages;
+
+      // Reset về trang 1 nếu trang hiện tại vượt quá tổng số trang
+      if (currentPage > totalPages) {
+        currentPage = 1;
+      }
+
+      initPagination();
+    } else {
+      alert("Vui lòng nhập số trang hợp lệ (1-100)");
+    }
+  }
+
+  // Xử lý sự kiện thay đổi số trang hiển thị
+  document
+    .getElementById("visiblePages")
+    .addEventListener("change", function () {
+      visiblePages = parseInt(this.value);
+      updatePaginationDisplay();
+    });
+
+  // Khởi tạo khi trang load
+  document.addEventListener("DOMContentLoaded", function () {
+    // Thiết lập giá trị ban đầu
+    totalPages = 5; // Bắt đầu với 5 trang để phù hợp với demo content
+    document.getElementById("totalPages").value = totalPages;
+
+    initPagination();
+  });
+
+  // Xử lý phím tắt
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") {
+      goToPage(currentPage - 1);
+    } else if (e.key === "ArrowRight") {
+      goToPage(currentPage + 1);
+    }
+  });
+
+  // Thay thế phần search hiện tại
+  function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+          const later = () => {
+              clearTimeout(timeout);
+              func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+      };
+  }
+
+  const debouncedSearch = debounce(function(searchValue) {
+      currentPage = 1;
+      showContent(currentPage, searchValue);
+  }, 500);
+
+  // Trong event listener:
+  searchInput.addEventListener('input', function() {
+      debouncedSearch(this.value);
+  });
+
+
+</script>

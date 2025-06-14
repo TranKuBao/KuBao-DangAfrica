@@ -9,7 +9,7 @@ from apps.exceptions.exception import InvalidUsage
 import datetime as dt
 from sqlalchemy.orm import relationship
 from enum import Enum
-
+from sqlalchemy import or_
 
 class CURRENCY_TYPE(Enum):
     usd = 'usd'
@@ -269,6 +269,30 @@ class Targets(db.Model):
     def get_by_server_type(cls, server_type):
         """Get targets by server type"""
         return cls.query.filter_by(server_type=server_type).all()
+    
+    @classmethod
+    def search(cls, keyword, page=None, per_page=None):
+        """Tìm kiếm targets theo hostname, ip_address, server_type hoặc status"""
+        print(f"[x] keyword: {keyword} & page={page} & per_page={per_page}")
+        query = Targets.query
+        if keyword:
+            search_term = f"%{keyword}%"
+            query =  query.filter(
+                or_(
+                    Targets.hostname.ilike(search_term),
+                    Targets.ip_address.ilike(search_term),
+                    Targets.server_type.ilike(search_term),
+                    Targets.status.ilike(search_term),      
+                    Targets.location.ilike(search_term),
+                    Targets.os.ilike(search_term)
+                )
+            )
+        print(f"QUERY: {query}")
+        if page and per_page: # nếu có các giá trị của phân trang thì mình cho nó
+            pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+            print(f"[[x]]result: {pagination}")
+            return pagination.items, pagination.pages
+        return query.all(), None # không thi đéo trả về hết
     
     def update(self, **kwargs):
         """Update target attributes"""
