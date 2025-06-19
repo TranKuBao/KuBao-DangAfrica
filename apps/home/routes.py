@@ -67,7 +67,8 @@ def add_targets():
 
 @blueprint.route('/view-target', methods=['GET'])
 def view_target():
-    return render_template('targets/view-target.html', segment='view_target')
+    list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
+    return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc)
 
 
 
