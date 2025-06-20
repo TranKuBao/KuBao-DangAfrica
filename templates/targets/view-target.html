@@ -183,6 +183,62 @@
     --color4: rgba(17, 205, 239, 0.9);
     --color5: rgba(245, 54, 92, 0.9);
   }
+  /*css của thằng terminal hacker*/
+
+  #terminal {
+      box-sizing: border-box;
+      padding: 10px;
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #output_terminal {
+      flex-grow: 1;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.4em;
+    }
+
+    .input-line {
+      display: flex;
+      align-items: center;
+      background: #111;
+      border: 1px solid #00ff00;
+      padding: 5px 10px;
+      margin-top: 5px;
+    }
+
+    .prompt {
+      margin-right: 8px;
+      white-space: nowrap;
+      color: #00ff00;
+    }
+
+    #input_terminal {
+      flex-grow: 1;
+      background: transparent;
+      border: none;
+      color: #00ff00;
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    ::selection {
+      background: #00ff00;
+      color: #000;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #00ff00;
+    }
+
 </style>
 <!-- Scripts này là cho các biểu đồ tròn-->
 
@@ -422,7 +478,7 @@
                   </div>
 
                   <!-- button POC to RCE-->
-                  <div class="row">
+                  <div class="row" style="margin-top: -20px !important">
                     <div class="card-body p-3 col-lg-6">
                       <div class="row d-flex flex-wrap gap-3">
 
@@ -456,18 +512,59 @@
                 </div>
 
                 <!-- Terminal đặt ở đây -->
-                <div
-                  class="col-md-6 mb-md-0 mb-4"
-                  style="height: 100% !important; width: 100% !important"                >
-                  <div
-                    class="card card-body border card-plain border-radius-lg d-flex align-items-center flex-row"
-                  >
-                    <h6 class="mb-0">
-                      ****&nbsp;&nbsp;&nbsp;****&nbsp;&nbsp;&nbsp;****&nbsp;&nbsp;&nbsp;
-                    </h6>
+                 <div class="card" style="background-color: #000;
+                                                      color: #00ff00;
+                                                      font-family: 'Courier New', Courier, monospace;
+                                                      margin: 0;
+                                                      padding: 0;
+                                                      height: 100vh;
+                                                      overflow: hidden;">
+                  <div id="terminal">
+                    <div id="output_terminal">
+                      Các lệnh có thể dùng:
+                      <br>- ls - Liệt kê các file và thư mục
+                      <br>- pwd - Hiện thư mục hiện tại
+                      <br>- cd [thư mục] - Di chuyển đến thư mục
+                      <br>- cat [tên file] - Xem nội dung file
+                      <br>- mkdir [tên thư mục] - Tạo thư mục mới
+                      <br>- touch [tên file] - Tạo file mới
+                      <br><br>$ 
+                    </div>
+                    
+                    <div class="input-line">
+                      <span class="prompt">root@ctf:~$</span>
+                      <input type="text" id="input_terminal" autofocus autocomplete="off"/>
+                    </div>
                   </div>
-                </div>
+                  <script>
+                    const output = document.getElementById('output_terminal');
+                      const input = document.getElementById('input_terminal');
 
+                      input.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                          const command = input.value.trim();
+                          const userInput = '$ ' + command + '\n';
+                          output.textContent += userInput;
+
+                          fetch('/run-cmd', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ command })
+                          })
+                          .then(res => res.json())
+                          .then(data => {
+                            output.textContent += data.output + '\n';
+                            output.scrollTop = output.scrollHeight;
+                          })
+                          .catch(() => {
+                            output.textContent += 'Lỗi kết nối tới server\n';
+                          });
+
+                          input.value = '';
+                        }
+                      });
+                  </script>
+                </div>
               </div>
             </div>
           </div>
@@ -531,25 +628,7 @@
 
   {% include "includes/footer.html" %}
 </div>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const dropdownItems = document.querySelectorAll(".dropdown-item");
 
-    dropdownItems.forEach((item) => {
-      item.addEventListener("click", function (e) {
-        e.preventDefault();
-        const value = this.getAttribute("data-value");
 
-        // Tìm phần tử chứa dropdown này
-        const dropdown = this.closest(".dropdown");
-        const selectedSpan = dropdown.querySelector(".dropdown-selected");
-
-        if (selectedSpan) {
-          selectedSpan.textContent = value;
-        }
-      });
-    });
-  });
-</script>
 
 {% endblock content %}

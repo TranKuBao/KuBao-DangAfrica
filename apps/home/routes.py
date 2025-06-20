@@ -11,6 +11,7 @@ from apps import db
 from apps.authentication.models import Users
 from flask_wtf import FlaskForm
 from apps.models import Targets
+import subprocess
 
 #bắt đầu code từ đây
 @blueprint.route('/targets')
@@ -65,12 +66,27 @@ def add_targets():
         db.session.rollback()
         return jsonify({'error': 'Server error', 'details': str(e)}), 500
 
+#xem thông tin của 1 target
 @blueprint.route('/view-target', methods=['GET'])
 def view_target():
+    #lấy thông tin của CSDL
+    #lấy thông tin CVE lấy được
+    #lấy thông tin về trình sát
+    
     list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
     return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc)
 
-
+#Tương tác terminal của 1 target thông qua 1 POC
+@blueprint.route('/run-cmd',methods=['POST'])
+def run_cmd():
+    data = request.get_json()
+    cmd = data.get("command", "")
+    try:
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        output = result.stdout if result.stdout else result.stderr or "Thành công nhưng không có đầu ra."
+    except Exception as e:
+        output = str(e)
+    return jsonify({"output": output})
 
 
 
