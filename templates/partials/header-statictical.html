@@ -229,10 +229,15 @@
                   <div
                     class="icon icon-shape bg-white shadow text-center border-radius-2xl"
                   >
-                    <i
-                      class="ni ni-active-40 text-dark text-gradient text-lg opacity-10"
-                      aria-hidden="true"
-                    ></i>
+                    <img
+                      src="{{ url_for('static', filename='assets/img/remote-access.png') }}"
+                      style="
+                        max-width: 100%;
+                        height: auto;
+                        display: block;
+                        object-fit: contain;
+                      "
+                    />
                   </div>
                   <h5 class="text-white font-weight-bolder mb-0 mt-3">0000</h5>
                   <span class="text-white text-sm">Connection</span>
@@ -278,7 +283,7 @@
                   <p
                     class="text-white text-sm text-end font-weight-bolder mt-auto mb-0"
                   >
-                    -999%
+                    0%
                   </p>
                 </div>
               </div>
