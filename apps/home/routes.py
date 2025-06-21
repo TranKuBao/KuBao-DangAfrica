@@ -91,6 +91,14 @@ def run_cmd():
 
 
 
+#POCs
+@blueprint.route('/pocs')
+def pocs():
+    return render_template('targets/index-pocs.html', segment='index-pocs')
+
+
+
+
 
 
 

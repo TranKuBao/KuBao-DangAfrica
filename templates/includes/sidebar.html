@@ -28,6 +28,17 @@
         </li>
 
         <li class="nav-item">
+          <a class="nav-link {% if segment == 'index_pocs' %}active{% endif %}" href="{{ url_for('home_blueprint.pocs') }}">
+            <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
+                  style="width: 32px;   height: 32px;   overflow: hidden; ">
+              <img src="{{ url_for('static', filename='assets/img/pocs.png') }}" style="max-width: 100%;   height: auto;   display: block;   object-fit: contain;  ">
+              
+            </div>
+            <span class="nav-link-text ms-1">POCs</span> <!--Chỉnh tên ở đây-->
+          </a>
+        </li>
+
+        <li class="nav-item">
           <a class="nav-link {% if segment == 'dashboard' %}active{% endif %}" href="{{ url_for('home_blueprint.index') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
               <svg width="12px" height="12px" viewBox="0 0 45 40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">

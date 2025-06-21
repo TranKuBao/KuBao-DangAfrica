@@ -133,7 +133,7 @@
 <div class="container-fluid py-4">
   <!--các tag tổng thống kê-->  
   {% include "partials/header-statictical.html"%}
-
+  
   <!-- thông tin các trường mình sẽ hiện ra ở đây ở đây-->
   {% include "partials/add_target.html"%}
   <script>
@@ -206,29 +206,39 @@
         <div class="card-header pb-0 p-3">
           <div class="row">
             <div class="col-6 d-flex align-items-center">
-              <h6 class="mb-0">List_Target</h6>
-            </div>
-            <div class="col-6 text-end">
-              <a class="btn bg-gradient-dark mb-0" id="btn-addtargets"><i class="fas fa-plus"></i>&nbsp;&nbsp;Add Target</a>
-            </div>
-          </div>
-        </div>
-        <div class="card-header pb-0 p-3">
-          <div class="row">
-            <div class="col-6 d-flex align-items-center">
-              <div class="input-group">
-                <span class="input-group-text text-body"
-                  ><i class="fas fa-search" aria-hidden="true"></i
-                ></span>
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Tìm kiếm ..."
-                  id="id_search_target"
-                />
+              <div class="row">
+                <h6 class="mb-0">List_POCs</h6>
+                <div class="col-6 d-flex align-items-center" style="width:100% !important; margin-top:10px !important;">
+                  <div class="input-group" >
+                    <span class="input-group-text text-body"><i class="fas fa-search" aria-hidden="true"></i></span>
+                    <input
+                      type="text"
+                      class="form-control"
+                      placeholder="Tìm kiếm ..."
+                      id="id_search_target"
+                      
+                    />
+                  </div>
+                </div>
+                <div class="col-6 text-end"><!--có thể thêm cái nút vô đây--></div>
               </div>
             </div>
-            <div class="col-6 text-end"><!--có thể thêm cái nút vô đây--></div>
+            <div class="col-6 text-end">
+              <a class="col-lg-3 btn bg-gradient-dark mb-0" id="btn-addpocs"><i class="fas fa-plus"></i>&nbsp;&nbsp;Add POC</a>
+              <!-- Thêm POC ở chỗ add file này-->
+              <div class="card p-3 text-end" id="card-addpoc" hidden style="border: 0.5px solid; margin-top:10px;">
+                      <label class="form-control-label" for="input-last-name"
+                        >File POC</label
+                      >
+                      <input
+                        type="file"
+                        id="input-LinkImg"
+                        class="form-control d-inline-block"
+                        accept=".pdf,.jpg,.png" 
+                        style="width:70%; border: 2px solid rgb(15, 23, 15);"
+                      />
+              </div>                    
+            </div>
           </div>
         </div>
         <div class="card-body px-0 pt-0 pb-2">
@@ -264,7 +274,7 @@
               
               <tbody id="targetTableBody" >
                 <!--Hiển thị list target ở đây-->
-                {% include "partials/partial_list_targets.html"%}
+                {% include "partials/partial_list_POCs.html"%}
               </tbody>
               
             </table>
@@ -309,25 +319,25 @@
 
 
 
-<!--Script button hiên thị tham target-->
+<!--Script button hiên thị tham POC-->
 <script>
-  function on_off_addtarget() {
-    if (document.getElementById("edittarget-hidden").hidden == true) {
-      document.getElementById("edittarget-hidden").hidden = false;
-      document.getElementById("addtargets").innerHTML =
+  function on_off_addic() {
+    if (document.getElementById("card-addpoc").hidden == true) {
+      document.getElementById("card-addpoc").hidden = false;
+      document.getElementById("btn-addpocs").innerHTML =
         '<i class="fas fa-minus"></i>&nbsp;&nbsp;Hide Form';
     } else {
-      document.getElementById("edittarget-hidden").hidden = true;
-      document.getElementById("btn-addtargets").innerHTML =
-        '<i class="fas fa-plus"></i>&nbsp;&nbsp;Add Target';
+      document.getElementById("card-addpoc").hidden = true;
+      document.getElementById("btn-addpocs").innerHTML =
+        '<i class="fas fa-plus"></i>&nbsp;&nbsp;Add POC';
     }
   }
   document
-    .getElementById("btn-addtargets")
+    .getElementById("btn-addpocs")
     .addEventListener("click", function (event) {
       event.preventDefault();
-      console.log("Nút thêm Target đã được nhấn");
-      on_off_addtarget();
+      console.log("Nút thêm POCs đã được nhấn");
+      on_off_addic();
     });
 </script>
 
@@ -504,146 +514,146 @@
 </script>
 
 <script>
-let currentPage = 1;
-let totalPages = {{ total_pages|default(1) }};
-let visiblePages = 5;
+  let currentPage = 1;
+  let totalPages = {{ total_pages|default(1) }};
+  let visiblePages = 5;
 
-function initPagination() {
-  updatePaginationDisplay();
-  updateNavigationButtons();
-  updatePageInfo();
-  showContent(currentPage, document.getElementById("id_search_target").value);
-}
-
-function showContent(page, searchInput = "") {
-  let url = `/api/targets?page=${page}`;
-  if (searchInput.trim()) {
-    url += `&search=${encodeURIComponent(searchInput.trim())}`;
+  function initPagination() {
+    updatePaginationDisplay();
+    updateNavigationButtons();
+    updatePageInfo();
+    showContent(currentPage, document.getElementById("id_search_target").value);
   }
 
-  document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>';
+  function showContent(page, searchInput = "") {
+    let url = `/api/targets?page=${page}`;
+    if (searchInput.trim()) {
+      url += `&search=${encodeURIComponent(searchInput.trim())}`;
+    }
 
-  fetch(url)
-    .then((response) => {
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      return response.json();
-    })
-    .then((data) => {
-      if (data.total_pages !== undefined) {
-        totalPages = data.total_pages;
-      }
-      document.querySelector("#targetTableBody").innerHTML = data.html;
-      updatePaginationDisplay();
-      updateNavigationButtons();
-      updatePageInfo();
-    })
-    .catch((error) => {
-      console.error("Lỗi khi tải danh sách targets:", error);
-      document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Lỗi tải dữ liệu</td></tr>';
-    });
-}
+    document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>';
 
-function goToPage(page) {
-  if (!page || isNaN(page) || page < 1 || page > totalPages || page === currentPage) return;
-
-  const searchValue = document.getElementById("id_search_target").value;
-  currentPage = page;
-  showContent(page, searchValue);
-}
-
-function addPageButton(pageNum) {
-  const container = document.getElementById("paginationContainer");
-  const button = document.createElement("div");
-  button.className = `page-item ${pageNum === currentPage ? "active" : ""}`;
-  button.innerHTML = `<span>${pageNum}</span>`;
-  button.onclick = () => goToPage(pageNum);
-  container.appendChild(button);
-}
-
-function addEllipsis() {
-  const container = document.getElementById("paginationContainer");
-  const ellipsis = document.createElement("div");
-  ellipsis.className = "page-item disabled";
-  ellipsis.innerHTML = "<span>...</span>";
-  container.appendChild(ellipsis);
-}
-
-function updatePaginationDisplay() {
-  const container = document.getElementById("paginationContainer");
-  container.innerHTML = "";
-
-  let startPage, endPage;
-  const halfVisible = Math.floor(visiblePages / 2);
-
-  if (totalPages <= visiblePages) {
-    startPage = 1;
-    endPage = totalPages;
-  } else if (currentPage <= halfVisible) {
-    startPage = 1;
-    endPage = visiblePages;
-  } else if (currentPage >= totalPages - halfVisible) {
-    startPage = totalPages - visiblePages + 1;
-    endPage = totalPages;
-  } else {
-    startPage = currentPage - halfVisible;
-    endPage = currentPage + halfVisible;
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.json();
+      })
+      .then((data) => {
+        if (data.total_pages !== undefined) {
+          totalPages = data.total_pages;
+        }
+        document.querySelector("#targetTableBody").innerHTML = data.html;
+        updatePaginationDisplay();
+        updateNavigationButtons();
+        updatePageInfo();
+      })
+      .catch((error) => {
+        console.error("Lỗi khi tải danh sách targets:", error);
+        document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Lỗi tải dữ liệu</td></tr>';
+      });
   }
 
-  if (startPage > 1) {
-    addPageButton(1);
-    if (startPage > 2) addEllipsis();
+  function goToPage(page) {
+    if (!page || isNaN(page) || page < 1 || page > totalPages || page === currentPage) return;
+
+    const searchValue = document.getElementById("id_search_target").value;
+    currentPage = page;
+    showContent(page, searchValue);
   }
 
-  for (let i = startPage; i <= endPage; i++) {
-    addPageButton(i);
+  function addPageButton(pageNum) {
+    const container = document.getElementById("paginationContainer");
+    const button = document.createElement("div");
+    button.className = `page-item ${pageNum === currentPage ? "active" : ""}`;
+    button.innerHTML = `<span>${pageNum}</span>`;
+    button.onclick = () => goToPage(pageNum);
+    container.appendChild(button);
   }
 
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1) addEllipsis();
-    addPageButton(totalPages);
+  function addEllipsis() {
+    const container = document.getElementById("paginationContainer");
+    const ellipsis = document.createElement("div");
+    ellipsis.className = "page-item disabled";
+    ellipsis.innerHTML = "<span>...</span>";
+    container.appendChild(ellipsis);
   }
-}
 
-function updateNavigationButtons() {
-  document.getElementById("prevBtn").disabled = currentPage === 1;
-  document.getElementById("nextBtn").disabled = currentPage === totalPages;
-}
+  function updatePaginationDisplay() {
+    const container = document.getElementById("paginationContainer");
+    container.innerHTML = "";
 
-function updatePageInfo() {
-  document.getElementById("currentPageInfo").textContent = currentPage;
-  document.getElementById("totalPagesInfo").textContent = totalPages;
-}
+    let startPage, endPage;
+    const halfVisible = Math.floor(visiblePages / 2);
 
-// Tìm kiếm realtime có debounce
-function debounce(func, delay) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), delay);
-  };
-}
+    if (totalPages <= visiblePages) {
+      startPage = 1;
+      endPage = totalPages;
+    } else if (currentPage <= halfVisible) {
+      startPage = 1;
+      endPage = visiblePages;
+    } else if (currentPage >= totalPages - halfVisible) {
+      startPage = totalPages - visiblePages + 1;
+      endPage = totalPages;
+    } else {
+      startPage = currentPage - halfVisible;
+      endPage = currentPage + halfVisible;
+    }
 
-document.addEventListener("DOMContentLoaded", function () {
-  initPagination();
+    if (startPage > 1) {
+      addPageButton(1);
+      if (startPage > 2) addEllipsis();
+    }
 
-  const searchInput = document.getElementById("id_search_target");
-  searchInput.addEventListener("input", debounce(function () {
-    currentPage = 1;
-    showContent(currentPage, this.value);
-  }, 400));
+    for (let i = startPage; i <= endPage; i++) {
+      addPageButton(i);
+    }
 
-  searchInput.addEventListener("keypress", function (e) {
-    if (e.key === "Enter") {
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) addEllipsis();
+      addPageButton(totalPages);
+    }
+  }
+
+  function updateNavigationButtons() {
+    document.getElementById("prevBtn").disabled = currentPage === 1;
+    document.getElementById("nextBtn").disabled = currentPage === totalPages;
+  }
+
+  function updatePageInfo() {
+    document.getElementById("currentPageInfo").textContent = currentPage;
+    document.getElementById("totalPagesInfo").textContent = totalPages;
+  }
+
+  // Tìm kiếm realtime có debounce
+  function debounce(func, delay) {
+    let timeout;
+    return function (...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    initPagination();
+
+    const searchInput = document.getElementById("id_search_target");
+    searchInput.addEventListener("input", debounce(function () {
       currentPage = 1;
       showContent(currentPage, this.value);
-    }
-  });
+    }, 400));
 
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "ArrowLeft") goToPage(currentPage - 1);
-    else if (e.key === "ArrowRight") goToPage(currentPage + 1);
+    searchInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        currentPage = 1;
+        showContent(currentPage, this.value);
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") goToPage(currentPage - 1);
+      else if (e.key === "ArrowRight") goToPage(currentPage + 1);
+    });
   });
-});
 
 </script>
 
