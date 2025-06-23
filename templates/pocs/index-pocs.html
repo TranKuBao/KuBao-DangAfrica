@@ -134,69 +134,7 @@
   <!--các tag tổng thống kê-->  
   {% include "partials/header-statictical.html"%}
   
-  <!-- thông tin các trường mình sẽ hiện ra ở đây ở đây-->
-  {% include "partials/add_target.html"%}
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const form = document.querySelector("#edittarget-hidden form");
-
-      form.addEventListener("submit", async function (event) {
-        event.preventDefault(); // Prevent default form submission
-
-        // Collect form data
-        const formData = {
-          //Server_id: document.getElementById('Server_id').value,
-          Hostname: document.getElementById("Hostname").value,
-          Ip_address: document.getElementById("Ip_address").value,
-          Server_type: document.getElementById("Server_type").value,
-          Operating_system: document.getElementById("Operating_system").value,
-          Location: document.getElementById("Location").value,
-          Status: document.getElementById("Status").value,
-          Privilege_escalation: document.getElementById("Privilege_escalation")
-            .value,
-          Exploitation_level:
-            document.getElementById("Exploitation_level").value,
-          Id_vul_in_target: document.getElementById("Id_vul_in_target").value,
-          Notes: document.getElementById("Notes").value,
-        };
-        console.log(formData);
-        try {
-          const response = await fetch("/api/add_targets", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(formData),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-
-          const result = await response.json();
-          console.log("Success:", result);
-          alert("Form submitted successfully!");
-          form.reset(); // Reset form after successful submission
-        } catch (error) {
-          console.error("Error:", error);
-          alert("An error occurred while submitting the form.");
-        }
-      });
-
-      // Optional: Functions for form input focus effects
-      window.focused = function (element) {
-        element.parentElement.classList.add("is-focused");
-      };
-
-      window.defocused = function (element) {
-        if (!element.value) {
-          element.parentElement.classList.remove("is-filled");
-        }
-        element.parentElement.classList.remove("is-focused");
-      };
-    });
-  </script>
-  <!-- script on off tag add target-->
+  
 
   <!--table hiển thị list Mục tiêu ở đây-->
   <div class="row my-3">
@@ -215,7 +153,7 @@
                       type="text"
                       class="form-control"
                       placeholder="Tìm kiếm ..."
-                      id="id_search_target"
+                      id="id_search_poc"
                       
                     />
                   </div>
@@ -248,33 +186,29 @@
               <thead>
                 <tr>
                   <th
-                    class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
-                  >
-                    Websites
+                    class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"              >
+                    Name POC
                   </th>
                   <th
-                    class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
-                  >
-                    Type
+                    class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"  style="width: 400px; min-width: 120px;"  >
+                    Vulnerable version
                   </th>
                   <th
-                    class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
-                  >
-                    Status
+                    class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"                  >
+                    Platform
                   </th>
                   <th
-                    class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
+                    class="text-uppercase text-secondary text-xxs font-weight-bolder text-center opacity-7 ps-2"
                   >
-                    Vulnarebility
+                    Author-Refer
                   </th>
-                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder text-center opacity-7 ps-2">Completion</th>
                   <th class="text-secondary opacity-7"></th>
                 </tr>
               </thead>
               
-              <tbody id="targetTableBody" >
-                <!--Hiển thị list target ở đây-->
-                {% include "partials/partial_list_POCs.html"%}
+              <tbody id="POCTableBody" >
+                <!--Hiển thị list POC ở đây-->
+                {% include "pocs/partial-list-pocs.html"%}
               </tbody>
               
             </table>
@@ -314,10 +248,150 @@
     </div>
   </div>
 </div>
+<!--Phân trang-->
+<script>
+  let currentPage = 1;
+  let totalPages = {{ total_pages|default(1) }};
+  let visiblePages = 5;
 
-{% endblock content %} {% block extra_js %}
+  function initPagination() {
+    updatePaginationDisplay();
+    updateNavigationButtons();
+    updatePageInfo();
+    showContent(currentPage, document.getElementById("id_search_poc").value);
+  }
 
+  function showContent(page, searchInput = "") {
+    let url = `/api/fetch-pocs?page=${page}`;
+    if (searchInput.trim()) {
+      url += `&search=${encodeURIComponent(searchInput.trim())}`;
+    }
 
+    document.querySelector("#POCTableBody").innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>';
+
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.json();
+      })
+      .then((data) => {
+        if (data.total_pages !== undefined) {
+          totalPages = data.total_pages;
+        }
+        document.querySelector("#POCTableBody").innerHTML = data.html;
+        updatePaginationDisplay();
+        updateNavigationButtons();
+        updatePageInfo();
+      })
+      .catch((error) => {
+        console.error("Lỗi khi tải danh sách pocs:", error);
+        document.querySelector("#POCTableBody").innerHTML = '<tr><td colspan="6">Lỗi tải dữ liệu</td></tr>';
+      });
+  }
+
+  function goToPage(page) {
+    if (!page || isNaN(page) || page < 1 || page > totalPages || page === currentPage) return;
+
+    const searchValue = document.getElementById("id_search_poc").value;
+    currentPage = page;
+    showContent(page, searchValue);
+  }
+
+  function addPageButton(pageNum) {
+    const container = document.getElementById("paginationContainer");
+    const button = document.createElement("div");
+    button.className = `page-item ${pageNum === currentPage ? "active" : ""}`;
+    button.innerHTML = `<span>${pageNum}</span>`;
+    button.onclick = () => goToPage(pageNum);
+    container.appendChild(button);
+  }
+
+  function addEllipsis() {
+    const container = document.getElementById("paginationContainer");
+    const ellipsis = document.createElement("div");
+    ellipsis.className = "page-item disabled";
+    ellipsis.innerHTML = "<span>...</span>";
+    container.appendChild(ellipsis);
+  }
+
+  function updatePaginationDisplay() {
+    const container = document.getElementById("paginationContainer");
+    container.innerHTML = "";
+
+    let startPage, endPage;
+    const halfVisible = Math.floor(visiblePages / 2);
+
+    if (totalPages <= visiblePages) {
+      startPage = 1;
+      endPage = totalPages;
+    } else if (currentPage <= halfVisible) {
+      startPage = 1;
+      endPage = visiblePages;
+    } else if (currentPage >= totalPages - halfVisible) {
+      startPage = totalPages - visiblePages + 1;
+      endPage = totalPages;
+    } else {
+      startPage = currentPage - halfVisible;
+      endPage = currentPage + halfVisible;
+    }
+
+    if (startPage > 1) {
+      addPageButton(1);
+      if (startPage > 2) addEllipsis();
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      addPageButton(i);
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) addEllipsis();
+      addPageButton(totalPages);
+    }
+  }
+
+  function updateNavigationButtons() {
+    document.getElementById("prevBtn").disabled = currentPage === 1;
+    document.getElementById("nextBtn").disabled = currentPage === totalPages;
+  }
+
+  function updatePageInfo() {
+    document.getElementById("currentPageInfo").textContent = currentPage;
+    document.getElementById("totalPagesInfo").textContent = totalPages;
+  }
+
+  // Tìm kiếm realtime có debounce
+  function debounce(func, delay) {
+    let timeout;
+    return function (...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    initPagination();
+
+    const searchInput = document.getElementById("id_search_poc");
+    searchInput.addEventListener("input", debounce(function () {
+      currentPage = 1;
+      showContent(currentPage, this.value);
+    }, 400));
+
+    searchInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        currentPage = 1;
+        showContent(currentPage, this.value);
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") goToPage(currentPage - 1);
+      else if (e.key === "ArrowRight") goToPage(currentPage + 1);
+    });
+  });
+
+</script>
 
 <!--Script button hiên thị tham POC-->
 <script>
@@ -340,6 +414,11 @@
       on_off_addic();
     });
 </script>
+{% endblock content %} {% block extra_js %}
+
+
+
+
 
 <script>
   var ctx = document.getElementById("chart-bars").getContext("2d");
@@ -513,149 +592,7 @@
   });
 </script>
 
-<script>
-  let currentPage = 1;
-  let totalPages = {{ total_pages|default(1) }};
-  let visiblePages = 5;
 
-  function initPagination() {
-    updatePaginationDisplay();
-    updateNavigationButtons();
-    updatePageInfo();
-    showContent(currentPage, document.getElementById("id_search_target").value);
-  }
-
-  function showContent(page, searchInput = "") {
-    let url = `/api/targets?page=${page}`;
-    if (searchInput.trim()) {
-      url += `&search=${encodeURIComponent(searchInput.trim())}`;
-    }
-
-    document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>';
-
-    fetch(url)
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.json();
-      })
-      .then((data) => {
-        if (data.total_pages !== undefined) {
-          totalPages = data.total_pages;
-        }
-        document.querySelector("#targetTableBody").innerHTML = data.html;
-        updatePaginationDisplay();
-        updateNavigationButtons();
-        updatePageInfo();
-      })
-      .catch((error) => {
-        console.error("Lỗi khi tải danh sách targets:", error);
-        document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Lỗi tải dữ liệu</td></tr>';
-      });
-  }
-
-  function goToPage(page) {
-    if (!page || isNaN(page) || page < 1 || page > totalPages || page === currentPage) return;
-
-    const searchValue = document.getElementById("id_search_target").value;
-    currentPage = page;
-    showContent(page, searchValue);
-  }
-
-  function addPageButton(pageNum) {
-    const container = document.getElementById("paginationContainer");
-    const button = document.createElement("div");
-    button.className = `page-item ${pageNum === currentPage ? "active" : ""}`;
-    button.innerHTML = `<span>${pageNum}</span>`;
-    button.onclick = () => goToPage(pageNum);
-    container.appendChild(button);
-  }
-
-  function addEllipsis() {
-    const container = document.getElementById("paginationContainer");
-    const ellipsis = document.createElement("div");
-    ellipsis.className = "page-item disabled";
-    ellipsis.innerHTML = "<span>...</span>";
-    container.appendChild(ellipsis);
-  }
-
-  function updatePaginationDisplay() {
-    const container = document.getElementById("paginationContainer");
-    container.innerHTML = "";
-
-    let startPage, endPage;
-    const halfVisible = Math.floor(visiblePages / 2);
-
-    if (totalPages <= visiblePages) {
-      startPage = 1;
-      endPage = totalPages;
-    } else if (currentPage <= halfVisible) {
-      startPage = 1;
-      endPage = visiblePages;
-    } else if (currentPage >= totalPages - halfVisible) {
-      startPage = totalPages - visiblePages + 1;
-      endPage = totalPages;
-    } else {
-      startPage = currentPage - halfVisible;
-      endPage = currentPage + halfVisible;
-    }
-
-    if (startPage > 1) {
-      addPageButton(1);
-      if (startPage > 2) addEllipsis();
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      addPageButton(i);
-    }
-
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) addEllipsis();
-      addPageButton(totalPages);
-    }
-  }
-
-  function updateNavigationButtons() {
-    document.getElementById("prevBtn").disabled = currentPage === 1;
-    document.getElementById("nextBtn").disabled = currentPage === totalPages;
-  }
-
-  function updatePageInfo() {
-    document.getElementById("currentPageInfo").textContent = currentPage;
-    document.getElementById("totalPagesInfo").textContent = totalPages;
-  }
-
-  // Tìm kiếm realtime có debounce
-  function debounce(func, delay) {
-    let timeout;
-    return function (...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), delay);
-    };
-  }
-
-  document.addEventListener("DOMContentLoaded", function () {
-    initPagination();
-
-    const searchInput = document.getElementById("id_search_target");
-    searchInput.addEventListener("input", debounce(function () {
-      currentPage = 1;
-      showContent(currentPage, this.value);
-    }, 400));
-
-    searchInput.addEventListener("keypress", function (e) {
-      if (e.key === "Enter") {
-        currentPage = 1;
-        showContent(currentPage, this.value);
-      }
-    });
-
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowLeft") goToPage(currentPage - 1);
-      else if (e.key === "ArrowRight") goToPage(currentPage + 1);
-    });
-  });
-
-</script>
 
 <script src="{{ url_for('static', filename='assets/js/plugins/chartjs.min.js') }}"></script>
 

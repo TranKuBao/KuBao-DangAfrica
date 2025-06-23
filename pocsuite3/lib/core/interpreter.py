@@ -8,7 +8,8 @@ import re
 
 from pocsuite3.lib.controller.controller import start
 from pocsuite3.lib.core.common import banner, index_modules, data_to_stdout, humanize_path, module_required, \
-    get_poc_name,get_poc_appname,get_poc_appversion, stop_after, get_local_ip, is_ipv6_address_format, rtrim, ltrim
+    get_poc_name,get_poc_appname,get_poc_appversion, stop_after, get_local_ip, is_ipv6_address_format, rtrim, ltrim, \
+    get_poc_author, get_poc_vulType, get_poc_references
 from pocsuite3.lib.core.data import logger, paths, kb, conf
 from pocsuite3.lib.core.enums import POC_CATEGORY, AUTOCOMPLETE_TYPE
 from pocsuite3.lib.core.exception import PocsuiteBaseException, PocsuiteShellQuitException
@@ -454,7 +455,12 @@ class PocsuiteInterpreter(BaseInterpreter):
             name = get_poc_name(code)
             appname=get_poc_appname(code)
             appversion=get_poc_appversion(code)
-            item={"appname":appname,"name":name,"appversion":appversion,"path":tmp_module}
+            #Mlemkem đã fix ở đây
+            author=get_poc_author(code)
+            references=get_poc_references(code)
+            vulType=get_poc_vulType(code)
+            item={"appname":appname,"name":name,"appversion":appversion,"path":tmp_module,
+                  "author":author, "references":references, "vulType":vulType}
             search_result.append(item)
         #self.last_search lưu dữ liệu để tìm kiếm POC theo Index
         self.last_search.clear()

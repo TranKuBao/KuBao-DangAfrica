@@ -12,6 +12,41 @@ from apps.authentication.models import Users
 from flask_wtf import FlaskForm
 from apps.models import Targets
 import subprocess
+import re
+import sys,types
+from os import urandom,path as ospath,remove as osremove
+import os
+
+##IMPORTING POCSUITE3
+from pocsuite3.lib.core.data import kb,conf
+lib_path = ospath.abspath(ospath.join('pocsuite3'))
+# thêm thư mục cần load vào trong hệ thống
+sys.path.append(lib_path)
+try:
+    import pocsuite3
+except ImportError:
+    sys.path.append(ospath.abspath(ospath.join(ospath.dirname(__file__), ospath.pardir)))
+from pocsuite3.cli import check_environment, module_path
+from pocsuite3 import set_paths
+from pocsuite3.lib.core.interpreter import PocsuiteInterpreter
+from pocsuite3.lib.core.option import init_options, _cleanup_options
+# from pocsuite3.modules.listener.reverse_tcp import  WebServer
+#Running Poc_core
+check_environment()
+set_paths(module_path())
+init_options()
+poc_core = PocsuiteInterpreter()
+## Ending IMPORTING POCSUITE#
+
+UPLOAD_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'pocsuite3', 'pocs')))
+CHECK_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'checkversionplatform')))
+REPORT_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'reports')))
+POCSUITE3_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'pocsuite3')))
+
+
+
+
+
 
 #bắt đầu code từ đây
 @blueprint.route('/targets')
@@ -94,9 +129,174 @@ def run_cmd():
 #POCs
 @blueprint.route('/pocs')
 def pocs():
-    return render_template('targets/index-pocs.html', segment='index-pocs')
+    return render_template('pocs/index-pocs.html', segment='index-pocs')
+
+def matches_search_poc(poc, keyword):
+    keyword = keyword.lower()
+    return any([
+        keyword in (poc.get("name") or "").lower(),
+        keyword in (poc.get("appname") or "").lower(),
+        keyword in (poc.get("appversion") or "").lower(),
+        keyword in (poc.get("vulType") or "").lower(),
+        keyword in (poc.get("author") or "").lower(),
+        keyword in (poc.get("references") or "").lower()
+    ])
+
+@blueprint.route('/api/fetch-pocs', methods=['GET'])
+def fetch_pocs():
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('limit', 10))
+    keyword = request.args.get('search', '').strip().lower()
+
+    listModules = poc_core.get_all_modules()
+    allPocs = []
+    count = 0
+    for module in listModules:
+        count += 1
+        oneRow = {
+            "id": str(count),
+            "appversion": module["appversion"],
+            "name": module["name"],
+            "appname": module["appname"],
+            "path": module["path"],
+            "author": module["author"],
+            "references": module["references"],
+            "vulType": module["vulType"]
+        }
+        allPocs.append(oneRow)
+
+    # ✳️ Lọc theo từ khóa nếu có
+    if keyword:
+        allPocs = [poc for poc in allPocs if matches_search_poc(poc, keyword)]
+
+    total_items = len(allPocs)
+    total_pages = max((total_items + per_page - 1) // per_page, 1)
+
+    # Cắt theo trang
+    start = (page - 1) * per_page
+    end = start + per_page
+    current_pocs = allPocs[start:end]
+
+    html = render_template("pocs/partial-list-pocs.html", pocs=current_pocs)
+
+    return jsonify({
+        'html': html,
+        'total_pages': total_pages,
+        'current_page': page
+    })
 
 
+@blueprint.route('/get-poc-info', methods = ['POST'])
+def get_poc_info():
+    if not 'poc-path' in request.form:
+        return jsonify({'status': -1, 'msg': 'poc-path is required'})
+
+    poc_path = request.form['poc-path']
+    if not ('pocs' in poc_path):
+        poc_path = os.path.join('pocs', poc_path)
+    try:
+        poc_core.command_use(poc_path)
+    except:
+        return jsonify({'status': -1, 'msg': 'No poc is available by that poc-path'})
+    if not poc_core.current_module:
+        return jsonify({'status': -1, 'msg': 'No poc is available by that poc-path'})
+    modeString = ''
+    if hasattr(poc_core.current_module, '_shell'):
+        modeString +=  'shell '
+    if hasattr(poc_core.current_module, '_verify'):
+        modeString +=  'verify '
+    if hasattr(poc_core.current_module, '_attack'):
+        modeString +=  'attack '
+    currentPoC = poc_core.current_module
+
+    isServerOnline = []
+    if(server.is_active):
+        isServerOnline = [session['ip'],session['port']]
+    data = {
+        'info': get_info_poc_as_dict(),
+        'modes':modeString,
+        'global_options': get_detail_options(currentPoC.global_options),
+        'payload_options': get_detail_options(currentPoC.payload_options),
+        'poc-path':poc_path,
+        'isServerOnline':isServerOnline
+    }
+    if(hasattr(currentPoC,'options')):
+        data['options'] =  get_detail_options(currentPoC.options)
+    # print(data['options'])
+    return jsonify({'status': 0, 'data': data})
+
+def get_info_poc_as_dict():
+    if not poc_core.current_module:
+        return {}
+    fields = ["name", "VulID", "version", "author", "vulDate", "createDate", "updateDate", "references",
+                  "appPowerLink", "appName", "appVersion", "vulType", "desc"]
+    displayFields = ["Name", "Vulnerable ID", "PoC version", "Author", "Vulnerability Data", "Created Data", "Updated date", "References",
+                  "Platform Homepage", "Platform", "Platform Version", "Vulnerability Type", "PoC Description"]
+    ret = {}
+    # for field in fields:
+    for i in range(len(fields)):
+            value = getattr(poc_core.current_module, fields[i], None)
+            if value:
+                ret[displayFields[i]] = str(value).strip()
+    return ret
+
+def get_detail_options(options):
+    ret = []
+    try:
+        for name, opt in options.items():
+            value = opt.value
+            ret.append([name, value, opt.type, opt.description])
+    except:
+        print("error in get_detail_options")
+            
+    return ret
+
+@blueprint.route('/verify-mode', methods = ['POST'])
+def VerifyMode():
+    params = {}
+    for key in request.form:
+        params[key] = request.form[key]
+    #Set params to pocsuite3
+    for key,val in params.items():
+        key = key.replace('-value','')
+        command = key + ' ' + val
+        print(command)
+        poc_core.command_set(command)
+        
+    #Realise MODE command --> VERIFY
+    poc_core.command_show('options')
+    result = {}
+    report = {}
+    try:
+        # _cleanup_options()
+        poc_core.command_verify()
+        tmp = poc_core.current_module.result
+        if(isinstance(tmp,dict)):
+            for key,val in tmp.items():
+                result[key] = val
+        else:
+            result['Result'] = str(tmp)
+        report['status'] = 'success'
+    except:
+        report['status'] = 'Fail'
+        result['Result'] = 'No result'   
+    
+    # newwww = html_report.HtmlReport()
+    # newwww.start()
+
+    result['Target'] = params['target-value']
+    # x = kb.plugins
+    result['Mode'] = 'Verified'
+    # result['target'] = params['target-value']
+    
+    
+    report['poc_name'] = poc_core.current_module.pocsuite3_module_path
+    report['vul_id'] = poc_core.current_module.vulID
+    report['app_name'] = poc_core.current_module.appName
+    report['app_version'] = poc_core.current_module.appVersion
+    
+    result['report'] = report
+    return jsonify({'status': 0, 'data': result})
 
 
 

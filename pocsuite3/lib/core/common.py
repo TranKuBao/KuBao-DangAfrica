@@ -493,7 +493,18 @@ def get_poc_appname(code):
 
 def get_poc_appversion(code):
     return extract_regex_result(POC_APPVERSION_REGEX, code)
-    
+
+#Mlemkem đã fix ở đây
+def get_poc_author(code):
+    return extract_regex_result(r'''(?sm)POCBase\):.*?author\s*=\s*['"](?P<result>.*?)['"]''', code)
+
+def get_poc_vulType(code):
+    return extract_regex_result(r'''(?sm)POCBase\):.*?vulType\s*=\s*['"](?P<result>.*?)['"]''', code)
+
+def get_poc_references(code):
+    return extract_regex_result(r'''(?sm)POCBase\):.*?references\s*=\s*['"](?P<result>.*?)['"]''', code)
+#########3
+
 def is_os_64bit():
     return machine().endswith('64')
 
