@@ -6,7 +6,7 @@
       <div>
         <!-- ảnh hệ điều hành -->
         <img
-          src="{{ url_for('static', filename='assets/img/team-2.jpg') }}"
+          src="{{ url_for('static', filename='assets/img/shield.png') }}"
           class="avatar avatar-sm me-3"
           alt="user1"
         />
@@ -53,29 +53,44 @@
           class="dropdown-item border-radius-md"
           href="javascript:;"
           style="color: black !important"
-          data-target-id="{{ poc.path }}"
+          data-poc-id="{{ poc.path }}"
           >Xem</a
         >
       </li>
       <li>
         <a
           class="dropdown-item border-radius-md"
-          href="javascript:;"
+          href="javascript:void(0);"
           style="color: black !important"
-          data-target-id="{{poc.path}}"
-          >Connect</a
+          data-poc-id="{{poc.path}}"
+          onclick="showPocModal('{{poc.name}}','{{poc.appversion}}','{{poc.appname}}')"
+          >Sử dụng</a
         >
       </li>
+      
+
       <li>
         <a
           class="dropdown-item border-radius-md"
           href="javascript:;"
           style="color: black !important"
-          data-target-id="{{poc.path}}"
+          data-poc-id="{{poc.path}}"
           >Xóa</a
         >
       </li>
     </ul>
   </td>
 </tr>
+
+
 {% endfor %}
+<script>
+  function showPocModal(pocName, appversion, appname) {
+  document.getElementById('pocModalLabel').innerText = 'POC: ' + pocName;
+  document.getElementById('target-value').value = appname || '';
+  document.getElementById('rport-value').value = appversion || '';
+  // ... cập nhật các field khác
+  const modal = new bootstrap.Modal(document.getElementById('pocModal'));
+  modal.show();
+}
+</script>

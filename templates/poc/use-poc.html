@@ -1,0 +1,199 @@
+
+
+
+<div class="modal fade" id="pocModal" tabindex="-1" aria-labelledby="pocModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content shadow-lg" style="background-color: #f8f9fa; border-radius: 12px;">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title font-weight-bold" id="pocModalLabel">Proof of Concept (POC)</h5>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row">
+          <!-- Target Options -->
+          <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
+            <h5 class="mb-3 text-primary">Target Options</h5>
+            <div class="form-group">
+              <label for="target-value" class="col-form-label font-weight-semibold">Target URL</label>
+              <input
+                type="text"
+                class="form-control"
+                id="target-value"
+                value="https://mta.edu.vn/"
+                placeholder="Enter target URL"
+              />
+            </div>
+            <div class="form-group" style="display: none;">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="chkBoxFileTarget" />
+                <label class="form-check-label" for="chkBoxFileTarget">Target from File</label>
+              </div>
+              <input type="file" id="multiFiles" name="files[]" multiple="multiple" />
+            </div>
+            <div class="form-group">
+              <label for="rport-value" class="col-form-label font-weight-semibold">Remote Port (RPORT)</label>
+              <input
+                type="text"
+                class="form-control"
+                id="rport-value"
+                placeholder="Enter remote port"
+              />
+            </div>
+          </div>
+
+          <!-- Module Options -->
+          <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
+            <h5 class="mb-3 text-primary">Module Options</h5>
+            <div id="module-options">
+              <div class="form-group">
+                <label
+                  for="cmd-value"
+                  class="col-form-label font-weight-semibold"
+                  data-toggle="tooltip"
+                  data-placement="top"
+                  title="Command to execute"
+                >
+                  Command (CMD)
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="cmd-value"
+                  placeholder="Enter command"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Payload Options -->
+          <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
+            <h5 class="mb-3 text-primary">Payload Options</h5>
+            <div class="form-group" style="display: none;">
+              <label for="payload-value" class="col-form-label font-weight-semibold">Payload</label>
+              <input
+                type="text"
+                class="form-control"
+                id="payload-value"
+                placeholder="Enter payload"
+              />
+            </div>
+            <div class="form-group">
+              <label for="lhost-value" class="col-form-label font-weight-semibold">Local Host (LHOST)</label>
+              <input
+                type="text"
+                class="form-control"
+                id="lhost-value"
+                placeholder="Enter local host"
+              />
+            </div>
+            <div class="form-group">
+              <label for="lport-value" class="col-form-label font-weight-semibold">Local Port (LPORT)</label>
+              <input
+                type="text"
+                class="form-control"
+                id="lport-value"
+                placeholder="Enter local port"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Result Section -->
+        <div class="row p-3">
+          <div class="col-12 bg-light rounded p-3" id="result">
+            <h6 class="text-muted">Results will appear here...</h6>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="background-color: #FFFFFF;">
+        <div class="d-flex justify-content-center flex-wrap w-100 gap-2">
+            <button type="button" class="btn btn-hacker mx-2 px-4" id="verify">
+            ▷ Verify
+            </button>
+            <button type="button" class="btn btn-hacker-warning mx-2 px-4" id="attack">
+            ⚠ Attack
+            </button>
+            <button type="button" class="btn btn-hacker mx-2 px-4" id="shell">
+            ⛓ Shell
+            </button>
+        </div>
+        <button type="button" class="btn btn-hacker-danger mt-3 px-4" data-dismiss="modal">
+            ✖ Close
+        </button>
+        <input type="hidden" class="form-control" id="hidden-input" />
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Additional CSS for Enhanced Styling -->
+<style>
+  .modal-content {
+    transition: all 0.3s ease;
+  }
+  .modal-content:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+  .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+  }
+  .btn {
+    transition: all 0.2s ease;
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+  .modal-header {
+    border-bottom: 2px solid #e9ecef;
+  }
+  .modal-footer {
+    border-top: 2px solid #e9ecef;
+  }
+  h5.text-primary {
+    font-weight: 600;
+  }
+  .shadow-sm {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  }
+   .btn-hacker {
+    font-family: 'Courier New', monospace;
+    border: 1px solid #f97316;
+    background-color: #000;
+    color: #f97316;
+    padding: 10px 20px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 5px #f97316;
+  }
+
+  .btn-hacker:hover {
+    background-color: #f97316;
+    color: #000;
+    box-shadow: 0 0 12px #f97316;
+  }
+
+  .btn-hacker-danger {
+    border: 1px solid #ff0033;
+    color: #ff0033;
+    box-shadow: 0 0 5px #ff0033;
+  }
+
+  .btn-hacker-danger:hover {
+    background-color: #ff0033;
+    color: #000;
+    box-shadow: 0 0 12px #ff0033;
+  }
+
+  .btn-hacker-warning {
+    border: 1px solid #f97316;
+    color: #f97316;
+    box-shadow: 0 0 5px #f97316;
+  }
+
+  .btn-hacker-warning:hover {
+    background-color: #f97316;
+    color: #000;
+    box-shadow: 0 0 12px #f97316;
+  }
+</style>

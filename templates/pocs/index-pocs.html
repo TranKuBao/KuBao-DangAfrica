@@ -27,13 +27,13 @@
 
     .page-item:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      box-shadow: 0 4px 12px #FFFFFF;
+      background: linear-gradient(135deg, #f97316 0%,rgb(141, 106, 45) 100%);
+      color: white !important;
     }
 
     .page-item.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #f97316 0%,rgb(162, 126, 75) 100%);
       color: white;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
@@ -62,7 +62,7 @@
     }
 
     .nav-button {
-      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      background: linear-gradient(135deg, #f97316 0%, #f97000 100%);
       border: none;
       color: white;
       padding: 8px 16px;
@@ -221,7 +221,7 @@
                 <div class="col-12 d-flex align-items-center" style="display: flex !important; justify-content: center !important;">
                     
                     <!-- Nút Previous -->
-                    <button class="nav-button" id="prevBtn" onclick="goToPage(currentPage - 1)">
+                    <button class="nav-button" id="prevBtn" onclick="goToPage(currentPage - 1)" >
                         ‹ Trước
                     </button>
 
@@ -231,7 +231,7 @@
                     </div>
 
                     <!-- Nút Next -->
-                    <button class="nav-button" id="nextBtn" onclick="goToPage(currentPage + 1)">
+                    <button class="nav-button" id="nextBtn" onclick="goToPage(currentPage + 1)" > 
                         Sau ›
                     </button>
 
@@ -248,6 +248,10 @@
     </div>
   </div>
 </div>
+
+{% include "poc/use-poc.html"%}
+
+
 <!--Phân trang-->
 <script>
   let currentPage = 1;
