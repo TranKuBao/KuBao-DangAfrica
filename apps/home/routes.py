@@ -4,18 +4,25 @@ Copyright (c) 2019 - present AppSeed.us
 """
 import wtforms
 from apps.home import blueprint
-from flask import render_template, request, redirect, url_for, jsonify
-from jinja2 import TemplateNotFound
-from flask_login import login_required, current_user
 from apps import db
-from apps.authentication.models import Users
-from flask_wtf import FlaskForm
 from apps.models import Targets
+from apps.authentication.models import Users
+from jinja2 import TemplateNotFound
+from flask_wtf import FlaskForm
+from flask_login import login_required, current_user
+from flask import render_template, request, redirect, url_for, jsonify, session
+
+from lib.server.server import Server
+from lib import database, const
+
+import os
+from os import urandom,path as ospath,remove as osremove
+
 import subprocess
 import re
 import sys,types
-from os import urandom,path as ospath,remove as osremove
-import os
+
+
 
 ##IMPORTING POCSUITE3
 from pocsuite3.lib.core.data import kb,conf
@@ -37,6 +44,8 @@ set_paths(module_path())
 init_options()
 poc_core = PocsuiteInterpreter()
 ## Ending IMPORTING POCSUITE#
+server = Server()
+db = database.Database()
 
 UPLOAD_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'pocsuite3', 'pocs')))
 CHECK_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'checkversionplatform')))
@@ -142,6 +151,7 @@ def matches_search_poc(poc, keyword):
         keyword in (poc.get("references") or "").lower()
     ])
 
+#lấy dữ liệu để hiện thị list POCs
 @blueprint.route('/api/fetch-pocs', methods=['GET'])
 def fetch_pocs():
     page = int(request.args.get('page', 1))
@@ -185,6 +195,11 @@ def fetch_pocs():
         'current_page': page
     })
 
+# xem thông tin của `1 poc
+@blueprint.route('/view-poc', methods = ['GET'])
+def poc():
+    poc_path=request.args.get('poc_path')
+    return render_template('poc/view-poc.html', segment='view_poc', poc_path=poc_path)
 
 @blueprint.route('/get-poc-info', methods = ['POST'])
 def get_poc_info():
@@ -297,6 +312,93 @@ def VerifyMode():
     
     result['report'] = report
     return jsonify({'status': 0, 'data': result})
+
+@blueprint.route('/attack-mode', methods = ['POST'])
+def AttackMode():
+    params = {}
+    for key in request.form:
+        params[key] = request.form[key]
+    #Set params to pocsuite3
+    for key,val in params.items():
+        key = key.replace('-value','')
+        command = key + ' ' + val
+        print(command)
+        poc_core.command_set(command)
+        
+    #Realise MODE command --> VERIFY
+    poc_core.command_show('options')
+    result = {}
+    try:
+        poc_core.command_attack()
+        tmp = poc_core.current_module.result
+        if(isinstance(tmp,dict)):
+            for key,val in tmp.items():
+                result[key] = val
+        else:
+            result['Result'] = str(tmp)
+    except:
+        result['Result'] = 'No result'   
+    
+    # newwww = html_report.HtmlReport()
+    # newwww.start()
+
+    result['Target'] = params['target-value']
+    # x = kb.plugins
+    result['Mode'] = 'Attacked'
+    return jsonify({'status': 0, 'data': result})
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
