@@ -399,6 +399,7 @@
     </div>
     
     {% include "poc/use-poc.html"%}
+    {% include "poc/edit-poc.html" %}
 
     <!-- phải thêm cái này mới sử dụng được ajax-->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -465,9 +466,33 @@
 
     <!-- Edit POC-->
     <script>
+      function getsourcepoc(pocpath)
+      {
+        $.ajax({
+          url:'/api/source-poc',
+          type:'POST',
+          data:{
+            poc_path: getQueryParam('poc_path')
+          },
+        })
+        .done((resp)=> {
+          console.log(resp);
+          if(resp['status'] ===0){
+            let data = resp['data']['source_code'];
+            //console.log(data);
+            $('#source-poc-id').val(data);
+          }
+        })
+        .fail((error) => {
+          console.error("Lỗi khi gọi API:", error);
+          $('#notiErrorPoc').text("Lỗi khi lấy dữ liệu từ server.");
+        });
+      }
+
       function showEditPocModal(pocpath) {
-      document.getElementById('pocModalLabel').innerText = 'POC: ' + pocpath.slice(5);
+      document.getElementById('editpocModalLabel').innerText = 'POC: ' + pocpath.slice(5);
       // ... cập nhật các field khác
+      getsourcepoc(pocpath);
       const modal = new bootstrap.Modal(document.getElementById('editPocModal'));
       modal.show();
     }

@@ -348,6 +348,28 @@ def AttackMode():
     return jsonify({'status': 0, 'data': result})
 
 
+#edit poc theo Source
+@blueprint.route('/api/source-poc', methods=['POST', 'GET'])
+def source_poc():
+    poc_path = request.form.get('poc_path') or request.args.get('poc_path')
+    if not poc_path:
+        return jsonify({'status': -1, 'msg': 'poc-path is required'})
+    poc_path = poc_path + '.py'
+    # Đảm bảo chỉ lấy file trong thư mục pocsuite3/pocs/
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'pocsuite3'))
+    file_path = os.path.abspath(os.path.join(base_dir, poc_path))
+    if not file_path.startswith(base_dir):
+        return jsonify({'status': -1, 'msg': 'Invalid path'})
+
+    if not os.path.isfile(file_path):
+        return jsonify({'status': -1, 'msg': 'File not found'})
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            source_code = f.read()
+        return jsonify({'status': 0, 'data': {'source_code': source_code}})
+    except Exception as e:
+        return jsonify({'status': -1, 'msg': str(e)})
 
     
 

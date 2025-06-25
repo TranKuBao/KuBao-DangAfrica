@@ -1,121 +1,36 @@
 
 
 
-<div class="modal fade" id="editPocModal" tabindex="-1" aria-labelledby="pocModalLabel" aria-hidden="true" >
+<div class="modal fade" id="editPocModal" tabindex="-1" aria-labelledby="editpocModalLabel" aria-hidden="true" >
     <div class="modal-dialog modal-xl">
       <div class="modal-content shadow-lg" style="background-color: #f8f9fa; border-radius: 12px;">
-        <div class="modal-header bg-primary text-white" style="background-color: #e9ecef !important;">
-          <h5 class="modal-title font-weight-bold" id="pocModalLabel">Proof of Concept (POC)</h5>
+        <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center" style="background-color: #e9ecef !important;">
+          <h5 class="modal-title font-weight-bold" id="editpocModalLabel">Proof of Concept (POC)</h5>
+          <button type="button" class="btn btn-hacker mx-2 px-4">
+            ▷ Save
+          </button>
         </div>
         <div class="modal-body p-4">
           <div class="row">
             <!-- Target Options -->
-            <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
-              <h5 class="mb-3 text-primary">Target Options</h5>
-              <div class="form-group">
-                <label for="target-value" class="col-form-label font-weight-semibold">Target URL</label>
-                <input
-                  type="text"
+            <div class=" p-3 bg-white rounded shadow-sm mb-3">
+              <h5 class="mb-3 text-primary">Edit Options</h5>
+              <span class="mb-3 text-primary" id="notiErrorPoc"></span>
+              <div class="form-group" style="margin-top: -22px !important;">
+                <label for="source-poc" class="col-form-label font-weight-semibold">Source code Poc</label>
+                <textarea
+                  rows="12"
                   class="form-control"
-                  id="target-value"
-                  value="https://mta.edu.vn/"
+                  id="source-poc-id"
+                  value="?????"
                   placeholder="Enter target URL"
-                />
-              </div>
-              <div class="form-group" style="display: none;">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="chkBoxFileTarget" />
-                  <label class="form-check-label" for="chkBoxFileTarget">Target from File</label>
-                </div>
-                <input type="file" id="multiFiles" name="files[]" multiple="multiple" />
-              </div>
-              <div class="form-group">
-                <label for="rport-value" class="col-form-label font-weight-semibold">Remote Port (RPORT)</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="rport-value"
-                  placeholder="Enter remote port"
-                />
-              </div>
+                /></textarea>
+              </div>              
             </div>
   
-            <!-- Module Options -->
-            <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
-              <h5 class="mb-3 text-primary">Module Options</h5>
-              <div id="module-options">
-                <div class="form-group">
-                  <label
-                    for="cmd-value"
-                    class="col-form-label font-weight-semibold"
-                    data-toggle="tooltip"
-                    data-placement="top"
-                    title="Command to execute"
-                  >
-                    Command (CMD)
-                  </label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="cmd-value"
-                    placeholder="Enter command"
-                  />
-                </div>
-              </div>
-            </div>
-  
-            <!-- Payload Options -->
-            <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
-              <h5 class="mb-3 text-primary">Payload Options</h5>
-              <div class="form-group" style="display: none;">
-                <label for="payload-value" class="col-form-label font-weight-semibold">Payload</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="payload-value"
-                  placeholder="Enter payload"
-                />
-              </div>
-              <div class="form-group">
-                <label for="lhost-value" class="col-form-label font-weight-semibold">Local Host (LHOST)</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="lhost-value"
-                  placeholder="Enter local host"
-                />
-              </div>
-              <div class="form-group">
-                <label for="lport-value" class="col-form-label font-weight-semibold">Local Port (LPORT)</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="lport-value"
-                  placeholder="Enter local port"
-                />
-              </div>
-            </div>
-          </div>
-  
-          <!-- Result Section -->
-          <div class="row p-3">
-            <div class="col-12 bg-light rounded p-3" id="result">
-              <h6 class="text-muted">Results will appear here...</h6>
-            </div>
           </div>
         </div>
         <div class="modal-footer" style="background-color: #FFFFFF;">
-          <div class="d-flex justify-content-center flex-wrap w-100 gap-2">
-              <button type="button" class="btn btn-hacker mx-2 px-4" id="verify">
-              ▷ Verify
-              </button>
-              <button type="button" class="btn btn-hacker-warning mx-2 px-4" id="attack">
-              ⚠ Attack
-              </button>
-              <button type="button" class="btn btn-hacker mx-2 px-4" id="shell">
-              ⛓ Shell
-              </button>
-          </div>
           <button type="button" class="btn btn-hacker-danger mt-3 px-4" data-bs-dismiss="modal" >
               ✖ Close
           </button>
@@ -159,7 +74,7 @@
      .btn-hacker {
       font-family: 'Courier New', monospace;
       border: 1px solid #f97316;
-      background-color: #000;
+      background-color: #FFFFFF;
       color: #f97316;
       padding: 10px 20px;
       border-radius: 4px;
@@ -169,7 +84,7 @@
   
     .btn-hacker:hover {
       background-color: #f97316;
-      color: #000;
+      color: #FFFFFF;
       box-shadow: 0 0 12px #f97316;
     }
   
