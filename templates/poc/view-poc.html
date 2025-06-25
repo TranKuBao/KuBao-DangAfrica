@@ -356,14 +356,14 @@
                 <div class="col-6 text-end">
                   <a
                     class="btn btn-outline-primary btn-sm mb-0"
-                    href="javascript:;"
-                    >Sử dụng</a
-                  >
+                    href="javascript:void(0);"
+                    onclick="showPocModal('{{poc_path}}')"
+                    >Sử dụng</a>
                   <a
                     class="btn btn-outline-primary btn-sm mb-0"
                     href="javascript:;"
-                    >Edit POC</a
-                  >
+                    onclick="showEditPocModal('{{poc_path}}')"
+                    >Edit POC</a>
                 </div>
               </div>
             </div>
@@ -371,30 +371,23 @@
               <div class="col">
                 <!-- Biểu đồ tròn -->
                 <div class="card">
-                  <div class="card-body row">
-                    <div
-                      class="chart-container sales-colors col-lg-3"
-                      style="width: 180px; height: 180px; margin-left: 0 auto"
-                    >
-                      <canvas
-                        id="salesChart"
-                        style="
-                          width: 100% !important;
-                          height: 100% !important;
-                          margin-right: 0 auto !important;
-                        "
-                      ></canvas>
-                    </div>
-                    <div class="chart-legend col-lg-7">
-                      <div class="legend-item col">
-                        <span>Đã khai thác được  33%</span>
-                        <span>Không khai thác được  17%</span>
-                        <span>Khác  50%</span>
-                      </div>
-                    </div>
+                  
+                  <div class="table-responsive p-0">
+                    <table class="table align-items-center mb-0">
+                      
+                      <thead>
+                        <tr>
+                          <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"  ></th>
+                          <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"  style="width: 400px; min-width: 120px;"  >
+                                                     </th>
+                      </thead>
+                      
+                      <tbody id="poc-info-display" >
+                      </tbody>
+                      
+                    </table>
                   </div>
-
-                  </div>
+                    
                 </div>
 
                 
@@ -405,6 +398,80 @@
       </div>
     </div>
     
+    {% include "poc/use-poc.html"%}
+
+    <!-- phải thêm cái này mới sử dụng được ajax-->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- script để lấy thông tin POC info-->
+    <script>
+      // Hàm kiểm tra object rỗng
+      function isEmptyDict(obj) {
+        return Object.keys(obj).length === 0;
+      }
+    
+      // Hàm lấy giá trị từ URL nếu muốn thay {{ poc_path }}
+      function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+      }
+    
+      function InitialSinglePocData(){       
+        $.ajax({
+          url: '/get-poc-info',
+          type: 'POST',
+          data: {
+            poc_path: getQueryParam('poc_path') // an toàn hơn
+          },
+        })
+        .done((response) => {
+          console.log(response);
+          if (response['status'] === 0) {
+            let data = response['data']['info'];
+            $('#poc-info-display').html('');
+            if (isEmptyDict(data)) {
+              $('#poc-info-display').text("Mô tả");
+              return;
+            }
+            for (let key in data) {
+              $('#poc-info-display').append($("<tr>")
+                .append($("<td>").text(key))
+                .append($("<td>").text(data[key]))
+              );
+            }
+          } else {
+            $('#poc-info-display').text("Không lấy được thông tin PoC.");
+          }
+        })
+        .fail((error) => {
+          console.error("Lỗi khi gọi API:", error);
+          $('#poc-info-display').text("Lỗi khi lấy dữ liệu từ server.");
+        });
+      }
+    
+      InitialSinglePocData();
+    </script>
+    
+    <!-- sử dụng POC -->
+    <script>
+      function showPocModal(pocpath) {
+      document.getElementById('pocModalLabel').innerText = 'POC: ' + pocpath.slice(5);
+      document.getElementById('target-value').value = 'http://vulbox.com' || '';
+      document.getElementById('rport-value').value = 1337 || '';
+      // ... cập nhật các field khác
+      const modal = new bootstrap.Modal(document.getElementById('pocModal'));
+      modal.show();
+    }
+    </script>
+
+    <!-- Edit POC-->
+    <script>
+      function showEditPocModal(pocpath) {
+      document.getElementById('pocModalLabel').innerText = 'POC: ' + pocpath.slice(5);
+      // ... cập nhật các field khác
+      const modal = new bootstrap.Modal(document.getElementById('editPocModal'));
+      modal.show();
+    }
+    </script>
   </div>
 
   {% include "includes/footer.html" %}

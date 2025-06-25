@@ -63,7 +63,7 @@
           href="javascript:void(0);"
           style="color: black !important"
           data-poc-id="{{poc.path}}"
-          onclick="showPocModal('{{poc.name}}','{{poc.appversion}}','{{poc.appname}}')"
+          onclick="showPocModal('{{poc.path}}')"
           >Sử dụng</a
         >
       </li>
@@ -85,10 +85,10 @@
 
 {% endfor %}
 <script>
-  function showPocModal(pocName, appversion, appname) {
-  document.getElementById('pocModalLabel').innerText = 'POC: ' + pocName;
-  document.getElementById('target-value').value = appname || '';
-  document.getElementById('rport-value').value = appversion || '';
+  function showPocModal(pocpath) {
+  document.getElementById('pocModalLabel').innerText = 'POC: ' + + pocpath.slice(5);
+  document.getElementById('target-value').value = 'http://vulbox.com' || '';
+  document.getElementById('rport-value').value = 1337 || '';
   // ... cập nhật các field khác
   const modal = new bootstrap.Modal(document.getElementById('pocModal'));
   modal.show();

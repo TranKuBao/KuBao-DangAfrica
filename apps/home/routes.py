@@ -203,10 +203,10 @@ def poc():
 
 @blueprint.route('/get-poc-info', methods = ['POST'])
 def get_poc_info():
-    if not 'poc-path' in request.form:
+    if not 'poc_path' in request.form:
         return jsonify({'status': -1, 'msg': 'poc-path is required'})
 
-    poc_path = request.form['poc-path']
+    poc_path = request.form['poc_path']
     if not ('pocs' in poc_path):
         poc_path = os.path.join('pocs', poc_path)
     try:
@@ -237,7 +237,7 @@ def get_poc_info():
     }
     if(hasattr(currentPoC,'options')):
         data['options'] =  get_detail_options(currentPoC.options)
-    # print(data['options'])
+    #print(data)
     return jsonify({'status': 0, 'data': data})
 
 def get_info_poc_as_dict():
