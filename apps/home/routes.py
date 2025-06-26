@@ -349,7 +349,7 @@ def AttackMode():
 
 
 #edit poc theo Source
-@blueprint.route('/api/source-poc', methods=['POST', 'GET'])
+@blueprint.route('/api/get-source-poc', methods=['POST', 'GET'])
 def source_poc():
     poc_path = request.form.get('poc_path') or request.args.get('poc_path')
     if not poc_path:
@@ -372,7 +372,27 @@ def source_poc():
     except Exception as e:
         return jsonify({'status': -1, 'msg': str(e)})
 
-    
+#save edit source POC
+@blueprint.route("/api/save-edit-source-poc", methods=['POST'])
+def save_edit_source_poc():
+    poc_path = request.form.get('poc_path') or request.args.get('poc_path')
+    source_code = request.form.get('source_code')
+
+    if not poc_path or not source_code:
+        return jsonify({'status': -1, 'msg': 'source_code OR poc-path is required'})
+    poc_path = poc_path + '.py'
+    #lấy đường dẫn
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'pocsuite3'))
+    file_path = os.path.abspath(os.path.join(base_dir, poc_path))
+    if not file_path.startswith(base_dir):
+        return jsonify({'status':-1, 'msg':'Invalid path'})
+
+    try:
+        with open(file_path,'w',encoding='utf-8') as f:
+            f.write(source_code)
+        return jsonify({'status':0, 'msg':'Save successfully'})
+    except Exception as e:
+        return jsonify({'status':-1, 'msg':str(e)})
 
 
 

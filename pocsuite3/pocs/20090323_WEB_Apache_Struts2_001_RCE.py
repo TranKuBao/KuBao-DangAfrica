@@ -7,6 +7,7 @@ from pocsuite3.api import Output, POCBase, POC_CATEGORY, register_poc, requests
 from pocsuite3.lib.core.enums import VUL_TYPE
 from pocsuite3.lib.core.interpreter_option import OptString
 
+#kukbao
 
 class DemoPOC(POCBase):
     vulID = ''  # ssvid

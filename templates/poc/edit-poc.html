@@ -7,7 +7,7 @@
         <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center" style="background-color: #e9ecef !important;">
           <h5 class="modal-title font-weight-bold" id="editpocModalLabel">Proof of Concept (POC)</h5>
           <div class="d-flex gap-2" style="margin-top: 10px !important;">
-            <button type="button" class="btn btn-hacker px-4" >▷ Save</button>
+            <button type="button" class="btn btn-hacker px-4" onclick="save_editPoc()">▷ Save</button>
             <button type="button" class="btn btn-hacker-danger px-4" data-bs-dismiss="modal">✖ Close</button>
           </div>
         </div>
@@ -123,5 +123,50 @@
       box-shadow: 0 0 12px #f97316;
     }
   </style>
-  <!-- CodeMirror CSS & JS (CDN) -->
-  
+   <!-- phải thêm cái này mới sử dụng được ajax-->
+   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+      }
+
+    function save_editPoc(){
+      if (confirm("Bạn có chắc chắn muốn tiếp tục không?")) {
+          // Người dùng bấm OK (Yes)
+          console.log("Người dùng chọn YES");
+          // Nếu dùng CodeMirror:
+      var source_code = editor ? editor.getValue() : document.getElementById('source-poc-id').value;
+
+      // gửi request lưu thông qua API
+      $.ajax({
+        url:'/api/save-edit-source-poc',
+        type: 'POST',
+        data: {
+          poc_path: getQueryParam('poc_path'),
+          source_code: source_code,
+        }
+      })
+      .done((resp) => {
+        console.log(resp);
+        if(resp['status'] === 0){
+          let mess = resp['msg'];
+          alert(mess);
+        }
+        else{
+          alert(resp['msg']);
+        }        
+      })
+      .fail((error) => {
+          console.error("Lỗi khi gọi API:", error);
+          $('#notiErrorPoc').text("Lỗi khi lưu dữ liệu từ server.");
+      });
+
+      } else {
+          // Người dùng bấm Cancel (No)
+          console.log("Người dùng chọn NO");
+      }
+      
+      
+    }
+  </script>
