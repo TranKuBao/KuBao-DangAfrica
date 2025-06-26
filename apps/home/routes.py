@@ -355,6 +355,7 @@ def source_poc():
     if not poc_path:
         return jsonify({'status': -1, 'msg': 'poc-path is required'})
     poc_path = poc_path + '.py'
+    #print(f"xx] {poc_path}")
     # Đảm bảo chỉ lấy file trong thư mục pocsuite3/pocs/
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'pocsuite3'))
     file_path = os.path.abspath(os.path.join(base_dir, poc_path))

@@ -6,35 +6,18 @@
       <div class="modal-content shadow-lg" style="background-color: #f8f9fa; border-radius: 12px;">
         <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center" style="background-color: #e9ecef !important;">
           <h5 class="modal-title font-weight-bold" id="editpocModalLabel">Proof of Concept (POC)</h5>
-          <button type="button" class="btn btn-hacker mx-2 px-4">
-            ▷ Save
-          </button>
+          <div class="d-flex gap-2" style="margin-top: 10px !important;">
+            <button type="button" class="btn btn-hacker px-4" >▷ Save</button>
+            <button type="button" class="btn btn-hacker-danger px-4" data-bs-dismiss="modal">✖ Close</button>
+          </div>
         </div>
-        <div class="modal-body p-4">
-          <div class="row">
-            <!-- Target Options -->
-            <div class=" p-3 bg-white rounded shadow-sm mb-3">
+        <div class="modal-body p-4"  >
               <h5 class="mb-3 text-primary">Edit Options</h5>
               <span class="mb-3 text-primary" id="notiErrorPoc"></span>
               <div class="form-group" style="margin-top: -22px !important;">
                 <label for="source-poc" class="col-form-label font-weight-semibold">Source code Poc</label>
-                <textarea
-                  rows="12"
-                  class="form-control"
-                  id="source-poc-id"
-                  value="?????"
-                  placeholder="Enter target URL"
-                /></textarea>
-              </div>              
-            </div>
-  
-          </div>
-        </div>
-        <div class="modal-footer" style="background-color: #FFFFFF;">
-          <button type="button" class="btn btn-hacker-danger mt-3 px-4" data-bs-dismiss="modal" >
-              ✖ Close
-          </button>
-          <input type="hidden" class="form-control" id="hidden-input" />
+                <textarea class="form-control" id="source-poc-id" name="source_code" rows="12" ></textarea>
+              </div>  
         </div>
   
       </div>
@@ -43,6 +26,21 @@
   
   <!-- Additional CSS for Enhanced Styling -->
   <style>
+    .CodeMirror {
+      font-size: 13px !important;
+      min-height: 400px;
+      height: 80%;
+      width: 100%;
+      background: #282a36;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    .modal-body {
+      max-height: none;
+      overflow-y: visible;
+      overflow-x: hidden; /* Chặn cuộn ngang */
+      padding: 1rem 1.5rem;
+    }
     .modal-content {
       transition: all 0.3s ease;
     }
@@ -64,6 +62,19 @@
     }
     .modal-footer {
       border-top: 2px solid #e9ecef;
+    }
+    .modal-header, .modal-footer {
+      padding-top: 0.25rem !important;
+      padding-bottom: 0.25rem !important;
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+      min-height: 28px;
+      align-items: center !important;
+    }
+    .modal-header .modal-title {
+      font-size: 1.1rem;
+      padding: 0;
+      margin: 0;
     }
     h5.text-primary {
       font-weight: 600;
@@ -112,3 +123,5 @@
       box-shadow: 0 0 12px #f97316;
     }
   </style>
+  <!-- CodeMirror CSS & JS (CDN) -->
+  
