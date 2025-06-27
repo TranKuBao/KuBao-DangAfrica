@@ -128,6 +128,24 @@
       border: 1px solid #ced4da;
       border-radius: 4px;
     }
+
+
+
+
+    .btn-orange {
+      margin-top: 10px;
+      background: linear-gradient(135deg, #f97316 0%, #f97000 100%);
+      color: #fff !important;
+      border: none;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15);
+      transition: all 0.2s;
+    }
+    .btn-orange:hover, .btn-orange:focus {
+      background: linear-gradient(135deg, #f97000 0%, #f97316 100%);
+      color: #fff !important;
+      box-shadow: 0 4px 16px rgba(249, 115, 22, 0.25);
+}
   </style>
 </head>
 <div class="container-fluid py-4">
@@ -153,9 +171,7 @@
                       type="text"
                       class="form-control"
                       placeholder="Tìm kiếm ..."
-                      id="id_search_poc"
-                      
-                    />
+                      id="id_search_poc"/>
                   </div>
                 </div>
                 <div class="col-6 text-end"><!--có thể thêm cái nút vô đây--></div>
@@ -164,17 +180,20 @@
             <div class="col-6 text-end">
               <a class="col-lg-3 btn bg-gradient-dark mb-0" id="btn-addpocs"><i class="fas fa-plus"></i>&nbsp;&nbsp;Add POC</a>
               <!-- Thêm POC ở chỗ add file này-->
-              <div class="card p-3 text-end" id="card-addpoc" hidden style="border: 0.5px solid; margin-top:10px;">
+              <div class="card p-3 text-end" id="card-addpoc" hidden style="box-shadow: 0 0 0 2px #ececec !important; margin-top:10px;">
                       <label class="form-control-label" for="input-last-name"
                         >File POC</label
                       >
                       <input
                         type="file"
-                        id="input-LinkImg"
+                        id="id-file-poc"
                         class="form-control d-inline-block"
-                        accept=".pdf,.jpg,.png" 
-                        style="width:70%; border: 2px solid rgb(15, 23, 15);"
+                        accept=".py" 
+                        style="width:70%; border: 2px solid rgba(0, 0, 0, 0.541);"
                       />
+                      <button type="button" class="btn btn-orange bg-gradient" onclick="upload_new_poc()" style="background-color: #f97316 !important;">
+                        <i class="fas fa-plus"></i>&nbsp;&nbsp;Upload_POC
+                      </button>
               </div>                    
             </div>
           </div>
@@ -418,7 +437,71 @@
       on_off_addic();
     });
 </script>
+
+<!-- upload new POC-->
+<script>
+  //debug file thôi
+  const file_poc = document.getElementById('id-file-poc');
+
+  file_poc.addEventListener('change', function () {
+    const file = this.files[0]; // Lấy file đầu tiên (nếu có)
+    if (file) {
+      console.log("Tên file:", file.name);
+      console.log("Dung lượng:", file.size, "bytes");
+      console.log("Kiểu:", file.type);
+    } else {
+      console.log("Chưa chọn file.");
+    }
+  });
+
+  function upload_new_poc(){
+    //lấy file
+    const file_poc = document.getElementById('id-file-poc');
+
+    const file = file_poc.files[0]; // Lấy file đầu tiên (nếu có)
+    if (!file) {
+      alert("Chưa chọn file.");
+      return;
+    } 
+
+    const filename = file.name;
+    const extendsion = filename.split('.').pop().toLowerCase();
+
+    if(extendsion !== 'py'){
+      alert("Chỉ cho phép file python !!!!");
+      return;
+    }
+
+    const formdata = new FormData();
+    formdata.append('poc_file',file);
+
+    $.ajax({
+      url:'/api/upload-poc',
+      type: "POST",
+      data: formdata,
+      contentType: false,
+      processData:false,
+    })
+    .done((resp)=>{
+      if(resp['status'] === 0){
+        alert(resp['msg']);
+      }
+      else{
+        alert(resp['msg']);
+      }
+    })
+    .fail((error)=>{
+      console.log('Lỗi: ',error);
+      alert(error);
+    });
+    return;
+
+  }
+</script>
+
 {% endblock content %} {% block extra_js %}
+
+
 
 
 
@@ -595,8 +678,6 @@
     },
   });
 </script>
-
-
 
 <script src="{{ url_for('static', filename='assets/js/plugins/chartjs.min.js') }}"></script>
 

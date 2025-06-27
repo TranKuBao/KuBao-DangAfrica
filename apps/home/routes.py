@@ -21,7 +21,7 @@ from os import urandom,path as ospath,remove as osremove
 import subprocess
 import re
 import sys,types
-
+import random
 
 
 ##IMPORTING POCSUITE3
@@ -37,6 +37,7 @@ from pocsuite3.cli import check_environment, module_path
 from pocsuite3 import set_paths
 from pocsuite3.lib.core.interpreter import PocsuiteInterpreter
 from pocsuite3.lib.core.option import init_options, _cleanup_options
+from pocsuite3.lib.core.common import extract_regex_result
 # from pocsuite3.modules.listener.reverse_tcp import  WebServer
 #Running Poc_core
 check_environment()
@@ -46,14 +47,7 @@ poc_core = PocsuiteInterpreter()
 ## Ending IMPORTING POCSUITE#
 server = Server()
 db = database.Database()
-
-UPLOAD_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'pocsuite3', 'pocs')))
-CHECK_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'checkversionplatform')))
-REPORT_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'reports')))
-POCSUITE3_FOLDER = str(os.path.abspath(os.path.join(__file__, '..', 'pocsuite3')))
-
-
-
+listJobs = []
 
 
 
@@ -395,6 +389,57 @@ def save_edit_source_poc():
         return jsonify({'status':-1, 'msg':str(e)})
 
 
+def LogLastStatus(status):
+    """
+    status -1,0,1 fail,running, success
+    """
+    global listJobs
+    if len(listJobs)<1:
+        return
+    
+    listJobs[0]['status'] = status
+
+
+@blueprint.route("/api/upload-poc", methods=['POST'])
+def upload_poc():
+    #kiểm tra xem file upload tồn tại
+    if 'poc_file' not in request.files:
+        return jsonify({"status":-1, 'msg':"No file in request data"}),400
+    
+    poc_file = request.files['poc_file']
+    if poc_file.filename == '':
+        return jsonify({'status':-1,'msg': 'No selected file'}), 400
+    
+    #kt tên và cài lấy tên file
+    # 
+    code = poc_file.read().decode('utf-8')
+    poc_name = extract_regex_result(r'''(?sm)POCBase\):.*?name\s*=\s*['"](?P<result>.*?)['"]''', code)
+    print(f"pocname: {poc_name}")
+    if not poc_name:
+        return jsonify({'status':-1, 'msg':'Cannot extract POC name from file'}), 400
+
+    # Chuẩn hóa tên file
+    safe_name = "".join([c if c.isalnum() or c in ('_', '-') else '_' for c in poc_name])
+    UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'pocsuite3','pocs'))
+    file_path = os.path.join(UPLOAD_FOLDER, f"{safe_name}.py")
+    print(f"{file_path}")
+    # Kiểm tra trùng tên
+    if os.path.exists(file_path):
+        return jsonify({'status':-1, 'msg':'A POC with this name already exists!'}), 400
+
+    # Lưu file
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(code)
+    except Exception as e:
+        return jsonify({'status':-1, 'msg':f"{str(e)}"})
+
+    # reload Pocsuite3 // Reload core
+    global poc_core
+    poc_core = PocsuiteInterpreter()
+    LogLastStatus(1)
+    
+    return jsonify({'status': 0, 'msg': 'File uploaded and POC core reloaded successfully'}), 200
 
 
 
