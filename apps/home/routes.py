@@ -107,12 +107,17 @@ def add_targets():
 #xem thông tin của 1 target
 @blueprint.route('/view-target', methods=['GET'])
 def view_target():
+    idtarget = request.args.get('idtarget')
+    # tạm thời không kiểm tra có tồn tại
+
     #lấy thông tin của CSDL
+    target = Targets.get_by_id(idtarget)
+    
     #lấy thông tin CVE lấy được
     #lấy thông tin về trình sát
     
     list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
-    return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc)
+    return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc, target = target)
 
 #Tương tác terminal của 1 target thông qua 1 POC
 @blueprint.route('/run-cmd',methods=['POST'])
@@ -399,7 +404,7 @@ def LogLastStatus(status):
     
     listJobs[0]['status'] = status
 
-
+#hàm upload POC
 @blueprint.route("/api/upload-poc", methods=['POST'])
 def upload_poc():
     #kiểm tra xem file upload tồn tại

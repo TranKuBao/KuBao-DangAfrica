@@ -5,7 +5,7 @@
                       <div>
                         <!-- ảnh hệ điều hành -->
                         <img                          
-                          src="{{ url_for('static', filename='assets/img/team-2.jpg') }}" 
+                          src="{{ url_for('static', filename='assets/img/targetsecurity.png') }}" 
                           class="avatar avatar-sm me-3"
                           alt="user1"
                         />
@@ -64,9 +64,10 @@
                       <li>
                         <a
                           class="dropdown-item border-radius-md"
-                          href="javascript:;"
+                          href="#"
                           style="color: black !important"
                           data-target-id="{{target.server_id}}"
+                          onclick="handleViewTarget('{{target.server_id}}')"
                           >Xem</a
                         >
                       </li>
@@ -76,6 +77,7 @@
                           href="javascript:;"
                           style="color: black !important"
                           data-target-id="{{target.server_id}}"
+                          onclick="handleConnectTarget('{{target.server_id}}')"
                           >Connect</a
                         >
                       </li>
@@ -85,6 +87,7 @@
                           href="javascript:;"
                           style="color: black !important"
                           data-target-id="{{target.server_id}}"
+                          onclick="handleDeleteTarget('{{target.server_id}}')"
                           >Xóa</a
                         >
                       </li>
@@ -92,3 +95,24 @@
                   </td>
                 </tr>
                 {% endfor %}
+                <!-- Xem target-->
+                <script>
+                  function handleViewTarget(idtarget){
+                    //window.location.href = `/view-target/${idtarget}`;
+                    
+                    // mở trong tab mới
+                    console.log('idtarget:', idtarget);
+                    window.open(`/view-target?idtarget=${idtarget}`, '_blank');
+                  }
+                </script>
+
+                <!-- Kết nối -->
+                 <script>
+                  function handleDeleteTarget(targetId) {
+                    if (confirm(`Bạn có chắc chắn muốn xóa target ID: ${targetId}?`)) {
+                      // Gọi API xóa
+                      //fetch(`/api/delete_target/${targetId}`, { method: 'DELETE' })
+                      // Reload trang sau khi xóa thành công
+                    }
+                  }
+                 </script>
