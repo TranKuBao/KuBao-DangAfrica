@@ -136,66 +136,7 @@
 
   <!-- thông tin các trường mình sẽ hiện ra ở đây ở đây-->
   {% include "partials/add_target.html"%}
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const form = document.querySelector("#edittarget-hidden form");
-
-      form.addEventListener("submit", async function (event) {
-        event.preventDefault(); // Prevent default form submission
-
-        // Collect form data
-        const formData = {
-          //Server_id: document.getElementById('Server_id').value,
-          Hostname: document.getElementById("Hostname").value,
-          Ip_address: document.getElementById("Ip_address").value,
-          Server_type: document.getElementById("Server_type").value,
-          Operating_system: document.getElementById("Operating_system").value,
-          Location: document.getElementById("Location").value,
-          Status: document.getElementById("Status").value,
-          Privilege_escalation: document.getElementById("Privilege_escalation")
-            .value,
-          Exploitation_level:
-            document.getElementById("Exploitation_level").value,
-          Id_vul_in_target: document.getElementById("Id_vul_in_target").value,
-          Notes: document.getElementById("Notes").value,
-        };
-        console.log(formData);
-        try {
-          const response = await fetch("/api/add_targets", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(formData),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-
-          const result = await response.json();
-          console.log("Success:", result);
-          alert("Form submitted successfully!");
-          form.reset(); // Reset form after successful submission
-        } catch (error) {
-          console.error("Error:", error);
-          alert("An error occurred while submitting the form.");
-        }
-      });
-
-      // Optional: Functions for form input focus effects
-      window.focused = function (element) {
-        element.parentElement.classList.add("is-focused");
-      };
-
-      window.defocused = function (element) {
-        if (!element.value) {
-          element.parentElement.classList.remove("is-filled");
-        }
-        element.parentElement.classList.remove("is-focused");
-      };
-    });
-  </script>
+  
 
   <!-- Script kiểm tra IP và URL -->
   <script>
@@ -591,6 +532,7 @@
     </div>
   </div>
 </div>
+<!-- Script phân trang-->
 <script>
   let currentPage = 1;
   let totalPages = {{ total_pages|default(1) }};
@@ -733,6 +675,7 @@
     });
   });
 </script>
+
 <!--Script button hiên thị tham target-->
 <script>
   function on_off_addtarget() {
@@ -751,6 +694,68 @@
       console.log("Nút thêm Target đã được nhấn");
       on_off_addtarget();
     });
+</script>
+
+<!--Script thêm target-->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector("#edittarget-hidden form");
+
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault(); // Prevent default form submission
+
+      // Collect form data
+      const formData = {
+        //Server_id: document.getElementById('Server_id').value,
+        Hostname: document.getElementById("Hostname").value,
+        Ip_address: document.getElementById("Ip_address").value,
+        Server_type: document.getElementById("Server_type").value,
+        Operating_system: document.getElementById("Operating_system").value,
+        Location: document.getElementById("Location").value,
+        Status: document.getElementById("Status").value,
+        Privilege_escalation: document.getElementById("Privilege_escalation")
+          .value,
+        Exploitation_level:
+          document.getElementById("Exploitation_level").value,
+        Id_vul_in_target: document.getElementById("Id_vul_in_target").value,
+        Notes: document.getElementById("Notes").value,
+      };
+      console.log(formData);
+      try {
+        const response = await fetch("/api/add_targets", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Success:", result);
+        alert("Form submitted successfully!");
+        form.reset(); // Reset form after successful submission
+      } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while submitting the form.");
+      }
+    });
+
+    // Optional: Functions for form input focus effects
+    window.focused = function (element) {
+      element.parentElement.classList.add("is-focused");
+    };
+
+    window.defocused = function (element) {
+      if (!element.value) {
+        element.parentElement.classList.remove("is-filled");
+      }
+      element.parentElement.classList.remove("is-focused");
+    };
+  });
 </script>
 {% endblock content %} {% block extra_js %}
 

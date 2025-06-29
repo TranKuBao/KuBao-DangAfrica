@@ -1,0 +1,443 @@
+<div class="modal fade" id="edittargetModal" tabindex="-1" aria-labelledby="edittargetModalLabel" aria-hidden="true" >
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content shadow-lg" style="background-color: #f8f9fa; border-radius: 12px;">
+        <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center" style="background-color: #e9ecef !important;">
+          <h5 class="modal-title font-weight-bold" id="edittargetModalLabel">Edit Target</h5>
+          <div class="d-flex gap-2" style="margin-top: 10px !important;">
+            <button type="button" class="btn btn-hacker px-4" onclick="save_edittarget()">▷ Save</button>
+            <button type="button" class="btn btn-hacker-danger px-4" data-bs-dismiss="modal">✖ Close</button>
+          </div>
+        </div>
+        <input id="targetID" name="targetID" type="hidden" />
+        <div class="modal-body p-4">
+              <h5 class="mb-3 text-primary">Edit Target Options</h5>
+              <span class="mb-3 text-primary" id="notiErrorTarget"></span>
+              
+              <div class="row">
+                <div class="col-sm-6">
+                  <div class="form-group is-filled">
+                    <label for="edit-hostname" class="form-label">Hostname</label>
+                    <input
+                      class="form-control"
+                      id="edit-hostname"
+                      name="hostname"
+                      type="text"
+                      onfocus="focused(this)"
+                      onfocusout="defocused(this)"
+                    />
+                  </div>
+                </div>
+
+                <div class="col-sm-6">
+                  <div class="form-group is-filled">
+                    <label for="edit-ip-address" class="form-label">IP Address</label>
+                    <input
+                      class="form-control"
+                      id="edit-ip-address"
+                      name="ip_address"
+                      type="text"
+                      onfocus="focused(this)"
+                      onfocusout="defocused(this)"
+                    />
+                  </div>
+                </div>
+
+                <div class="col-sm-6">
+                  <div class="form-group is-filled">
+                    <label for="edit-server-type" class="form-label">Server Type</label>
+                    <input
+                      class="form-control"
+                      id="edit-server-type"
+                      name="server_type"
+                      type="text"
+                      onfocus="focused(this)"
+                      onfocusout="defocused(this)"
+                    />
+                  </div>
+                </div>
+
+                <div class="col-sm-6">
+                  <div class="form-group">
+                    <label class="form-control-label" for="edit-os">Operating System</label>
+                    <select id="edit-os" name="os" class="form-control">
+                      <option value="Linux Server">Linux Server</option>
+                      <option value="Windows Server">Windows Server</option>
+                      <option value="BSD Unix">BSD Unix</option>
+                      <option value="Container OS / Cloud Native OS">Container OS / Cloud Native OS</option>
+                      <option value="" disabled selected>--Choose OS--</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="col-sm-6">
+                  <div class="form-group is-filled">
+                    <label for="edit-location" class="form-label">Location</label>
+                    <input
+                      class="form-control"
+                      id="edit-location"
+                      name="location"
+                      type="text"
+                      onfocus="focused(this)"
+                      onfocusout="defocused(this)"
+                    />
+                  </div>
+                </div>
+
+                <div class="col-sm-6">
+                  <div class="form-group">
+                    <label class="form-control-label" for="edit-status">Status</label>
+                    <select id="edit-status" name="status" class="form-control">
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="maintenance">Maintenance</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="col-sm-12">
+                  <div class="form-group">
+                    <label for="edit-notes" class="form-label">Notes</label>
+                    <textarea class="form-control" id="edit-notes" name="notes" rows="4"></textarea>
+                  </div>
+                </div>
+              </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<style>
+  .btn-hacker {
+    font-family: 'Courier New', monospace;
+    border: 1px solid #f97316;
+    background-color: #FFFFFF;
+    color: #f97316;
+    padding: 10px 20px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 5px #f97316;
+  }
+
+  .btn-hacker:hover {
+    background-color: #f97316;
+    color: #FFFFFF;
+    box-shadow: 0 0 12px #f97316;
+  }
+
+  .btn-hacker-danger {
+    border: 1px solid #ff0033;
+    color: #ff0033;
+    box-shadow: 0 0 5px #ff0033;
+  }
+
+  .btn-hacker-danger:hover {
+    background-color: #ff0033;
+    color: #000;
+    box-shadow: 0 0 12px #ff0033;
+  }
+</style>
+
+  <!-- Script kiểm tra IP và URL -->
+  <script>
+    // Hàm kiểm tra định dạng IP
+    function validateIP(ip) {
+      const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+      return ipRegex.test(ip);
+    }
+
+    // Hàm kiểm tra định dạng URL
+    function validateURL(url) {
+      try {
+        // Kiểm tra URL cơ bản
+        const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+        if (!urlRegex.test(url)) {
+          return false;
+        }
+        
+        // Thêm protocol nếu chưa có
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'http://' + url;
+        }
+        
+        new URL(url);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Hàm kiểm tra kết nối đến URL
+    async function checkURLConnection(url) {
+      try {
+        // Thêm protocol nếu chưa có
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'http://' + url;
+        }
+
+        const response = await fetch(url, {
+          method: 'HEAD',
+          mode: 'no-cors', // Tránh CORS issues
+          timeout: 5000
+        });
+        
+        return {
+          status: 'success',
+          message: 'URL có thể truy cập được'
+        };
+      } catch (error) {
+        return {
+          status: 'error',
+          message: 'Không thể kết nối đến URL: ' + error.message
+        };
+      }
+    }
+
+    // Hàm kiểm tra IP (chỉ dùng regex, không gọi API)
+    function checkIPFormat(ip) {
+      if (validateIP(ip)) {
+        // Kiểm tra các IP đặc biệt
+        if (ip === '127.0.0.1' || ip === 'localhost') {
+          return {
+            status: 'warning',
+            message: 'IP localhost - chỉ dùng cho môi trường phát triển'
+          };
+        }
+        
+        if (ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) {
+          return {
+            status: 'success',
+            message: 'IP private - định dạng hợp lệ'
+          };
+        }
+        
+        if (ip === '0.0.0.0') {
+          return {
+            status: 'warning',
+            message: 'IP 0.0.0.0 - địa chỉ broadcast'
+          };
+        }
+        
+        return {
+          status: 'success',
+          message: 'IP public - định dạng hợp lệ'
+        };
+      } else {
+        return {
+          status: 'error',
+          message: 'Định dạng IP không hợp lệ'
+        };
+      }
+    }
+
+    // Hàm hiển thị thông báo
+    function showMessage(element, message, type = 'success') {
+      // Xóa thông báo cũ
+      const existingMessage = element.parentElement.querySelector('.validation-message');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+
+      // Tạo thông báo mới
+      const messageDiv = document.createElement('div');
+      let className = 'validation-message text-success';
+      let icon = 'fa-check-circle';
+      
+      if (type === 'error') {
+        className = 'validation-message text-danger';
+        icon = 'fa-exclamation-triangle';
+      } else if (type === 'warning') {
+        className = 'validation-message text-warning';
+        icon = 'fa-exclamation-circle';
+      }
+      
+      messageDiv.className = className;
+      messageDiv.style.fontSize = '12px';
+      messageDiv.style.marginTop = '5px';
+      messageDiv.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+      
+      element.parentElement.appendChild(messageDiv);
+    }
+
+    // Hàm xóa thông báo
+    function clearMessage(element) {
+      const existingMessage = element.parentElement.querySelector('.validation-message');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+    }
+
+    // Thêm event listeners cho các trường input
+    document.addEventListener('DOMContentLoaded', function() {
+      const ipInput = document.getElementById('edit-ip-address');
+      const urlInput = document.getElementById('edit-hostname');
+
+      // Kiểm tra IP khi người dùng nhập
+      if (ipInput) {
+        ipInput.addEventListener('input', function() {
+          const ip = this.value.trim();
+          
+          if (ip === '') {
+            clearMessage(this);
+            return;
+          }
+
+          const result = checkIPFormat(ip);
+          showMessage(this, result.message, result.status);
+        });
+
+        // Kiểm tra khi blur
+        ipInput.addEventListener('blur', function() {
+          const ip = this.value.trim();
+          if (ip) {
+            const result = checkIPFormat(ip);
+            showMessage(this, result.message, result.status);
+          }
+        });
+      }
+
+      // Kiểm tra URL khi người dùng nhập
+      if (urlInput) {
+        urlInput.addEventListener('input', function() {
+          const url = this.value.trim();
+          
+          if (url === '') {
+            clearMessage(this);
+            return;
+          }
+
+          if (validateURL(url)) {
+            showMessage(this, 'Định dạng URL hợp lệ', 'success');
+            // Tự động kiểm tra kết nối sau 1 giây
+            setTimeout(() => {
+              checkURLConnection(url).then(result => {
+                showMessage(this, result.message, result.status === 'error' ? 'error' : 'success');
+              });
+            }, 1000);
+          } else {
+            showMessage(this, 'Định dạng URL không hợp lệ', 'error');
+          }
+        });
+
+        // Kiểm tra khi blur
+        urlInput.addEventListener('blur', function() {
+          const url = this.value.trim();
+          if (url && validateURL(url)) {
+            checkURLConnection(url).then(result => {
+              showMessage(this, result.message, result.status === 'error' ? 'error' : 'success');
+            });
+          }
+        });
+      }
+
+      // Thêm nút kiểm tra thủ công
+      const form = document.querySelector("#edittarget-hidden form");
+      if (form) {
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) {
+          // Tạo nút kiểm tra
+          const checkButton = document.createElement('button');
+          checkButton.type = 'button';
+          checkButton.className = 'btn btn-info me-2';
+          checkButton.innerHTML = '<i class="fas fa-search"></i> Kiểm tra';
+          checkButton.onclick = function() {
+            const ip = ipInput ? ipInput.value.trim() : '';
+            const url = urlInput ? urlInput.value.trim() : '';
+            
+            if (ip) {
+              const result = checkIPFormat(ip);
+              alert(`Kiểm tra IP ${ip}:\n${result.message}`);
+            }
+            
+            if (url) {
+              checkURLConnection(url).then(result => {
+                alert(`Kiểm tra URL ${url}:\n${result.message}`);
+              });
+            }
+            
+            if (!ip && !url) {
+              alert('Vui lòng nhập IP hoặc URL để kiểm tra');
+            }
+          };
+          
+          submitButton.parentElement.insertBefore(checkButton, submitButton);
+        }
+      }
+    });
+
+    // Hàm kiểm tra tất cả các trường
+    function validateAllFields() {
+      const ipInput = document.getElementById('Ip_address');
+      const urlInput = document.getElementById('Hostname');
+      
+      let isValid = true;
+      
+      if (ipInput && ipInput.value.trim()) {
+        if (!validateIP(ipInput.value.trim())) {
+          showMessage(ipInput, 'IP không hợp lệ', 'error');
+          isValid = false;
+        }
+      }
+      
+      if (urlInput && urlInput.value.trim()) {
+        if (!validateURL(urlInput.value.trim())) {
+          showMessage(urlInput, 'URL không hợp lệ', 'error');
+          isValid = false;
+        }
+      }
+      
+      return isValid;
+    }
+
+    // Thêm validation vào form submit
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.querySelector("#edittarget-hidden form");
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          if (!validateAllFields()) {
+            e.preventDefault();
+            alert('Vui lòng sửa các lỗi validation trước khi submit');
+          }
+        });
+      }
+    });
+  </script>
+
+  <!--Script update target-->
+  <script>
+    function save_edittarget() {
+    if (confirm("Bạn có chắc chắn muốn lưu thay đổi không?")) {
+      const formData = {
+        server_id: document.getElementById('targetID').value,
+        hostname: document.getElementById('edit-hostname').value,
+        ip_address: document.getElementById('edit-ip-address').value,
+        server_type: document.getElementById('edit-server-type').value,
+        os: document.getElementById('edit-os').value,
+        location: document.getElementById('edit-location').value,
+        status: document.getElementById('edit-status').value,
+        notes: document.getElementById('edit-notes').value
+      };
+
+      // Send AJAX request to save target
+      fetch('/api/update_target', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 0) {
+          alert('Lưu thành công!');
+          location.reload(); // Reload page to show updated data
+        } else {
+          alert('Lỗi: ' + data.msg);
+        }
+      })
+      .catch(error => {
+        console.error('Lỗi khi lưu target:', error);
+        document.getElementById('notiErrorTarget').textContent = 'Lỗi khi lưu dữ liệu từ server.';
+      });
+    }
+  }
+  </script>

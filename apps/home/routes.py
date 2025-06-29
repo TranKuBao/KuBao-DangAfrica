@@ -119,6 +119,36 @@ def view_target():
     list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
     return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc, target = target)
 
+
+@blueprint.route('/api/update_target', methods=['POST'])
+def update_target():
+    data = request.get_json()
+    print(f"data edit target: {data}")
+    
+    try:
+        # Lấy target instance trước
+        target = Targets.get_by_id(data.get('server_id'))
+        if not target:
+            return jsonify({'status': -1, 'msg': 'Target not found'})
+        
+        # Cập nhật target với dữ liệu mới
+        target.update(
+            hostname=data.get('hostname'),
+            ip_address=data.get('ip_address'),
+            server_type=data.get('server_type'),
+            os=data.get('os'),
+            location=data.get('location'),
+            status=data.get('status'),
+            notes=data.get('notes')
+        )
+        
+        return jsonify({'status': 0, 'msg': 'Updated successfully'})
+        
+    except Exception as e:
+        print(f"Error updating target: {str(e)}")
+        return jsonify({'status': -1, 'msg': str(e)})
+
+
 #Tương tác terminal của 1 target thông qua 1 POC
 @blueprint.route('/run-cmd',methods=['POST'])
 def run_cmd():

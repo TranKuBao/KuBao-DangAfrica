@@ -536,6 +536,8 @@
                       <input type="text" id="input_terminal" autofocus autocomplete="off"/>
                     </div>
                   </div>
+
+                  <!--script chạy cmd-->
                   <script>
                     const output = document.getElementById('output_terminal');
                       const input = document.getElementById('input_terminal');
@@ -572,7 +574,7 @@
       </div>
     </div>
 
-    <!-- Hiện thị thông tin của target -->
+    <!-- Hiện thị thông tin report và edit của target -->
     <div class="col-md-3 mt-4" style="margin-top: -1px !important">
       <div class="card h-100 mb-4">
         <div class="card-header pb-0 px-3" style="margin-top: -10px !important">
@@ -583,9 +585,9 @@
               >
             </div>
             <div class="col-6 text-end">
-              <a class="btn btn-outline-primary btn-sm mb-0" href="javascript:;"
-                > Edit Target</a
-              >
+              <a class="btn btn-outline-primary btn-sm mb-0" href="javascript:void(0);" onclick="show_edittarget_Modal()"> 
+                Edit Target
+              </a>
             </div>
           </div>
         </div>
@@ -629,6 +631,34 @@
   {% include "includes/footer.html" %}
 </div>
 
+{% include "partials/edit_target.html" %}
 
+<!-- Script hiển thị modal edit target-->
+<script>
+  function show_edittarget_Modal() {
+    // Set target ID
+    const targetIDElement = document.getElementById('targetID');
+    if (targetIDElement) {
+      targetIDElement.value = '{{target.server_id}}';
+    } else {
+      console.error('Không tìm thấy element targetID');
+    }
+    
+    // Load target data into form fields
+    document.getElementById('edit-hostname').value = '{{target.hostname}}';
+    document.getElementById('edit-ip-address').value = '{{target.ip_address}}';
+    document.getElementById('edit-server-type').value = '{{target.server_type}}';
+    document.getElementById('edit-os').value = '{{target.os}}';
+    document.getElementById('edit-location').value = '{{target.location}}';
+    document.getElementById('edit-status').value = '{{target.status}}';
+    document.getElementById('edit-notes').value = '{{target.notes}}';
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('edittargetModal'));
+    modal.show();
+  }
+
+  
+</script>
 
 {% endblock content %}
