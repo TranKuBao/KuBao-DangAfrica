@@ -364,6 +364,45 @@
       document.getElementById('pocModalLabel').innerText = 'POC: ' + pocpath.slice(5);
       document.getElementById('target-value').value = 'http://vulbox.com' || '';
       document.getElementById('rport-value').value = 1337 || '';
+      
+      // Lấy thông tin modes từ API
+      $.ajax({
+        url: '/get-poc-info',
+        type: 'POST',
+        data: {
+          poc_path: pocpath,
+        },
+      })
+      .done((response) => {
+        if (response['status'] === 0) {
+          const modes = response['data']['modes'];
+          
+          // Hiển thị/ẩn các button dựa trên modes hỗ trợ
+          const verifyBtn = document.getElementById('verify');
+          const attackBtn = document.getElementById('attack');
+          const shellBtn = document.getElementById('shell');
+          
+          // Ẩn tất cả button trước
+          verifyBtn.style.display = 'none';
+          attackBtn.style.display = 'none';
+          shellBtn.style.display = 'none';
+          
+          // Hiển thị button theo modes hỗ trợ
+          if (modes && modes.includes('verify')) {
+            verifyBtn.style.display = 'inline-block';
+          }
+          if (modes && modes.includes('attack')) {
+            attackBtn.style.display = 'inline-block';
+          }
+          if (modes && modes.includes('shell')) {
+            shellBtn.style.display = 'inline-block';
+          }
+        }
+      })
+      .fail((error) => {
+        console.error("Lỗi khi lấy thông tin PoC:", error);
+      });
+      
       // ... cập nhật các field khác
       const modal = new bootstrap.Modal(document.getElementById('pocModal'));
       modal.show();

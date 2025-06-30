@@ -1,12 +1,10 @@
-
-
-
-<div class="modal fade" id="pocModal" tabindex="-1" aria-labelledby="pocModalLabel" aria-hidden="true" >
+<div class="modal fade" id="pocModal" tabindex="-1" aria-labelledby="pocModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl">
     <div class="modal-content shadow-lg" style="background-color: #f8f9fa; border-radius: 12px;">
       <div class="modal-header bg-primary text-white" style="background-color: #e9ecef !important;">
         <h5 class="modal-title font-weight-bold" id="pocModalLabel">Proof of Concept (POC)</h5>
-          <button type="button" class="btn btn-hacker-danger px-4 ms-auto" data-bs-dismiss="modal" style="margin-top: 10px !important;">✖ Close</button>
+        <button type="button" class="btn btn-hacker-danger px-4 ms-auto" data-bs-dismiss="modal"
+          style="margin-top: 10px !important;">✖ Close</button>
       </div>
       <div class="modal-body p-4">
         <div class="row">
@@ -15,107 +13,68 @@
             <h5 class="mb-3 text-primary">Target Options</h5>
             <div class="form-group">
               <label for="target-value" class="col-form-label font-weight-semibold">Target URL</label>
-              <input
-                type="text"
-                class="form-control"
-                id="target-value"
-                value="https://mta.edu.vn/"
-                placeholder="Enter target URL"
-              />
+              <input type="text" class="form-control" id="target-value" value="https://mta.edu.vn/"
+                placeholder="Enter target URL" />
             </div>
             <div class="form-group" style="display: none;">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="chkBoxFileTarget" />
                 <label class="form-check-label" for="chkBoxFileTarget">Target from File</label>
               </div>
-              <input type="file" id="multiFiles" name="files[]" multiple="multiple" />
+              <!--<input type="file" id="multiFiles" name="files[]" multiple="multiple" />-->
             </div>
             <div class="form-group">
               <label for="rport-value" class="col-form-label font-weight-semibold">Remote Port (RPORT)</label>
-              <input
-                type="text"
-                class="form-control"
-                id="rport-value"
-                placeholder="Enter remote port"
-              />
+              <input type="text" class="form-control" id="rport-value" placeholder="Enter remote port" />
             </div>
           </div>
 
           <!-- Module Options -->
           <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
             <h5 class="mb-3 text-primary">Module Options</h5>
-            <div id="module-options">
-              <div class="form-group">
-                <label
-                  for="cmd-value"
-                  class="col-form-label font-weight-semibold"
-                  data-toggle="tooltip"
-                  data-placement="top"
-                  title="Command to execute"
-                >
-                  Command (CMD)
-                </label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="cmd-value"
-                  placeholder="Enter command"
-                />
-              </div>
+            <div id="dynamic-options">
+            <!---->
             </div>
           </div>
 
           <!-- Payload Options -->
-          <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
+        <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
             <h5 class="mb-3 text-primary">Payload Options</h5>
             <div class="form-group" style="display: none;">
               <label for="payload-value" class="col-form-label font-weight-semibold">Payload</label>
-              <input
-                type="text"
-                class="form-control"
-                id="payload-value"
-                placeholder="Enter payload"
-              />
+              <input type="text" class="form-control" id="payload-value" placeholder="Enter payload" />
             </div>
             <div class="form-group">
               <label for="lhost-value" class="col-form-label font-weight-semibold">Local Host (LHOST)</label>
-              <input
-                type="text"
-                class="form-control"
-                id="lhost-value"
-                placeholder="Enter local host"
-              />
+              <input type="text" class="form-control" id="opt-lhost" placeholder="Enter local host" />
             </div>
             <div class="form-group">
               <label for="lport-value" class="col-form-label font-weight-semibold">Local Port (LPORT)</label>
-              <input
-                type="text"
-                class="form-control"
-                id="lport-value"
-                placeholder="Enter local port"
-              />
+              <input type="text" class="form-control" id="opt-lport" placeholder="Enter local port" />
             </div>
           </div>
-        </div>
+        
+      </div>
 
         <!-- Result Section -->
         <div class="row p-3">
           <div class="col-12 bg-light rounded p-3" id="result">
             <h6 class="text-muted">Results will appear here...</h6>
+            <p class="text-muted" id="output-result"></p>
           </div>
         </div>
       </div>
       <div class="modal-footer" style="background-color: #FFFFFF;">
         <div class="d-flex justify-content-center flex-wrap w-100 gap-2">
-            <button type="button" class="btn btn-hacker mx-2 px-4" id="verify">
+          <button type="button" class="btn btn-hacker mx-2 px-4" id="btn-verify" onclick="verify_click()">
             ▷ Verify
-            </button>
-            <button type="button" class="btn btn-hacker-warning mx-2 px-4" id="attack">
+          </button>
+          <button type="button" class="btn btn-hacker-warning mx-2 px-4" id="btn-attack">
             ⚠ Attack
-            </button>
-            <button type="button" class="btn btn-hacker mx-2 px-4" id="shell">
+          </button>
+          <button type="button" class="btn btn-hacker mx-2 px-4" id="btn-shell">
             ⛓ Shell
-            </button>
+          </button>
         </div>
       </div>
 
@@ -128,25 +87,32 @@
   .modal-content {
     transition: all 0.3s ease;
   }
+
   .modal-content:hover {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   }
+
   .form-control:focus {
     border-color: #007bff;
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
   }
+
   .btn {
     transition: all 0.2s ease;
   }
+
   .btn:hover {
     transform: translateY(-2px);
   }
+
   .modal-header {
     border-bottom: 2px solid #e9ecef;
   }
+
   .modal-footer {
     border-top: 2px solid #e9ecef;
   }
+
   .modal-header {
     padding-top: 0.25rem !important;
     padding-bottom: 0.25rem !important;
@@ -155,13 +121,16 @@
     min-height: 28px;
     align-items: center !important;
   }
+
   h5.text-primary {
     font-weight: 600;
   }
+
   .shadow-sm {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
   }
-   .btn-hacker {
+
+  .btn-hacker {
     font-family: 'Courier New', monospace;
     border: 1px solid #f97316;
     background-color: #000;
@@ -202,3 +171,55 @@
     box-shadow: 0 0 12px #f97316;
   }
 </style>
+
+<script>
+  // Lấy data để request
+  function getAllInputData() {
+    const data = {};
+    // Lấy các trường động
+    document.querySelectorAll('#dynamic-options input').forEach(input => {
+      const key = input.id.replace('opt-', '');
+      data[key + '-value'] = input.value;
+    });
+    // Lấy các trường đặc biệt nếu cần
+    data['target-value'] = document.getElementById('target-value').value;
+    data['rport-value'] = document.getElementById('rport-value').value;
+    // ... các trường khác nếu có
+    console.log("data's option",data);
+    return data;
+  }
+
+
+  //gọi API verify
+  function verify_click() {
+    data_input = getAllInputData();
+
+    $.ajax({
+      url: '/api/verify-mode',
+      type: 'POST',
+      data: data_input,
+    })
+    .done((resp)=>{
+      console.log("STATUS:",resp['status']);
+      console.log('Dữ liệu',resp['data'] );
+      alert(resp['data']);
+      document.getElementById('output-result').value = resp['data'];
+
+    })
+  .fail((error) =>{
+    console.log("Phát hiện lỗi: ",error)
+  });
+
+  }
+
+  //gọi API verify
+  function attack_click() {
+
+  }
+
+  //gọi API verify
+  function shell_click() {
+
+  }
+
+</script>

@@ -101,7 +101,6 @@ def add_targets():
         }), 201
 
     except Exception as e:
-        db.session.rollback()
         return jsonify({'error': 'Server error', 'details': str(e)}), 500
 
 #xem thông tin của 1 target
@@ -163,7 +162,11 @@ def run_cmd():
 
 
 
-
+#,------.                        ,--. ,--.       ,----.   {1.5.9-nongit-20250620}
+#|  .--. ',---. ,---.,---.,--.,--`--,-'  '-.,---.'.-.  | 
+#|  '--' | .-. | .--(  .-'|  ||  ,--'-.  .-| .-. : .' <  
+#|  | --'' '-' \ `--.-'  `'  ''  |  | |  | \   --/'-'  | 
+#`--'     `---' `---`----' `----'`--' `--'  `----`----'   http://pocsuite.org
 #POCs
 @blueprint.route('/pocs')
 def pocs():
@@ -177,7 +180,8 @@ def matches_search_poc(poc, keyword):
         keyword in (poc.get("appversion") or "").lower(),
         keyword in (poc.get("vulType") or "").lower(),
         keyword in (poc.get("author") or "").lower(),
-        keyword in (poc.get("references") or "").lower()
+        keyword in (poc.get("references") or "").lower(),
+        keyword in (poc.get("path") or "").lower(),
     ])
 
 #lấy dữ liệu để hiện thị list POCs
@@ -192,6 +196,9 @@ def fetch_pocs():
     count = 0
     for module in listModules:
         count += 1
+        # Debug: In ra đường dẫn module để kiểm tra
+        #print(f"Module path: {module['path']}")
+        
         oneRow = {
             "id": str(count),
             "appversion": module["appversion"],
@@ -230,21 +237,30 @@ def poc():
     poc_path=request.args.get('poc_path')
     return render_template('poc/view-poc.html', segment='view_poc', poc_path=poc_path)
 
+#lấy các toàn bộ thông tin của 1 POC
 @blueprint.route('/get-poc-info', methods = ['POST'])
 def get_poc_info():
     if not 'poc_path' in request.form:
         return jsonify({'status': -1, 'msg': 'poc-path is required'})
 
     poc_path = request.form['poc_path']
+    #print(f"Received poc_path: '{poc_path}'")  # Debug log
+    
     if not ('pocs' in poc_path):
         poc_path = os.path.join('pocs', poc_path)
+    
+    #print(f"Final poc_path: '{poc_path}'")  # Debug log
+    
     try:
+        #để load PoC tương ứng.
         poc_core.command_use(poc_path)
     except:
         return jsonify({'status': -1, 'msg': 'No poc is available by that poc-path'})
     if not poc_core.current_module:
         return jsonify({'status': -1, 'msg': 'No poc is available by that poc-path'})
     modeString = ''
+
+    #Xác định các chế độ hỗ trợ (mode)
     if hasattr(poc_core.current_module, '_shell'):
         modeString +=  'shell '
     if hasattr(poc_core.current_module, '_verify'):
@@ -257,8 +273,8 @@ def get_poc_info():
     if(server.is_active):
         isServerOnline = [session['ip'],session['port']]
     data = {
-        'info': get_info_poc_as_dict(),
-        'modes':modeString,
+        'info': get_info_poc_as_dict(), # lấy toàn bộ thông tin từ casdc trường 
+        'modes':modeString, # xem thử có những mode gì đây này
         'global_options': get_detail_options(currentPoC.global_options),
         'payload_options': get_detail_options(currentPoC.payload_options),
         'poc-path':poc_path,
@@ -266,6 +282,8 @@ def get_poc_info():
     }
     if(hasattr(currentPoC,'options')):
         data['options'] =  get_detail_options(currentPoC.options)
+    
+    print(f"[x] Options's POC {data['options']}")
     #print(data)
     return jsonify({'status': 0, 'data': data})
 
@@ -295,7 +313,7 @@ def get_detail_options(options):
             
     return ret
 
-@blueprint.route('/verify-mode', methods = ['POST'])
+@blueprint.route('/api/verify-mode', methods = ['POST'])
 def VerifyMode():
     params = {}
     for key in request.form:
@@ -307,7 +325,8 @@ def VerifyMode():
         print(command)
         poc_core.command_set(command)
         
-    #Realise MODE command --> VERIFY
+    #kiểm tra và hiển thị cấu hình cuối cùng trước khi thực hiện chức năng verify, 
+    # giúp đảm bảo tất cả tham số đã được thiết lập đúng và có thể debug nếu có vấn đề.
     poc_core.command_show('options')
     result = {}
     report = {}
@@ -376,8 +395,196 @@ def AttackMode():
     result['Mode'] = 'Attacked'
     return jsonify({'status': 0, 'data': result})
 
+#các hàm của server shell
+@blueprint.route('/server-status', methods = ['GET'])
+@login_required
+def server_status():
+    status = {
+        'isActive': server.is_active,
+    }
 
-#edit poc theo Source
+    if server.is_active:
+        status['ip'] = server.ip
+        status['port'] = server.port
+
+    return jsonify(status)
+
+@blueprint.route('/start-server', methods = ['POST'])
+@login_required
+def start_server():
+    if not 'ip' in request.form or not 'port' in request.form:
+        return jsonify({'status': -1, 'msg': 'Provide an IP and a Port'})
+
+    ip = request.form['ip']
+    port = request.form['port']
+
+    if not valid_ip(ip):
+        return jsonify({'status': -1, 'msg': 'Invalid IP'})
+
+    if not valid_port(port):
+        return jsonify({'status': -1, 'msg': 'Invalid port'})
+
+    if not server.is_active or not session['server_active']:
+        if server_start(ip, port):
+            return jsonify({'status': 0, 'msg': 'Successfully started server'})
+        return jsonify({'status': -1, 'msg': 'Failed to start server'})
+
+    return jsonify({'status': -1, 'msg': 'Server is already active'})
+
+
+@blueprint.route('/stop-server', methods = ['POST'])
+@login_required
+def stop_server():
+    if server.is_active or session['server_active']:
+        if server_stop():
+            return jsonify({'status': 0, 'msg': 'Successfully stopped server'})
+        return jsonify({'status': -1, 'msg': 'Failed to stop server'})
+
+    return jsonify({'status': -1, 'msg': 'Server is already inactive'})
+
+def server_start(ip, port):
+    if not valid_ip(ip):
+        return 
+    if not valid_port(port):
+        return 
+    session['ip'] = ip
+    session['port'] = port
+    session['server_active'] = True
+    return server.start(ip, port)
+
+
+def server_stop():
+    session['ip'] = None
+    session['port'] = None
+    session['server_active'] = False
+    return not server.stop()
+
+
+@blueprint.route('/shell-mode', methods = ['POST'])
+def ShellMode():
+    params = {}
+    for key in request.form:
+        params[key] = request.form[key]
+    #Set params to pocsuite3
+    for key,val in params.items():
+        key = key.replace('-value','')
+        command = key + ' ' + val
+        print(command)
+        poc_core.command_set(command)
+        
+    #Realise MODE command --> VERIFY
+    poc_core.command_show('options')
+    result = {}
+    try:
+        
+        #Phần này có thể thiết lập để Server bật sẵn, và module chạy tự lấy IP và Port từ server
+        if not server.is_active or not session['server_active']:
+            lhost =  poc_core.current_module.getp_option("lhost")
+            lport =  poc_core.current_module.getp_option("lport")
+            if server_start(lhost, lport):
+                print( 'Successfully started server when exploit shellmode')
+            else:
+                result['Server-Error'] = "Cant open server on "+lhost+':'+lport
+                return jsonify({'status': 0, 'data': result})
+
+            poc_core.current_module.lhost = server.ip
+            poc_core.current_module.lport = str(server.port)
+        else:
+            poc_core.current_module.lhost = server.ip
+            poc_core.current_module.lport = str(server.port)
+        conf.api = 1
+        oldCilents = server.total_clients()
+        poc_core.command_shell()
+        tmp = poc_core.current_module.result
+        if(isinstance(tmp,dict)):
+            for key,val in tmp.items():
+                result[key] = val
+        else:
+            result['result'] = str(tmp)
+        currentCilents = server.total_clients()
+        if(oldCilents<currentCilents):
+            result['session'] = 'New Bot detected, move to Shell page'
+        else:
+            result['session'] = 'Failed. Payload executed nut no session established'      
+
+    except:
+        result['result'] = 'No result'   
+
+   
+    # x = kb.plugins
+    result['target'] = params['target-value']
+    result['mode'] = 'Shelled'
+    return jsonify({'status': 0, 'data': result})
+
+###-----Điều khiển bot-----
+#Trả về danh sách các bot (client) đang online/kết nối tới server.
+@blueprint.route('/fetch-bots', methods = ['GET'])
+@login_required
+def fetch_bots():
+    # print("kika.py fetchbots called")
+    online_bots = []
+
+    bots = server.list_clients()
+    # print("bots found")
+    # print(bots)
+    for bot in bots:
+        online_bots.append({
+            'id': bot['bot_id'],
+            'ip': bot['ip'],
+            'os': bot['system'],
+
+            'country': 'VN',
+        })
+
+    return jsonify({
+        'bots': online_bots,
+    })
+
+#Nhận vào bot-id từ client, trả về thông tin chi tiết về bot đó (ip, hệ điều hành).
+@blueprint.route('/get-bot-info', methods = ['POST'])
+@login_required
+def get_bot_info():
+    if not 'bot-id' in request.form:
+        return jsonify({'status': -1, 'msg': 'bot-id is required'})
+
+    bot_id = request.form['bot-id']
+    bot = server.get_bot(bot_id)
+
+    if not bot:
+        return jsonify({'status': -1, 'msg': 'No bot is available by that id'})
+
+
+    data = {
+        'system': {
+            'ip': bot['ip'],
+            'OS': bot['OS']
+        }
+    }
+
+    return jsonify({'status': 0, 'data': data})
+
+#Nhận một lệnh (cmd) từ client, 
+# gửi lệnh này tới bot (client) hiện tại thông qua server, 
+# và trả về kết quả thực thi lệnh đó.
+@blueprint.route('/control/cmd', methods = ['POST'])
+@login_required
+# @bot_required
+def control_cmd():
+    if not 'cmd' in request.form:
+        return jsonify({'resp': 'No cmd found'})
+
+    cmd = request.form['cmd']
+
+    if not server.client:
+        return jsonify({'resp': ''})
+    resp = ''
+    resp = server.execute_cmd_console(server.client,cmd)
+    return jsonify({'resp': resp})
+
+
+
+
+#lấy poc theo Source
 @blueprint.route('/api/get-source-poc', methods=['POST', 'GET'])
 def source_poc():
     poc_path = request.form.get('poc_path') or request.args.get('poc_path')
