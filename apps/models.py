@@ -235,7 +235,7 @@ class Targets(db.Model):
             'server_id': self.server_id,
             'hostname': self.hostname,
             'ip_address': self.ip_address,
-            'server_type': self.server_type.value if self.server_type else None,
+            'server_type': self.server_type if self.server_type else None,
             'os': self.os,
             'location': self.location,
             'status': self.status,

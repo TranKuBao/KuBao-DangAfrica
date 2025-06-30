@@ -58,10 +58,10 @@ def targets():
 
 #lấy và search ở hàm này
 @blueprint.route('/api/targets', methods=['GET'])
-def get_all_targets():
+def get_targets():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '', type=str).strip()
-    per_page = 6
+    per_page = 9
     print(f"[x] page: {page} & search_querry={search_query}")
     targets_paginated, total_pages = Targets.search(search_query, page, per_page)
 
@@ -71,6 +71,17 @@ def get_all_targets():
         'html': html,
         'total_pages': total_pages
     })
+
+
+@blueprint.route('/api/getalltarget',methods=['GET'])
+def get_all_targets():
+    try:
+        targets = Targets.query.all()
+        print(f"{targets}")
+        targets_list = [t.to_dict() for t in targets]
+        return jsonify({'targets': targets_list}), 200
+    except Exception as e:
+        return jsonify({'error': 'Server error', 'details': str(e)}), 500
 
 @blueprint.route('/api/add_targets', methods=['POST'])
 def add_targets():
@@ -361,7 +372,7 @@ def VerifyMode():
     result['report'] = report
     return jsonify({'status': 0, 'data': result})
 
-@blueprint.route('/attack-mode', methods = ['POST'])
+@blueprint.route('/api/attack-mode', methods = ['POST'])
 def AttackMode():
     params = {}
     for key in request.form:

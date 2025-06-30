@@ -85,6 +85,30 @@
 
 {% endfor %}
 <script>
+
+  // load danh sách target
+  function loadTargetList() {
+    $.ajax({
+      url: '/api/targets',
+      type: 'GET',
+      success: function(resp) {
+        // resp.html là HTML, resp.targets là danh sách nếu bạn trả về dạng JSON
+        // Giả sử bạn trả về resp.targets là mảng các object {hostname, ip_address, ...}
+        let options = '';
+        if (resp.targets) {
+          resp.targets.forEach(t => {
+            // Có thể hiển thị cả hostname và ip nếu muốn
+            options += `<option value="${t.hostname}">${t.ip_address}</option>`;
+          });
+        }
+        document.getElementById('target-list').innerHTML = options;
+      }
+    });
+  }
+
+
+
+
   function showPocModal(pocpath) {
   console.log("path: ",pocpath);
   document.getElementById('pocModalLabel').innerText = 'POC: ' + pocpath.slice(4);
@@ -139,6 +163,8 @@
           `;
         });
 
+
+        ////
       }
     })
     .fail((error) => {
@@ -147,5 +173,6 @@
     
   const modal = new bootstrap.Modal(document.getElementById('pocModal'));
   modal.show();
+  //loadTargetList();
 }
 </script>

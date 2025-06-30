@@ -11,10 +11,15 @@
           <!-- Target Options -->
           <div class="col-md-6 p-3 bg-white rounded shadow-sm mb-3">
             <h5 class="mb-3 text-primary">Target Options</h5>
-            <div class="form-group">
+            <div class="form-group" style="position: relative;">
               <label for="target-value" class="col-form-label font-weight-semibold">Target URL</label>
-              <input type="text" class="form-control" id="target-value" value="https://mta.edu.vn/"
-                placeholder="Enter target URL" />
+              <div class="input-group align-items-center">
+                <input type="text" class="form-control" id="target-value" placeholder="Enter target URL" autocomplete="off" />
+                <button class="btn btn-outline-secondary" type="button" id="btn-select-target" style="margin-top: 15px !important;">
+                  <i class="fa fa-list"></i> Chọn Target
+                </button>
+              </div>
+              <div id="dropdown-targets" class="dropdown-menu" style="max-height: 200px; overflow-y: auto; position: absolute; z-index: 9999;"></div>
             </div>
             <div class="form-group" style="display: none;">
               <div class="form-check">
@@ -59,7 +64,7 @@
         <!-- Result Section -->
         <div class="row p-3">
           <div class="col-12 bg-light rounded p-3" id="result">
-            <h6 class="text-muted">Results will appear here...</h6>
+            <h6 class="text-muted" id="h6-output-result">Results will appear here...</h6>
             <p class="text-muted" id="output-result"></p>
           </div>
         </div>
@@ -69,7 +74,7 @@
           <button type="button" class="btn btn-hacker mx-2 px-4" id="btn-verify" onclick="verify_click()">
             ▷ Verify
           </button>
-          <button type="button" class="btn btn-hacker-warning mx-2 px-4" id="btn-attack">
+          <button type="button" class="btn btn-hacker-warning mx-2 px-4" id="btn-attack" onclick="attack_click()">
             ⚠ Attack
           </button>
           <button type="button" class="btn btn-hacker mx-2 px-4" id="btn-shell">
@@ -84,6 +89,39 @@
 
 <!-- Additional CSS for Enhanced Styling -->
 <style>
+#target-value,
+#btn-select-target {
+  height: 40px !important;
+  box-sizing: border-box;
+}
+
+#target-value {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+#btn-select-target {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-weight: 500;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-group:focus-within {
+  box-shadow: none !important;
+  border-color: #ced4da !important;
+}
+
+
+
+.input-group {
+  width: 100%;
+}
   .modal-content {
     transition: all 0.3s ease;
   }
@@ -173,6 +211,12 @@
 </style>
 
 <script>
+  
+
+  
+
+
+
   // Lấy data để request
   function getAllInputData() {
     const data = {};
@@ -189,6 +233,7 @@
     return data;
   }
 
+  
 
   //gọi API verify
   function verify_click() {
@@ -202,8 +247,27 @@
     .done((resp)=>{
       console.log("STATUS:",resp['status']);
       console.log('Dữ liệu',resp['data'] );
-      alert(resp['data']);
-      document.getElementById('output-result').value = resp['data'];
+      alert(resp['data']['Message']);
+      document.getElementById('h6-output-result').innerHTML = "------------------------Result for POC------------------------";
+
+      // Xử lý kết quả trả về
+      let html = '';
+      if (resp['data']) {
+        // Nếu là object, hiển thị từng key-value
+        for (const key in resp['data']) {
+          if (typeof resp['data'][key] === 'object') {
+            html += `<b>${key}:</b><br>`;
+            for (const subkey in resp['data'][key]) {
+              html += `&nbsp;&nbsp;${subkey}: ${resp['data'][key][subkey]}<br>`;
+            }
+          } else {
+            html += `<b>${key}:</b> ${resp['data'][key]}<br>`;
+          }
+        }
+      } else {
+        html = 'No result';
+      }
+      document.getElementById('output-result').innerHTML = html;
 
     })
   .fail((error) =>{
@@ -214,12 +278,79 @@
 
   //gọi API verify
   function attack_click() {
+    data_input = getAllInputData();
 
+    $.ajax({
+      url: '/api/attack-mode',
+      type: 'POST',
+      data: data_input,
+    })
+    .done((resp)=>{
+      console.log("STATUS:",resp['status']);
+      console.log('Dữ liệu',resp['data'] );
+      alert(resp['data']['Message']);
+      document.getElementById('h6-output-result').innerHTML = "------------------------Result for POC------------------------";
+
+      // Xử lý kết quả trả về
+      let html = '';
+      if (resp['data']) {
+        // Nếu là object, hiển thị từng key-value
+        for (const key in resp['data']) {
+          if (typeof resp['data'][key] === 'object') {
+            html += `<b>${key}:</b><br>`;
+            for (const subkey in resp['data'][key]) {
+              html += `&nbsp;&nbsp;${subkey}: ${resp['data'][key][subkey]}<br>`;
+            }
+          } else {
+            html += `<b>${key}:</b> ${resp['data'][key]}<br>`;
+          }
+        }
+      } else {
+        html = 'No result';
+      }
+      document.getElementById('output-result').innerHTML = html;
+
+    })
+  .fail((error) =>{
+    console.log("Phát hiện lỗi: ",error)
+  });
   }
 
   //gọi API verify
   function shell_click() {
 
+
+    
   }
+
+  // Khi bấm nút Chọn, hiện dropdown các target từ API mới
+  $('#btn-select-target').on('click', function() {
+    $.ajax({
+      url: '/api/getalltarget',
+      type: 'GET',
+      success: function(resp) {
+        let html = '';
+        if (resp.targets) {
+          resp.targets.forEach(t => {
+            html += `<a class='dropdown-item' href='#' onclick="selectTarget('${t.hostname.replace(/'/g, "\\'")}')">${t.hostname} (${t.ip_address})</a>`;
+          });
+        }
+        $('#dropdown-targets').html(html).toggle();
+      }
+    });
+  });
+
+  // Hàm chọn target
+  function selectTarget(val) {
+    $('#target-value').val(val);
+    $('#dropdown-targets').hide();
+  }
+
+  // Ẩn dropdown khi click ngoài
+  $(document).on('click', function(e) {
+    if (!$(e.target).closest('#btn-select-target, #dropdown-targets').length) {
+      $('#dropdown-targets').hide();
+    }
+  });
 
 </script>
