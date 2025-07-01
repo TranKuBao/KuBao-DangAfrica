@@ -2,6 +2,7 @@
 """
 Copyright (c) 2019 - present AppSeed.us
 """
+import json
 import wtforms
 from apps.home import blueprint
 from apps import db
@@ -85,34 +86,82 @@ def get_all_targets():
 
 @blueprint.route('/api/add_targets', methods=['POST'])
 def add_targets():
-    """API để thêm một target mới"""
+    """API để thêm một hoặc nhiều target mới"""
     try:
-        # Get JSON data from request
         data = request.get_json()
+        print(f"Data: {data}")
         if not data:
             return jsonify({'error': 'No input data provided'}), 400
 
-        # Trích xuất và xử lý dữ liệu từ client
-        new_target = Targets.create_target(
-            hostname=data.get('Hostname'),
-            ip_address=data.get('Ip_address'),
-            server_type=data.get('Server_type'),
-            os=data.get('Operating_system'),
-            location=data.get('Location'),
-            status=data.get('Status'),
-            privilege_escalation=data.get('Privilege_escalation') == 'true',  # chuyển thành bool
-            exploitation_level=data.get('Exploitation_level'),
-            incident_id=data.get('Id_vul_in_target'),
-            notes=data.get('Notes')
-        )
-        #print(new_target)
-        return jsonify({
-            'message': 'Target added successfully',
-            'target_id': new_target.server_id
-        }), 201
-
+        # Nếu là gửi nhiều target (dưới key 'targets')
+        targets_data = data.get('targets')
+        if targets_data and isinstance(targets_data, list):
+            created_ids = []
+            for t in targets_data:
+                new_target = Targets.create_target(
+                    hostname=t.get('Hostname'),
+                    ip_address=t.get('Ip_address'),
+                    server_type=t.get('Server_type'),
+                    #os=t.get('Operating_system'),
+                    location=t.get('Location'),
+                    status=t.get('Status'),
+                    #privilege_escalation=t.get('Privilege_escalation'),
+                    #exploitation_level=t.get('Exploitation_level'),
+                    #incident_id=t.get('Id_vul_in_target'),
+                    notes=t.get('Notes')
+                )
+                created_ids.append(new_target.server_id)
+            return jsonify({
+                'message': f'{len(created_ids)} targets added successfully',
+                'target_ids': created_ids
+            }), 201
+        else:
+            # Nếu chỉ gửi 1 target (giữ lại backward compatibility)
+            new_target = Targets.create_target(
+                hostname=data.get('Hostname'),
+                ip_address=data.get('Ip_address'),
+                server_type=data.get('Server_type'),
+                #os=data.get('Operating_system'),
+                location=data.get('Location'),
+                status=data.get('Status'),
+                #privilege_escalation=data.get('Privilege_escalation'),
+                #exploitation_level=data.get('Exploitation_level'),
+                #incident_id=data.get('Id_vul_in_target'),
+                notes=data.get('Notes')
+            )
+            return jsonify({
+                'message': 'Target added successfully',
+                'target_id': new_target.server_id
+            }), 201
     except Exception as e:
         return jsonify({'error': 'Server error', 'details': str(e)}), 500
+
+
+@blueprint.route('/api/add_targets_from_file', methods=['POST'])
+def add_targets_from_file():
+    try:
+        # Kiểm tra file upload
+        if 'file' not in request.files:
+            return jsonify({'status': -1, 'msg': 'No file uploaded'}), 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'status': -1, 'msg': 'No selected file'}), 400
+
+        # Đọc file, giả sử là CSV: Hostname
+        import csv
+        import io
+        stream = io.StringIO(file.stream.read().decode('utf-8'))
+        reader = csv.DictReader(stream)
+        created_ids = []
+        for row in reader:
+            new_target = Targets.create_target(
+                hostname=row.get('Hostname')
+            )
+            created_ids.append(new_target.server_id)
+        return jsonify({'status': 0, 'msg': f'Add targets with file upload Success.', 'target_ids': created_ids, 'count': len(created_ids)})
+    except Exception as e:
+        return jsonify({'status':-1, 'msg':str(e)})
+
 
 #xem thông tin của 1 target
 @blueprint.route('/view-target', methods=['GET'])

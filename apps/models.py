@@ -248,7 +248,7 @@ class Targets(db.Model):
         }
     
     @classmethod
-    def create_target(cls, hostname, ip_address, server_type, **kwargs):
+    def create_target(cls, hostname, **kwargs):
         """Create a new target"""
         try:
             target = cls(hostname=hostname, ip_address=ip_address, server_type=server_type, **kwargs)
