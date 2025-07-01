@@ -1,3 +1,49 @@
+<style>
+  .dropdown-custom {
+  position: relative;
+  display: inline-block;
+}
+.dropdown-custom .btn {
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dropdown-custom .arrow {
+  margin-left: 8px;
+  font-size: 0.8em;
+}
+.dropdown-list {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 110%;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0.4rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 100;
+  overflow: hidden;
+  animation: slideDown 0.25s;
+}
+.dropdown-list .dropdown-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.dropdown-list .dropdown-item:hover,
+.dropdown-list .dropdown-item.active {
+  background: #f97316;
+  color: #fff;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px);}
+  to   { opacity: 1; transform: translateY(0);}
+}
+</style>
+
+
 <div
   class="row"
   id="edittarget-hidden"
@@ -8,13 +54,19 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
-          <h5 class="mb-0 me-2">Info target</h5>
+          <h5 class="mb-0 me-2">Add target</h5>
           
         </div>
-        <select class="btn bg-gradient-dark mb-0" id="btn-select-typeadd-target">
-          <option value="manual" selected>Thêm thủ công</option>
-          <option value="file">Thêm từ file</option>
-        </select>
+        <div class="dropdown-custom">
+          <button class="btn bg-gradient-dark" id="dropdownAddTypeBtn" type="button">
+            <span id="dropdownAddTypeText">Thêm thủ công</span>
+            <span class="arrow">&#9662;</span>
+          </button>
+          <div class="dropdown-list" id="dropdownAddTypeList">
+            <div class="dropdown-item active" data-value="manual">Thêm thủ công</div>
+            <div class="dropdown-item" data-value="file">Thêm từ file</div>
+          </div>
+        </div>
       </div>
       <div class="card-block px-4">
         <!-- Thêm thủ công -->
@@ -83,7 +135,7 @@
               type="file"
               id="id-file-targets"
               class="form-control mb-3"
-              accept=".py" 
+              accept=".py, .txt" 
               style="border: 1px solid rgba(0, 0, 0, 0.541);"
             />
             <button onclick="add_target_with_file()" type="button" class="btn btn-orange bg-gradient w-100" style="background-color: #f97316 !important; color: white;">
@@ -98,46 +150,7 @@
   </div>
 </div>
 
-<!--hiển thị các thành phần upload file-->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Hiển thị mặc định
-    document.getElementById('target-inputs-manual').style.display = 'block';
-    document.getElementById('target-inputs-file').style.display = 'none';
-    // Chuyển đổi giữa 2 chế độ
-    const select = document.getElementById('btn-select-typeadd-target');
-    select.addEventListener('change', function() {
-      const type = this.value;
-      document.getElementById('target-inputs-manual').style.display = (type === 'manual') ? 'block' : 'none';
-      document.getElementById('target-inputs-file').style.display = (type === 'file') ? 'block' : 'none';
-    });
-    // Thêm target-input-group mới khi nhấn nút +
-    const addBtn = document.getElementById('add-target-group');
-    const removeBtn = document.getElementById('remove-target-group');
-    const wrapper = document.getElementById('target-inputs-wrapper');
-    addBtn.addEventListener('click', function() {
-      const groups = wrapper.getElementsByClassName('target-input-group');
-      const lastGroup = groups[groups.length - 1];
-      const newGroup = lastGroup.cloneNode(true);
-      Array.from(newGroup.querySelectorAll('input, textarea')).forEach(el => {
-        if (el.type === 'hidden') {
-          el.value = el.value;
-        } else {
-          el.value = '';
-        }
-      });
-      wrapper.appendChild(newGroup);
-    });
-    // Xóa target-input-group cuối cùng khi nhấn nút -
-    removeBtn.addEventListener('click', function() {
-      const groups = wrapper.getElementsByClassName('target-input-group');
-      if (groups.length > 1) {
-        groups[groups.length - 1].remove();
-      }
-    });
-  });
 
-</script>
 
 <!--Add target with manual-->
 <script>
@@ -191,23 +204,25 @@
     const filename = file.name;
     const extendsion = filename.split('.').pop().toLowerCase();
 
-    if(extendsion !== 'py' || extendsion !== 'txt'){
+    if(extendsion !== 'py' && extendsion !== 'txt'){
       alert("Chỉ cho phép .txt hoặc .py!!!!");
       return;
     }
 
     const formdata = new FormData();
-    formdata.append(file);
+    formdata.append('file',file);
     $.ajax({
       url: '/api/add_targets_from_file',
       type: 'POST',
-      ata: formdata,
+      data: formdata,
       contentType: false,
       processData:false,
     })
     .done((resp) => {
+      console.log(resp);
       if(resp['status'] === -1){
-        alert(resp['msg']);
+        let data= resp['msg'];
+        alert(data);
       }
       else{
         alert(resp['msg'],'Đã thêm được ',resp['count'],' targets.');
@@ -220,4 +235,41 @@
     });
 
   }
+</script>
+
+<!--hiển thị các thành phần upload file-->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('dropdownAddTypeBtn');
+  const list = document.getElementById('dropdownAddTypeList');
+  const text = document.getElementById('dropdownAddTypeText');
+  const items = list.querySelectorAll('.dropdown-item');
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    list.style.display = (list.style.display === 'block') ? 'none' : 'block';
+  });
+
+  items.forEach(item => {
+    item.addEventListener('click', function() {
+      items.forEach(i => i.classList.remove('active'));
+      this.classList.add('active');
+      text.textContent = this.textContent;
+      list.style.display = 'none';
+      // Hiện/ẩn form
+      if(this.dataset.value === 'manual') {
+        document.getElementById('target-inputs-manual').style.display = 'block';
+        document.getElementById('target-inputs-file').style.display = 'none';
+      } else {
+        document.getElementById('target-inputs-manual').style.display = 'none';
+        document.getElementById('target-inputs-file').style.display = 'block';
+      }
+    });
+  });
+
+  // Đóng dropdown khi click ra ngoài
+  document.addEventListener('click', function() {
+    list.style.display = 'none';
+  });
+});
 </script>

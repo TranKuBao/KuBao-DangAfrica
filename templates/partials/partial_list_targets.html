@@ -1,5 +1,19 @@
 {% for target in targets %}
                 <tr>                  
+                  <td class="align-middle text-center">
+                    <input type="checkbox" class="row-checkbox m-0"
+                           style="
+                             width: 18px;
+                             height: 18px;
+                             cursor: pointer;
+                             border: 2px solid #c9c2c2;
+                             border-radius: 4px;
+                             accent-color: #f97316;
+                             color: #fff;
+                             transition: all 0.2s ease;
+                           "
+                           data-target-id="{{target.server_id}}">
+                  </td>
                   <td>
                     <div class="d-flex px-2 py-1">
                       <div>
@@ -7,7 +21,6 @@
                         <img                          
                           src="{{ url_for('static', filename='assets/img/targetsecurity.png') }}" 
                           class="avatar avatar-sm me-3"
-                          alt="user1"
                         />
                       
                       </div>
@@ -116,3 +129,10 @@
                     }
                   }
                  </script>
+
+<script>
+function toggleAllCheckboxes(source) {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  checkboxes.forEach(cb => cb.checked = source.checked);
+}
+</script>

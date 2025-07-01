@@ -62,7 +62,7 @@ def targets():
 def get_targets():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '', type=str).strip()
-    per_page = 9
+    per_page = 7
     print(f"[x] page: {page} & search_querry={search_query}")
     targets_paginated, total_pages = Targets.search(search_query, page, per_page)
 
@@ -140,28 +140,37 @@ def add_targets():
 @blueprint.route('/api/add_targets_from_file', methods=['POST'])
 def add_targets_from_file():
     try:
-        # Kiểm tra file upload
         if 'file' not in request.files:
             return jsonify({'status': -1, 'msg': 'No file uploaded'}), 400
         file = request.files['file']
         if file.filename == '':
             return jsonify({'status': -1, 'msg': 'No selected file'}), 400
 
-        # Đọc file, giả sử là CSV: Hostname
-        import csv
         import io
         stream = io.StringIO(file.stream.read().decode('utf-8'))
-        reader = csv.DictReader(stream)
         created_ids = []
-        for row in reader:
-            new_target = Targets.create_target(
-                hostname=row.get('Hostname')
-            )
-            created_ids.append(new_target.server_id)
+        for line in stream:
+            hostname = line.strip()
+            #print(f"Read line: '{hostname}'")  # Thêm log
+            if hostname:
+                try:
+                    new_target = Targets.create_target(
+                                                hostname=hostname,
+                                                ip_address='None',
+                                                server_type='web_server',
+                                                location='None',
+                                                status='online',
+                                                notes=''
+                                            )
+                    created_ids.append(new_target.server_id)
+                except Exception as e:
+                    print(f"Error creating target for '{hostname}': {e}")
+        if not created_ids:
+            return jsonify({'status': -1, 'msg': 'No valid hostnames found or all failed to add.'})
         return jsonify({'status': 0, 'msg': f'Add targets with file upload Success.', 'target_ids': created_ids, 'count': len(created_ids)})
     except Exception as e:
+        print(f"Exception: {e}")
         return jsonify({'status':-1, 'msg':str(e)})
-
 
 #xem thông tin của 1 target
 @blueprint.route('/view-target', methods=['GET'])

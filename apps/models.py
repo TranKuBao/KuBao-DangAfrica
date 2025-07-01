@@ -251,7 +251,7 @@ class Targets(db.Model):
     def create_target(cls, hostname, **kwargs):
         """Create a new target"""
         try:
-            target = cls(hostname=hostname, ip_address=ip_address, server_type=server_type, **kwargs)
+            target = cls(hostname=hostname, **kwargs)
             db.session.add(target)
             db.session.commit()
             print(target)
