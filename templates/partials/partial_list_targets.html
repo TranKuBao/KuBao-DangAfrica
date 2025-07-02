@@ -39,8 +39,8 @@
                     </p>
                   </td>
                   <td class="align-middle text-center text-sm">
-                    <span class="badge badge-sm " id="span-status-target" data-url-status="{{target.hostname}}">online</span>
-                    <p class="text-xs text-secondary mb-0" id="status-code-target">
+                    <span class="badge badge-sm " data-status-span="{{ target.server_id }}" data-url-status="{{ target.hostname }}">online</span>
+                    <p class="text-xs text-secondary mb-0" data-status-code="{{ target.server_id }}">
                       <!--StatusCode: 400-->
                     </p>
                   </td>
@@ -141,35 +141,57 @@ function toggleAllCheckboxes(source) {
 
 
 //check live in website
-async function checkWebsite(URL){
-  const span = document.getElementById('span-status-target');
-  const p_status = document.getElementById('status-code-target');
+async function checkWebsite(URL, serverId){
+  const span = document.querySelector(`[data-status-span='${serverId}']`);
+  const p_status = document.querySelector(`[data-status-code='${serverId}']`);
+  span.classList.remove('bg-gradient-success', 'bg-gradient-warning', 'bg-gradient-danger');
+
   $.ajax({
-    url: '/api/api/checkstatusSite',
+    url: '/api/checkstatussite',
     type: 'POST',
-    data: {
-      url: URL,
-    }
+    data: JSON.stringify({ url: URL }),
+    contentType: 'application/json',
   })
   .done((resp) =>{
     if(resp['http_status']){
       p_status.innerHTML="Status-code: " + resp['http_status'];
 
+      //Xanh lá: bg-gradient-success
+      //Vàng: bg-gradient-warning
+      //Đỏ: bg-gradient-danger
       if(resp['status'] === 'online'){
         span.innerHTML='Online';
-        span.classList.add('bg-gradient-success');
+        span.classList.add('bg-gradient-success'); //xanh
       }
       else{
         span.innerHTML='Offline';
+        span.classList.add('bg-gradient-warning'); //vàng
       }
     }
     else{
-
+      span.innerHTML='Offline';
+      span.classList.add('bg-gradient-danger'); //đỏ
     }
   })
   .fail((error) =>{
     console.log(error);
+    span.innerHTML = 'Offline';
+    span.classList.remove('bg-gradient-success', 'bg-gradient-warning');
+    span.classList.add('bg-gradient-danger');
+  });
+}
+
+  //Gọi cho tất cả các dòng sau khi bảng render:
+  function initStatusCheck() {
+    document.querySelectorAll('[data-status-span]').forEach(function(span) {
+      const url = span.getAttribute('data-url-status');
+      const serverId = span.getAttribute('data-status-span');
+      checkWebsite(url, serverId);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initStatusCheck();
   });
 
-}
 </script>

@@ -76,7 +76,7 @@ def get_targets():
         'total_pages': total_pages
     })
 
-@blueprint.route('/api/checkstatusSite',methods=['POST'])
+@blueprint.route('/api/checkstatussite',methods=['POST'])
 def check_status_website():
     data = request.get_json()
     

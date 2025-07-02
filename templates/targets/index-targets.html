@@ -572,6 +572,9 @@
           totalPages = data.total_pages;
         }
         document.querySelector("#targetTableBody").innerHTML = data.html;
+        
+        initStatusCheck(); // là check status code thôi
+
         updatePaginationDisplay();
         updateNavigationButtons();
         updatePageInfo();

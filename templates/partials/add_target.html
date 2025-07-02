@@ -59,7 +59,7 @@
         </div>
         <div class="dropdown-custom">
           <button class="btn bg-gradient-dark" id="dropdownAddTypeBtn" type="button">
-            <span id="dropdownAddTypeText">Thêm thủ công</span>
+            <span id="dropdownAddTypeText">Đổi kiểu thêm</span>
             <span class="arrow">&#9662;</span>
           </button>
           <div class="dropdown-list" id="dropdownAddTypeList">
@@ -156,8 +156,8 @@
 <script>
   document.getElementById('multi-target-form').addEventListener('submit', async function(e) {
   e.preventDefault(); // Ngăn reload trang
-  const select = document.getElementById('btn-select-typeadd-target');
-  if(select.value === 'manual'){
+  const addType = document.getElementById('dropdownAddTypeBtn').getAttribute('data-value') || 'manual';
+  if(addType === 'manual'){
     const groups = document.querySelectorAll('.target-input-group');
     const targets = [];
     groups.forEach(group => {
@@ -192,6 +192,7 @@
 
 </script>
 
+<!--Add target with file-->
 <script>
   function add_target_with_file(){
     const file_upload = document.getElementById('id-file-targets');
