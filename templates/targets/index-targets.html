@@ -1,6 +1,7 @@
 {% extends "layouts/base.html" %} {% block content %}
 <head>
   <style>
+    /* Pagination styles */
     .pagination-container {
       background: #f8f9fa;
       padding: 20px;
@@ -128,6 +129,196 @@
       border: 1px solid #ced4da;
       border-radius: 4px;
     }
+
+    /* Custom Action Buttons with Icons and Tooltips */
+    .action-buttons-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .action-btn {
+      position: relative;
+      width: 45px;
+      height: 45px;
+      border: none;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 18px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+    }
+
+    .action-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .action-btn:hover::before {
+      left: 100%;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+    }
+
+    .action-btn:active {
+      transform: translateY(-1px) scale(1.02);
+    }
+
+    /* Button specific styles */
+    .btn-verify {
+      background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    }
+
+    .btn-verify:hover {
+      background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    }
+
+    .btn-delete {
+      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+
+    .btn-delete:hover {
+      background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+    }
+
+    .btn-info {
+      background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    }
+
+    .btn-info:hover {
+      background: linear-gradient(135deg, #138496 0%, #0f6674 100%);
+    }
+
+    .btn-sort {
+      background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    }
+
+    .btn-sort:hover {
+      background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+    }
+
+    /* Tooltip styles */
+    .action-btn .tooltip {
+      position: absolute;
+      bottom: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .action-btn .tooltip::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 5px solid rgba(0, 0, 0, 0.9);
+    }
+
+    .action-btn:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      bottom: -35px;
+    }
+
+    /* Dropdown menu styling */
+    .custom-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .custom-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      padding: 8px 0;
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+      z-index: 1000;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .custom-dropdown-menu.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .custom-dropdown-item {
+      display: block;
+      padding: 10px 16px;
+      color: #495057;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .custom-dropdown-item:hover {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      color: #f97316;
+      transform: translateX(5px);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .col-12.d-flex.align-items-center.justify-content-between {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch !important;
+      }
+      
+      .input-group {
+        max-width: 100% !important;
+      }
+      
+      .action-buttons-container {
+        gap: 8px;
+        justify-content: center;
+      }
+      
+      .action-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+      }
+    }
   </style>
 </head>
 <div class="container-fluid py-4">
@@ -160,8 +351,9 @@
         </div>
         <div class="card-header pb-0 p-3">
           <div class="row align-items-center">
-            <div class="col-12 d-flex align-items-center">
-              <div class="input-group me-2" style="max-width: 320px;">
+            <div class="col-12 d-flex align-items-center justify-content-between">
+              <!-- Search Box -->
+              <div class="input-group" style="max-width: 320px;">
                 <span class="input-group-text text-body">
                   <i class="fas fa-search" aria-hidden="true"></i>
                 </span>
@@ -172,32 +364,67 @@
                   id="id_search_target"
                 />
               </div>
-              <button class="btn btn-warning me-2 align-middle" id="btn-verify-selected" style="height: 40px; min-width: 110px; display: flex; align-items: center; margin-top: 12px;">
-                <i class="fas fa-check-circle me-1"></i> Verify
-              </button>
-              <button class="btn btn-danger me-2 align-middle" id="btn-delete-selected" style="height: 40px; min-width: 100px; display: flex; align-items: center; margin-top: 12px;">
-                <i class="fas fa-trash-alt me-1"></i> Xóa
-              </button>
-              <div class="dropdown align-middle" style="height: 40px;">
-                <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" style="height: 40px; min-width: 150px; display: flex; align-items: center;">
-                  Thu thập thông tin
+              
+              <!-- Action Buttons Container -->
+              <div class="action-buttons-container">
+                <!-- Verify Button -->
+                <button class="action-btn btn-verify" id="btn-verify-selected">
+                  <i class="fas fa-check-circle"></i>
+                  <span class="tooltip">Verify Selected</span>
                 </button>
-                <ul class="dropdown-menu">
-                  <li><a class="dropdown-item" href="#" onclick="sortTargets('wappalyzer')">Wappalyzer</a></li>
-                  <li><a class="dropdown-item" href="#" onclick="sortTargets('nmap')">Nmap</a></li>
-                  <li><a class="dropdown-item" href="#" onclick="sortTargets('dirsearch')">Dirsearch</a></li>
-                  <li><a class="dropdown-item" href="#" onclick="sortTargets('wpscan')">WP-Scan</a></li>
-                </ul>
-              </div>
-              <div class="dropdown align-middle" style="height: 40px; margin-left: 8px;">
-                <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" style="height: 40px; min-width: 110px; display: flex; align-items: center;">
-                  Sắp xếp
+                
+                <!-- Delete Button -->
+                <button class="action-btn btn-delete" id="btn-delete-selected">
+                  <i class="fas fa-trash-alt"></i>
+                  <span class="tooltip">Delete Selected</span>
                 </button>
-                <ul class="dropdown-menu">
-                  <li><a class="dropdown-item" href="#" onclick="sortTargets('hostname')">Hostname</a></li>
-                  <li><a class="dropdown-item" href="#" onclick="sortTargets('updated_at_desc')">Thời gian cập nhật mới nhất</a></li>
-                  <li><a class="dropdown-item" href="#" onclick="sortTargets('updated_at_asc')">Thời gian cập nhật cũ nhất</a></li>
-                </ul>
+                
+                <!-- Information Collection Dropdown -->
+                <div class="custom-dropdown">
+                  <button class="action-btn btn-info" onclick="toggleDropdown('info-dropdown')">
+                    <i class="fas fa-binoculars"></i>
+                    <span class="tooltip">Thu thập thông tin</span>
+                  </button>
+                  <div class="custom-dropdown-menu" id="info-dropdown">
+                    <a class="custom-dropdown-item" href="javascript:;" onclick="sortTargets('wappalyzer')">
+                      <i class="fas fa-search me-2"></i>Wappalyzer
+                    </a>
+                    <a class="custom-dropdown-item" href="javascript:;" onclick="sortTargets('nmap')">
+                      <i class="fas fa-network-wired me-2"></i>Nmap
+                    </a>
+                    <a class="custom-dropdown-item" href="javascript:;" onclick="sortTargets('dirsearch')">
+                      <i class="fas fa-folder-open me-2"></i>Dirsearch
+                    </a>
+                    <a class="custom-dropdown-item" href="javascript:;" onclick="sortTargets('wpscan')">
+                      <i class="fab fa-wordpress me-2"></i>WP-Scan
+                    </a>
+                  </div>
+                </div>
+                
+                <!-- Sort Dropdown -->
+                <div class="custom-dropdown">
+                  <button class="action-btn btn-sort" onclick="toggleDropdown('sort-dropdown')">
+                    <i class="fas fa-sort"></i>
+                    <span class="tooltip">Sắp xếp</span>
+                  </button>
+                  <div class="custom-dropdown-menu" id="sort-dropdown">
+                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('hostname')">
+                      <i class="fas fa-globe me-2"></i>Hostname
+                    </a>
+                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('updated_at_desc')">
+                      <i class="fas fa-clock me-2"></i>Thời gian cập nhật mới nhất
+                    </a>
+                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('updated_at_asc')">
+                      <i class="fas fa-history me-2"></i>Thời gian cập nhật cũ nhất
+                    </a>
+                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('created_at_desc')">
+                      <i class="fas fa-history me-2"></i>Thời gian tạo mới nhất
+                    </a>
+                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('created_at_asc')">
+                      <i class="fas fa-history me-2"></i>Thời gian tạo cũ nhất
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -315,18 +542,22 @@
   let currentPage = 1;
   let totalPages = {{ total_pages|default(1) }};
   let visiblePages = 5;
+  let currentSortType = "";
 
   function initPagination() {
     updatePaginationDisplay();
     updateNavigationButtons();
     updatePageInfo();
-    showContent(currentPage, document.getElementById("id_search_target").value);
+    showContent(currentPage, document.getElementById("id_search_target").value, currentSortType);
   }
 
-  function showContent(page, searchInput = "") {
+  function showContent(page, searchInput = "", sortType = "") {
     let url = `/api/targets?page=${page}`;
     if (searchInput.trim()) {
       url += `&search=${encodeURIComponent(searchInput.trim())}`;
+    }
+    if (sortType.trim()) {
+      url += `&sort=${encodeURIComponent(sortType.trim())}`;
     }
 
     document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>';
@@ -356,7 +587,7 @@
 
     const searchValue = document.getElementById("id_search_target").value;
     currentPage = page;
-    showContent(page, searchValue);
+    showContent(page, searchValue, currentSortType);
   }
 
   function addPageButton(pageNum) {
@@ -437,13 +668,13 @@
     const searchInput = document.getElementById("id_search_target");
     searchInput.addEventListener("input", debounce(function () {
       currentPage = 1;
-      showContent(currentPage, this.value);
+      showContent(currentPage, this.value, currentSortType);
     }, 400));
 
     searchInput.addEventListener("keypress", function (e) {
       if (e.key === "Enter") {
         currentPage = 1;
-        showContent(currentPage, this.value);
+        showContent(currentPage, this.value, currentSortType);
       }
     });
 
@@ -454,7 +685,7 @@
   });
 </script>
 
-<!--Script button hiên thị thêm target-->
+<!--Script button hiên thị thêm target và dropdow của các nút selection hệ thống-->
 <script>
   function on_off_addtarget() {
     if (document.getElementById("edittarget-hidden").hidden == true) {
@@ -472,13 +703,72 @@
       console.log("Nút thêm Target đã được nhấn");
       on_off_addtarget();
     });
+
+  // Custom Dropdown Functionality
+  function toggleDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    const allDropdowns = document.querySelectorAll('.custom-dropdown-menu');
+    
+    // Close all other dropdowns
+    allDropdowns.forEach(d => {
+      if (d.id !== dropdownId) {
+        d.classList.remove('show');
+      }
+    });
+    
+    // Toggle current dropdown
+    dropdown.classList.toggle('show');
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(event) {
+    const dropdowns = document.querySelectorAll('.custom-dropdown');
+    dropdowns.forEach(dropdown => {
+      if (!dropdown.contains(event.target)) {
+        const menu = dropdown.querySelector('.custom-dropdown-menu');
+        if (menu) {
+          menu.classList.remove('show');
+        }
+      }
+    });
+  });
+
+  // Close dropdowns when pressing Escape
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      const allDropdowns = document.querySelectorAll('.custom-dropdown-menu');
+      allDropdowns.forEach(dropdown => {
+        dropdown.classList.remove('show');
+      });
+    }
+  });
+
+  // Sort targets function
+  function sortTargets(sortType) {
+    console.log('Sorting by:', sortType);
+    
+    // Close dropdown after selection
+    const allDropdowns = document.querySelectorAll('.custom-dropdown-menu');
+    allDropdowns.forEach(dropdown => {
+      dropdown.classList.remove('show');
+    });
+    
+    // Update current sort type
+    currentSortType = sortType;
+    
+    // Reset to first page when sorting
+    currentPage = 1;
+    
+    // Load content with new sort
+    showContent(currentPage, document.getElementById("id_search_target").value, currentSortType);
+  }
 </script>
 
 
 {% endblock content %} {% block extra_js %}
 
 
-
+<!--Cái này déo biết ở đâu-->
 <script>
   var ctx = document.getElementById("chart-bars");
   if (ctx) {

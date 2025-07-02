@@ -62,9 +62,10 @@ def targets():
 def get_targets():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '', type=str).strip()
+    sort_type = request.args.get('sort', '', type=str).strip()
     per_page = 7
-    print(f"[x] page: {page} & search_querry={search_query}")
-    targets_paginated, total_pages = Targets.search(search_query, page, per_page)
+    print(f"[x] page: {page} & search_query={search_query} & sort_type={sort_type}")
+    targets_paginated, total_pages = Targets.search(search_query, page, per_page, sort_type)
 
     html = render_template('partials/partial_list_targets.html', targets=targets_paginated, loader=0)
 

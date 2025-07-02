@@ -9,7 +9,7 @@ from apps.exceptions.exception import InvalidUsage
 import datetime as dt
 from sqlalchemy.orm import relationship
 from enum import Enum
-from sqlalchemy import or_
+from sqlalchemy import or_, desc, asc
 
 class CURRENCY_TYPE(Enum):
     usd = 'usd'
@@ -271,9 +271,9 @@ class Targets(db.Model):
         return cls.query.filter_by(server_type=server_type).all()
     
     @classmethod
-    def search(cls, keyword, page=None, per_page=None):
+    def search(cls, keyword, page=None, per_page=None, sort_type=None):
         """Tìm kiếm targets theo hostname, ip_address, server_type hoặc status"""
-        print(f"[x] keyword: {keyword} & page={page} & per_page={per_page}")
+        print(f"[x] keyword: {keyword} & page={page} & per_page={per_page} & sort_type={sort_type}")
         query = Targets.query
         if keyword:
             search_term = f"%{keyword}%"
@@ -287,6 +287,32 @@ class Targets(db.Model):
                     Targets.os.ilike(search_term)
                 )
             )
+        
+        # Apply sorting
+        if sort_type:
+            if sort_type == 'hostname':
+                query = query.order_by(asc(Targets.hostname))
+            elif sort_type == 'updated_at_desc':
+                query = query.order_by(desc(Targets.updated_at))
+            elif sort_type == 'updated_at_asc':
+                query = query.order_by(asc(Targets.updated_at))
+            elif sort_type == 'created_at_desc':
+                query = query.order_by(desc(Targets.created_at))
+            elif sort_type == 'created_at_asc':
+                query = query.order_by(asc(Targets.created_at))
+            elif sort_type == 'status':
+                query = query.order_by(asc(Targets.status))
+            elif sort_type == 'server_type':
+                query = query.order_by(asc(Targets.server_type))
+            elif sort_type == 'ip_address':
+                query = query.order_by(asc(Targets.ip_address))
+            else:
+                # Default sorting by server_id desc (newest first)
+                query = query.order_by(desc(Targets.server_id))
+        else:
+            # Default sorting by server_id desc (newest first)
+            query = query.order_by(desc(Targets.server_id))
+            
         print(f"QUERY: {query}")
         if page and per_page: # nếu có các giá trị của phân trang thì mình cho nó
             pagination = query.paginate(page=page, per_page=per_page, error_out=False)
