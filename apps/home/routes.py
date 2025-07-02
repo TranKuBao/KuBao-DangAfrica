@@ -13,6 +13,8 @@ from flask_wtf import FlaskForm
 from flask_login import login_required, current_user
 from flask import render_template, request, redirect, url_for, jsonify, session
 
+import requests
+
 from lib.server.server import Server
 from lib import database, const
 
@@ -73,6 +75,37 @@ def get_targets():
         'html': html,
         'total_pages': total_pages
     })
+
+@blueprint.route('/api/checkstatusSite',methods=['POST'])
+def check_status_website():
+    data = request.get_json()
+    
+    if not data or 'url' not in data:
+        return jsonify({"status":-1,"error": "Thiếu tham số 'url' trong request body"}), 400
+
+    url = data['url']
+    if not url.startswith(('http://', 'https://')):
+        url = 'http://' + url  # Thêm mặc định http nếu thiếu
+
+    try:
+        response = requests.get(url, timeout=5, stream=True)
+        if response.status_code < 400:
+            return jsonify({
+                "url": url,
+                "status": "online",
+                "http_status": response.status_code
+            }), 200
+        else:
+            return jsonify({
+                "url": url,
+                "status": "offline",
+                "http_status": response.status_code
+            }), 200
+    except requests.RequestException:
+        return jsonify({
+            "url": url,
+            "status": "offline"
+        }), 200
 
 
 @blueprint.route('/api/getalltarget',methods=['GET'])

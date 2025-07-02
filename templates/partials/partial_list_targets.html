@@ -39,7 +39,10 @@
                     </p>
                   </td>
                   <td class="align-middle text-center text-sm">
-                    <span class="badge badge-sm bg-gradient-success">{{ target.status }}</span>
+                    <span class="badge badge-sm " id="span-status-target" data-url-status="{{target.hostname}}">online</span>
+                    <p class="text-xs text-secondary mb-0" id="status-code-target">
+                      <!--StatusCode: 400-->
+                    </p>
                   </td>
                   <td>
                     <p class="text-xs font-weight-bold mb-0">Cross Site ScriptSS</p> <!-- Tên Vulnarebility -->
@@ -111,8 +114,6 @@
                 <!-- Xem thông tin target-->
                 <script>
                   function handleViewTarget(idtarget){
-                    //window.location.href = `/view-target/${idtarget}`;
-                    
                     // mở trong tab mới
                     console.log('idtarget:', idtarget);
                     window.open(`/view-target?idtarget=${idtarget}`, '_blank');
@@ -130,9 +131,45 @@
                   }
                  </script>
 
+
 <script>
+// uncheck ALL checkBox
 function toggleAllCheckboxes(source) {
   const checkboxes = document.querySelectorAll('.row-checkbox');
   checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+
+//check live in website
+async function checkWebsite(URL){
+  const span = document.getElementById('span-status-target');
+  const p_status = document.getElementById('status-code-target');
+  $.ajax({
+    url: '/api/api/checkstatusSite',
+    type: 'POST',
+    data: {
+      url: URL,
+    }
+  })
+  .done((resp) =>{
+    if(resp['http_status']){
+      p_status.innerHTML="Status-code: " + resp['http_status'];
+
+      if(resp['status'] === 'online'){
+        span.innerHTML='Online';
+        span.classList.add('bg-gradient-success');
+      }
+      else{
+        span.innerHTML='Offline';
+      }
+    }
+    else{
+
+    }
+  })
+  .fail((error) =>{
+    console.log(error);
+  });
+
 }
 </script>
