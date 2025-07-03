@@ -767,6 +767,44 @@
   }
 </script>
 
+<script>
+  document.getElementById("btn-delete-selected").addEventListener("click", function(){
+    
+    if (confirm(`Are you sure you want to delete the selected targets?`)) {
+      //alert(getCheckedTargetIds()); 
+      const data = getCheckedTargetIds();
+      if( data.length ==0 ){
+        alert('Please check the target you want to delete.');
+        return ;
+      }
+      console.log(data);
+
+      $.ajax({
+        url:'/api/delete_target',
+        type: 'POST',
+        data: JSON.stringify({target_ids: data}),
+        contentType: 'application/json',
+      })
+      .done((resp) =>{
+        if(resp['status'] === 0){
+          alert(`${resp['msg']}${resp['failed_ids'] && resp['failed_ids'].length ? ' | Failed IDs: ' + resp['failed_ids'].join(', ') : ''}`);
+          location.reload();
+        }
+        else {
+            alert(`Error: ${resp['msg']}`);
+        }
+
+      })
+      .fail((error) =>{
+        console.error('Error deleting target:', error);
+        alert('Error deleting target:', error);
+      });
+
+    }
+    else{ return;}
+
+  });
+</script>
 
 {% endblock content %} {% block extra_js %}
 

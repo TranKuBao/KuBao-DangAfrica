@@ -6,7 +6,7 @@ import json
 import wtforms
 from apps.home import blueprint
 from apps import db
-from apps.models import Targets
+from apps.models import Targets, Incidents, Credentials, VulInTarget, Collections, CollectedFiles
 from apps.authentication.models import Users
 from jinja2 import TemplateNotFound
 from flask_wtf import FlaskForm
@@ -62,6 +62,7 @@ def targets():
 #lấy và search ở hàm này
 @blueprint.route('/api/targets', methods=['GET'])
 def get_targets():
+    '''Tìm kiếm và sort targets LIST'''
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '', type=str).strip()
     sort_type = request.args.get('sort', '', type=str).strip()
@@ -78,6 +79,7 @@ def get_targets():
 
 @blueprint.route('/api/checkstatussite',methods=['POST'])
 def check_status_website():
+    '''kiểm tra url theo status code trả về'''
     data = request.get_json()
     
     if not data or 'url' not in data:
@@ -120,7 +122,7 @@ def get_all_targets():
 
 @blueprint.route('/api/add_targets', methods=['POST'])
 def add_targets():
-    """API để thêm một hoặc nhiều target mới"""
+    """API để thêm một hoặc nhiều target mới theo kiểu thủ công"""
     try:
         data = request.get_json()
         print(f"Data: {data}")
@@ -146,7 +148,7 @@ def add_targets():
                 )
                 created_ids.append(new_target.server_id)
             return jsonify({
-                'message': f'{len(created_ids)} targets added successfully',
+                'msg': f'{len(created_ids)} targets added successfully',
                 'target_ids': created_ids
             }), 201
         else:
@@ -164,15 +166,15 @@ def add_targets():
                 notes=data.get('Notes')
             )
             return jsonify({
-                'message': 'Target added successfully',
+                'msg': 'Target added successfully',
                 'target_id': new_target.server_id
             }), 201
     except Exception as e:
         return jsonify({'error': 'Server error', 'details': str(e)}), 500
 
-
 @blueprint.route('/api/add_targets_from_file', methods=['POST'])
 def add_targets_from_file():
+    '''Thêm Target từ file'''
     try:
         if 'file' not in request.files:
             return jsonify({'status': -1, 'msg': 'No file uploaded'}), 400
@@ -201,29 +203,14 @@ def add_targets_from_file():
                     print(f"Error creating target for '{hostname}': {e}")
         if not created_ids:
             return jsonify({'status': -1, 'msg': 'No valid hostnames found or all failed to add.'})
-        return jsonify({'status': 0, 'msg': f'Add targets with file upload Success.', 'target_ids': created_ids, 'count': len(created_ids)})
+        return jsonify({'status': 0, 'msg': f'Add {len(created_ids)} targets with file upload Success.', 'target_ids': created_ids, 'count': len(created_ids)})
     except Exception as e:
         print(f"Exception: {e}")
         return jsonify({'status':-1, 'msg':str(e)})
 
-#xem thông tin của 1 target
-@blueprint.route('/view-target', methods=['GET'])
-def view_target():
-    idtarget = request.args.get('idtarget')
-    # tạm thời không kiểm tra có tồn tại
-
-    #lấy thông tin của CSDL
-    target = Targets.get_by_id(idtarget)
-    
-    #lấy thông tin CVE lấy được
-    #lấy thông tin về trình sát
-    
-    list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
-    return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc, target = target)
-
-
 @blueprint.route('/api/update_target', methods=['POST'])
 def update_target():
+    '''Sửa thông tin của target'''
     data = request.get_json()
     print(f"data edit target: {data}")
     
@@ -249,6 +236,86 @@ def update_target():
     except Exception as e:
         print(f"Error updating target: {str(e)}")
         return jsonify({'status': -1, 'msg': str(e)})
+
+@blueprint.route('/api/delete_target',methods=['POST'])
+def delete_target():
+    """API để xóa một hoặc nhiều target"""
+    try:
+        data = request.get_json()
+        print(f"Delete data: {data}")
+        
+        if not data:
+            return jsonify({'status': -1, 'msg': 'No data provided'}), 400
+        
+        # Nếu gửi danh sách target IDs
+        target_ids = data.get('target_ids', [])
+        if isinstance(target_ids, list) and target_ids:
+            deleted_count = 0
+            failed_ids = []
+            
+            for target_id in target_ids:
+                try:
+                    target = Targets.get_by_id(target_id)
+                    if target:
+                        target.delete()
+                        deleted_count += 1
+                    else:
+                        failed_ids.append(target_id)
+                except Exception as e:
+                    print(f"[-] Error deleting target {target_id}: {e}")
+                    failed_ids.append(target_id)
+            
+            if deleted_count > 0:
+                return jsonify({
+                    'status': 0, 
+                    'msg': f'Successfully deleted {deleted_count} targets',
+                    'deleted_count': deleted_count,
+                    'failed_ids': failed_ids
+                })
+            else:
+                return jsonify({
+                    'status': -1, 
+                    'msg': 'No targets were deleted',
+                    'failed_ids': failed_ids
+                }), 400
+        
+        # Nếu gửi single target ID
+        elif data.get('target_id'):
+            target_id = data.get('target_id')
+            target = Targets.get_by_id(target_id)
+            
+            if not target:
+                return jsonify({'status': -1, 'msg': f'Target with ID {target_id} not found'}), 404
+            
+            target.delete()
+            return jsonify({
+                'status': 0, 
+                'msg': f'Target {target_id} deleted successfully'
+            })
+        
+        else:
+            return jsonify({'status': -1, 'msg': 'No target_id or target_ids provided'}), 400
+            
+    except Exception as e:
+        print(f"Error in delete_target: {str(e)}")
+        return jsonify({'status': -1, 'msg': f'Server error: {str(e)}'}), 500
+
+#xem thông tin của 1 target
+@blueprint.route('/view-target', methods=['GET'])
+def view_target():
+    idtarget = request.args.get('idtarget')
+    # tạm thời không kiểm tra có tồn tại
+
+    #lấy thông tin của CSDL
+    target = Targets.get_by_id(idtarget)
+    
+    #lấy thông tin CVE lấy được
+    #lấy thông tin về trình sát
+    
+    list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
+    return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc, target = target)
+
+
 
 
 #Tương tác terminal của 1 target thông qua 1 POC

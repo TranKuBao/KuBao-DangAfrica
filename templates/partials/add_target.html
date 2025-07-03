@@ -179,7 +179,7 @@
       });
       const result = await response.json();
       if (response.ok) {
-        alert('Thêm nhiều target thành công!');
+        alert(result.msg);
         // Xử lý thêm nếu cần
       } else {
         alert('Lỗi: ' + (result.error || 'Không xác định'));
@@ -226,7 +226,7 @@
         alert(data);
       }
       else{
-        alert(resp['msg'],'Đã thêm được ',resp['count'],' targets.');
+        alert(resp['msg'],' ',resp['count'],' targets.');
 
       }
     })
@@ -272,5 +272,30 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('click', function() {
     list.style.display = 'none';
   });
+});
+
+// Xử lý nút cộng: Thêm dòng nhập target mới
+document.getElementById('add-target-group').addEventListener('click', function() {
+  const wrapper = document.getElementById('target-inputs-wrapper');
+  const groups = wrapper.querySelectorAll('.target-input-group');
+  const lastGroup = groups[groups.length - 1];
+  const newGroup = lastGroup.cloneNode(true);
+
+  // Xóa giá trị các input trong group mới
+  newGroup.querySelectorAll('input, textarea').forEach(input => {
+    if (input.type === 'hidden') return;
+    input.value = '';
+  });
+
+  wrapper.appendChild(newGroup);
+});
+
+// Xử lý nút trừ: Xóa dòng cuối
+document.getElementById('remove-target-group').addEventListener('click', function() {
+  const wrapper = document.getElementById('target-inputs-wrapper');
+  const groups = wrapper.querySelectorAll('.target-input-group');
+  if (groups.length > 1) {
+    wrapper.removeChild(groups[groups.length - 1]);
+  }
 });
 </script>
