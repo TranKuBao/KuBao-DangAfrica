@@ -337,13 +337,13 @@
         <div class="card-header pb-0 p-3">
           <div class="row">
             <div class="col-6 d-flex align-items-center">
-              <h6 class="mb-0">List_Target</h6>
+              <h6 class="mb-0" style="margin-left: 20px !important ;">List_Target</h6>
             </div>
 
             
 
-            <div class="col-6 text-end">
-              <a class="btn bg-gradient-dark mb-0" id="btn-addtargets"
+            <div class="col-6 text-end" >
+              <a class="btn bg-gradient-dark mb-0" id="btn-addtargets" style="margin-right: 20px !important;"
                 ><i class="fas fa-plus"></i>&nbsp;&nbsp;Add Target</a
               >
             </div>
@@ -351,9 +351,9 @@
         </div>
         <div class="card-header pb-0 p-3">
           <div class="row align-items-center">
-            <div class="col-12 d-flex align-items-center justify-content-between">
+            <div class="col-12 d-flex align-items-center justify-content-between" >
               <!-- Search Box -->
-              <div class="input-group" style="max-width: 320px;">
+              <div class="input-group" style="max-width: 320px; margin-left: 15px !important;">
                 <span class="input-group-text text-body">
                   <i class="fas fa-search" aria-hidden="true"></i>
                 </span>
@@ -366,13 +366,15 @@
               </div>
               
               <!-- Action Buttons Container -->
-              <div class="action-buttons-container">
+              <div class="action-buttons-container" style="margin-right: 20px !important;">
                 <!-- Verify Button -->
                 <button class="action-btn btn-verify" id="btn-verify-selected">
                   <i class="fas fa-check-circle"></i>
                   <span class="tooltip">Verify Selected</span>
                 </button>
-                
+                {% include "partials/verify_target.html" %}
+
+
                 <!-- Delete Button -->
                 <button class="action-btn btn-delete" id="btn-delete-selected">
                   <i class="fas fa-trash-alt"></i>
@@ -767,7 +769,30 @@
   }
 </script>
 
+
+
+
+
+
+<!--sử lý các nút nhấn target--------->
 <script>
+  //verify 1 POC với nhiểu tảget đã chọn
+  document.getElementById('btn-verify-selected').addEventListener("click",function(){
+    const data = getCheckedTargetIds();
+      if( data.length ==0 ){
+        alert('Please check the target you want to Verify with POC.');
+        return ;
+      }
+      console.log(data); 
+      // Lấy thông tin modes từ API
+      
+      
+      // ... cập nhật các field khác
+      const modal = new bootstrap.Modal(document.getElementById('verifyPocWithTargetsModal'));
+      modal.show();
+  });
+
+  //Xóa target 
   document.getElementById("btn-delete-selected").addEventListener("click", function(){
     
     if (confirm(`Are you sure you want to delete the selected targets?`)) {
@@ -804,6 +829,8 @@
     else{ return;}
 
   });
+
+
 </script>
 
 {% endblock content %} {% block extra_js %}

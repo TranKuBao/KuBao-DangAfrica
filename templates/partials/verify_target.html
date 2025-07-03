@@ -1,0 +1,136 @@
+
+  <!-- Additional CSS for Enhanced Styling -->
+  <style>
+    .CodeMirror {
+      font-size: 13px !important;
+      min-height: 400px;
+      height: 80%;
+      width: 100%;
+      background: #282a36;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    .modal-body {
+      max-height: none;
+      overflow-y: visible;
+      overflow-x: hidden; /* Chặn cuộn ngang */
+      padding: 1rem 1.5rem;
+    }
+    .modal-content {
+      transition: all 0.3s ease;
+    }
+    .modal-content:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+    .form-control:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+    }
+    .btn {
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .modal-header {
+      border-bottom: 2px solid #e9ecef;
+    }
+    .modal-footer {
+      border-top: 2px solid #e9ecef;
+    }
+    .modal-header, .modal-footer {
+      padding-top: 0.25rem !important;
+      padding-bottom: 0.25rem !important;
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+      min-height: 28px;
+      align-items: center !important;
+    }
+    .modal-header .modal-title {
+      font-size: 1.1rem;
+      padding: 0;
+      margin: 0;
+    }
+    h5.text-primary {
+      font-weight: 600;
+    }
+    .shadow-sm {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+     .btn-hacker {
+      font-family: 'Courier New', monospace;
+      border: 1px solid #f97316;
+      background-color: #FFFFFF;
+      color: #f97316;
+      padding: 10px 20px;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 5px #f97316;
+    }
+  
+    .btn-hacker:hover {
+      background-color: #f97316;
+      color: #FFFFFF;
+      box-shadow: 0 0 12px #f97316;
+    }
+  
+    .btn-hacker-danger {
+      border: 1px solid #ff0033;
+      color: #ff0033;
+      box-shadow: 0 0 5px #ff0033;
+    }
+  
+    .btn-hacker-danger:hover {
+      background-color: #ff0033;
+      color: #000;
+      box-shadow: 0 0 12px #ff0033;
+    }
+  
+    .btn-hacker-warning {
+      border: 1px solid #f97316;
+      color: #f97316;
+      box-shadow: 0 0 5px #f97316;
+    }
+  
+    .btn-hacker-warning:hover {
+      background-color: #f97316;
+      color: #000;
+      box-shadow: 0 0 12px #f97316;
+    }
+  </style>
+
+
+
+<div class="modal fade" id="verifyPocWithTargetsModal" tabindex="-1" aria-labelledby="editpocModalLabel" aria-hidden="true" >
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content shadow-lg" style="background-color: #f8f9fa; border-radius: 12px;">
+        <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center" style="background-color: #e9ecef !important;">
+          <h5 class="modal-title font-weight-bold" id="editpocModalLabel">Select POC to test vulnerabilities on the target</h5>
+          <div class="d-flex gap-2" style="margin-top: 10px !important;">
+            <button type="button" class="btn btn-hacker px-4">▷ Save</button>
+            <button type="button" class="btn btn-hacker-danger px-4" data-bs-dismiss="modal">✖ Close</button>
+          </div>
+        </div>
+        <div class="modal-body p-4"  >
+              <h5 class="mb-3 text-primary">Edit Options</h5>
+              <div class="input-group" style="max-width: 320px;">
+                <span class="input-group-text text-body">
+                  <i class="fas fa-search" aria-hidden="true"></i>
+                </span>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Tìm kiếm ..."
+                  id="id_search_target"
+                />
+              </div>
+              <span class="mb-3 text-primary" id="notiErrorPoc"></span>
+              <div class="form-group" style="margin-top: -22px !important;">
+                <label for="source-poc" class="col-form-label font-weight-semibold">Source code Poc</label>
+                <textarea class="form-control" id="source-poc-id" name="source_code" rows="12" ></textarea>
+              </div>  
+        </div>
+  
+      </div>
+    </div>
+  </div>
