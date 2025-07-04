@@ -115,7 +115,7 @@ def check_status_website():
 def get_all_targets():
     try:
         targets = Targets.query.all()
-        print(f"{targets}")
+        #print(f"{targets}")
         targets_list = [t.to_dict() for t in targets]
         return jsonify({'targets': targets_list}), 200
     except Exception as e:
@@ -465,12 +465,13 @@ def get_poc_info():
         return jsonify({'status': -1, 'msg': 'poc-path is required'})
 
     poc_path = request.form['poc_path']
-    #print(f"Received poc_path: '{poc_path}'")  # Debug log
-    
+    print(f"Received poc_path: '{poc_path}'")  # Debug log
+    #print(f"[+] first poc_path: '{poc_path}'")  # Debug log
+
     if not ('pocs' in poc_path):
         poc_path = os.path.join('pocs', poc_path)
     
-    #print(f"Final poc_path: '{poc_path}'")  # Debug log
+    print(f"[+] Final poc_path: '{poc_path}'")  # Debug log
     
     try:
         #để load PoC tương ứng.
