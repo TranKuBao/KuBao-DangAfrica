@@ -539,10 +539,20 @@
     </div>
   </div>
 </div>
+<!-- Khởi tạo giá trị từ server -->
+<script>
+  // Khởi tạo totalPages từ server
+  {% if total_pages %}
+  var initialTotalPages = {{ total_pages }};
+  {% else %}
+  var initialTotalPages = 1;
+  {% endif %}
+</script>
+
 <!-- Script phân trang-->
 <script>
   let currentPage = 1;
-  let totalPages = {{ total_pages|default(1) }};
+  let totalPages = initialTotalPages;
   let visiblePages = 5;
   let currentSortType = "";
 
@@ -580,6 +590,7 @@
         updatePaginationDisplay();
         updateNavigationButtons();
         updatePageInfo();
+        restoreCheckedTargets();
       })
       .catch((error) => {
         console.error("Lỗi khi tải danh sách targets:", error);
@@ -769,66 +780,168 @@
   }
 </script>
 
-
-
-
-
-
-<!--sử lý các nút nhấn target--------->
+<!--checkbox và các nut verify và ....-->
 <script>
-  //verify 1 POC với nhiểu tảget đã chọn
-  document.getElementById('btn-verify-selected').addEventListener("click",function(){
-    const data = getCheckedTargetIds();
-      if( data.length ==0 ){
-        alert('Please check the target you want to Verify with POC.');
-        return ;
-      }
-      console.log(data); 
-      // Lấy thông tin modes từ API
-      
-      
-      // ... cập nhật các field khác
-      const modal = new bootstrap.Modal(document.getElementById('verifyPocWithTargetsModal'));
-      modal.show();
+  window.checkedTargetIds = window.checkedTargetIds || [];
+
+// Khi check/uncheck từng checkbox
+function onTargetCheckboxChange(checkbox) {
+  const id = checkbox.getAttribute('data-target-id');
+  if (checkbox.checked) {
+    if (!window.checkedTargetIds.includes(id)) window.checkedTargetIds.push(id);
+  } else {
+    window.checkedTargetIds = window.checkedTargetIds.filter(tid => tid !== id);
+  }
+  
+  // Hiển thị số lượng target đã chọn
+  updateSelectedCount();
+  updateSelectAllCheckbox();
+  
+  // Cập nhật thông tin trong modal nếu đang mở
+  if (typeof refreshTargetInfo === 'function') {
+    refreshTargetInfo();
+  }
+}
+
+// Hiển thị số lượng target đã chọn
+function updateSelectedCount() {
+  const count = window.checkedTargetIds.length;
+  console.log(`Đã chọn ${count} targets:`, window.checkedTargetIds);
+  
+  // Có thể thêm hiển thị UI nếu cần
+  // Ví dụ: document.getElementById('selected-count').textContent = count;
+}
+
+// Khi check/uncheck select-all
+function toggleAllCheckboxes(source) {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  
+  if (source.checked) {
+    // Lần nhấn đầu tiên: Chọn tất cả trên trang hiện tại
+    checkboxes.forEach(cb => {
+      cb.checked = true;
+      onTargetCheckboxChange(cb);
+    });
+  } else {
+    // Lần nhấn thứ hai: Bỏ chọn tất cả trên trang hiện tại
+    checkboxes.forEach(cb => {
+      cb.checked = false;
+      onTargetCheckboxChange(cb);
+    });
+  }
+  
+  // Cập nhật thông tin trong modal nếu đang mở
+  if (typeof refreshTargetInfo === 'function') {
+    refreshTargetInfo();
+  }
+}
+
+// Lấy target IDs đã check
+function getCheckedTargetIds() {
+  return window.checkedTargetIds;
+}
+
+// Khi render lại bảng, gọi hàm này để restore trạng thái checked
+function restoreCheckedTargets() {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = window.checkedTargetIds.includes(cb.getAttribute('data-target-id'));
   });
+  
+  // Reset select-all về unchecked và không indeterminate khi làm mới list
+  const selectAll = document.getElementById('select-all-checkbox');
+  if (selectAll) {
+    selectAll.checked = false;
+    selectAll.indeterminate = false;
+  }
+  
+  updateSelectAllCheckbox();
+  updateSelectedCount();
+}
 
-  //Xóa target 
-  document.getElementById("btn-delete-selected").addEventListener("click", function(){
-    
-    if (confirm(`Are you sure you want to delete the selected targets?`)) {
-      //alert(getCheckedTargetIds()); 
-      const data = getCheckedTargetIds();
-      if( data.length ==0 ){
-        alert('Please check the target you want to delete.');
-        return ;
-      }
-      console.log(data);
+// Cập nhật trạng thái của select-all checkbox
+function updateSelectAllCheckbox() {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  const selectAll = document.getElementById('select-all-checkbox');
+  if (!selectAll) return;
+  
+  if (checkboxes.length === 0) {
+    selectAll.checked = false;
+    selectAll.indeterminate = false;
+    return;
+  }
+  
+  const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+  
+  if (checkedCount === 0) {
+    // Không có checkbox nào được chọn trên trang hiện tại
+    selectAll.checked = false;
+    selectAll.indeterminate = false;
+  } else if (checkedCount === checkboxes.length) {
+    // Tất cả checkbox trên trang hiện tại đều được chọn
+    selectAll.checked = true;
+    selectAll.indeterminate = false;
+  } else {
+    // Một số checkbox được chọn (trạng thái indeterminate)
+    selectAll.checked = false;
+    selectAll.indeterminate = true;
+  }
+}
 
-      $.ajax({
-        url:'/api/delete_target',
-        type: 'POST',
-        data: JSON.stringify({target_ids: data}),
-        contentType: 'application/json',
-      })
-      .done((resp) =>{
-        if(resp['status'] === 0){
-          alert(`${resp['msg']}${resp['failed_ids'] && resp['failed_ids'].length ? ' | Failed IDs: ' + resp['failed_ids'].join(', ') : ''}`);
-          location.reload();
-        }
-        else {
-            alert(`Error: ${resp['msg']}`);
-        }
 
-      })
-      .fail((error) =>{
-        console.error('Error deleting target:', error);
-        alert('Error deleting target:', error);
-      });
-
+//verify 1 POC với nhiểu tảget đã chọn
+document.getElementById('btn-verify-selected').addEventListener("click",function(){
+  const data = getCheckedTargetIds();
+    if( data.length ==0 ){
+      alert('Please check the target you want to Verify with POC.');
+      return ;
     }
-    else{ return;}
+    console.log(data); 
+    // Lấy thông tin modes từ API
+    
+    
+    // ... cập nhật các field khác
+    const modal = new bootstrap.Modal(document.getElementById('verifyPocWithTargetsModal'));
+    modal.show();
+});
 
-  });
+//Xóa target 
+document.getElementById("btn-delete-selected").addEventListener("click", function(){
+  
+  if (confirm(`Are you sure you want to delete the selected targets?`)) {
+    //alert(getCheckedTargetIds()); 
+    const data = getCheckedTargetIds();
+    if( data.length ==0 ){
+      alert('Please check the target you want to delete.');
+      return ;
+    }
+    console.log(data);
+
+    $.ajax({
+      url:'/api/delete_target',
+      type: 'POST',
+      data: JSON.stringify({target_ids: data}),
+      contentType: 'application/json',
+    })
+    .done((resp) =>{
+      if(resp['status'] === 0){
+        alert(`${resp['msg']}${resp['failed_ids'] && resp['failed_ids'].length ? ' | Failed IDs: ' + resp['failed_ids'].join(', ') : ''}`);
+        location.reload();
+      }
+      else {
+          alert(`Error: ${resp['msg']}`);
+      }
+
+    })
+    .fail((error) =>{
+      console.error('Error deleting target:', error);
+      alert('Error deleting target:', error);
+    });
+
+  }
+  else{ return;}
+
+});
 
 
 </script>
@@ -836,184 +949,6 @@
 {% endblock content %} {% block extra_js %}
 
 
-<!--Cái này déo biết ở đâu-->
-<script>
-  var ctx = document.getElementById("chart-bars");
-  if (ctx) {
-    ctx = ctx.getContext("2d");
-
-    new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        datasets: [
-          {
-            label: "Sales",
-            tension: 0.4,
-            borderWidth: 0,
-            borderRadius: 4,
-            borderSkipped: false,
-            backgroundColor: "#fff",
-            data: [450, 200, 100, 220, 500, 100, 400, 230, 500],
-            maxBarThickness: 6,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false,
-          },
-        },
-        interaction: {
-          intersect: false,
-          mode: "index",
-        },
-        scales: {
-          y: {
-            grid: {
-              drawBorder: false,
-              display: false,
-              drawOnChartArea: false,
-              drawTicks: false,
-            },
-            ticks: {
-              suggestedMin: 0,
-              suggestedMax: 500,
-              beginAtZero: true,
-              padding: 15,
-              font: {
-                size: 14,
-                family: "Inter",
-                style: "normal",
-                lineHeight: 2,
-              },
-              color: "#fff",
-            },
-          },
-          x: {
-            grid: {
-              drawBorder: false,
-              display: false,
-              drawOnChartArea: false,
-              drawTicks: false,
-            },
-            ticks: {
-              display: false,
-            },
-          },
-        },
-      },
-    });
-  }
-
-  var ctx2 = document.getElementById("chart-line");
-  if (ctx2) {
-    ctx2 = ctx2.getContext("2d");
-
-    var gradientStroke1 = ctx2.createLinearGradient(0, 230, 0, 50);
-
-    gradientStroke1.addColorStop(1, "rgba(203,12,159,0.2)");
-    gradientStroke1.addColorStop(0.2, "rgba(72,72,176,0.0)");
-    gradientStroke1.addColorStop(0, "rgba(203,12,159,0)"); //purple colors
-
-    var gradientStroke2 = ctx2.createLinearGradient(0, 230, 0, 50);
-
-    gradientStroke2.addColorStop(1, "rgba(20,23,39,0.2)");
-    gradientStroke2.addColorStop(0.2, "rgba(72,72,176,0.0)");
-    gradientStroke2.addColorStop(0, "rgba(20,23,39,0)"); //purple colors
-
-    new Chart(ctx2, {
-      type: "line",
-      data: {
-        labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        datasets: [
-          {
-            label: "Mobile apps",
-            tension: 0.4,
-            borderWidth: 0,
-            pointRadius: 0,
-            borderColor: "#cb0c9f",
-            borderWidth: 3,
-            backgroundColor: gradientStroke1,
-            fill: true,
-            data: [50, 40, 300, 220, 500, 250, 400, 230, 500],
-            maxBarThickness: 6,
-          },
-          {
-            label: "Websites",
-            tension: 0.4,
-            borderWidth: 0,
-            pointRadius: 0,
-            borderColor: "#3A416F",
-            borderWidth: 3,
-            backgroundColor: gradientStroke2,
-            fill: true,
-            data: [30, 90, 40, 140, 290, 290, 340, 230, 400],
-            maxBarThickness: 6,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false,
-          },
-        },
-        interaction: {
-          intersect: false,
-          mode: "index",
-        },
-        scales: {
-          y: {
-            grid: {
-              drawBorder: false,
-              display: true,
-              drawOnChartArea: true,
-              drawTicks: false,
-              borderDash: [5, 5],
-            },
-            ticks: {
-              display: true,
-              padding: 10,
-              color: "#b2b9bf",
-              font: {
-                size: 11,
-                family: "Inter",
-                style: "normal",
-                lineHeight: 2,
-              },
-            },
-          },
-          x: {
-            grid: {
-              drawBorder: false,
-              display: false,
-              drawOnChartArea: false,
-              drawTicks: false,
-              borderDash: [5, 5],
-            },
-            ticks: {
-              display: true,
-              color: "#b2b9bf",
-              padding: 20,
-              font: {
-                size: 11,
-                family: "Inter",
-                style: "normal",
-                lineHeight: 2,
-              },
-            },
-          },
-        },
-      },
-    });
-  }
-</script>
 
 
 

@@ -17,7 +17,7 @@ class DemoPOC(POCBase):
     createDate = '2019-5-8'
     updateDate = '2019-5-8'
     references = ['https://cwiki.apache.org/confluence/display/WW/S2-001']
-    name = 'Apache Struts2 s2-001'
+    name = 'CVE-2007-4556_Apache Struts2 s2-001'
     appPowerLink = ''
     appName = 'Apache Struts2'
     appVersion = '2.0.0-2.0.8'

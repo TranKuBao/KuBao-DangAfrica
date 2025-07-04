@@ -12,7 +12,8 @@
                              color: #fff;
                              transition: all 0.2s ease;
                            "
-                           data-target-id="{{target.server_id}}">
+                           data-target-id="{{target.server_id}}"
+                           onchange="onTargetCheckboxChange(this)">
                   </td>
                   <td>
                     <div class="d-flex px-2 py-1">
@@ -188,23 +189,4 @@ async function checkWebsite(URL, serverId){
     initStatusCheck();
   });
 
-</script>
-
-<!--Script liên quan đến check box và trả về data checkbox-->
-<script>
-  
-  // uncheck ALL checkBox
-  function toggleAllCheckboxes(source) {
-    const checkboxes = document.querySelectorAll('.row-checkbox');
-    checkboxes.forEach(cb => cb.checked = source.checked);
-  }
-
-
-  // Lấy target IDs đã check
-  function getCheckedTargetIds() {
-      return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => 
-          cb.getAttribute('data-target-id')
-      );
-  }
-  
 </script>

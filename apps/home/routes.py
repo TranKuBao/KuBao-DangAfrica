@@ -41,6 +41,7 @@ from pocsuite3 import set_paths
 from pocsuite3.lib.core.interpreter import PocsuiteInterpreter
 from pocsuite3.lib.core.option import init_options, _cleanup_options
 from pocsuite3.lib.core.common import extract_regex_result
+from pocsuite3.lib.core.enums import VUL_TYPE
 # from pocsuite3.modules.listener.reverse_tcp import  WebServer
 #Running Poc_core
 check_environment()
@@ -354,6 +355,28 @@ def matches_search_poc(poc, keyword):
         keyword in (poc.get("path") or "").lower(),
     ])
 
+#lấy tất cả các thông tin về POC / Lấy tất cả POC từ pocsuite3
+@blueprint.route('/api/pocs', methods=['GET'])
+def api_pocs():
+    '''Lấy tất cả POC từ pocsuite3'''
+    listModules = poc_core.get_all_modules()
+    allPocs = []
+    count = 0
+    for module in listModules:
+        count += 1
+        oneRow = {
+            "id": str(count),
+            "name": module.get("name"),
+            "description": module.get("desc") or "",
+            "cve": module.get("VulID") or "",
+            "category": module.get("vulType") or "",
+            "risk_level": "high",  # Nếu có trường risk_level thì lấy, không thì hardcode
+            "status": "pending",   # Nếu có trạng thái thì lấy, không thì hardcode
+            "source_code": ""      # Sẽ lấy sau bằng API khác nếu cần
+        }
+        allPocs.append(oneRow)
+    return jsonify({"pocs": allPocs})
+
 #lấy dữ liệu để hiện thị list POCs
 @blueprint.route('/api/fetch-pocs', methods=['GET'])
 def fetch_pocs():
@@ -394,12 +417,24 @@ def fetch_pocs():
     current_pocs = allPocs[start:end]
 
     html = render_template("pocs/partial-list-pocs.html", pocs=current_pocs)
-
+    
     return jsonify({
         'html': html,
         'total_pages': total_pages,
-        'current_page': page
+        'current_page': page,
+        'pocs':current_pocs
     })
+
+@blueprint.route('/api/poc-categories', methods=['GET'])
+def api_poc_categories():
+    """API trả về tất cả vultype (category) chuẩn từ class VUL_TYPE"""
+    categories = []
+    for attr in dir(VUL_TYPE):
+        if not attr.startswith('__') and not callable(getattr(VUL_TYPE, attr)):
+            categories.append(getattr(VUL_TYPE, attr))
+    # Loại bỏ trùng lặp và sắp xếp
+    categories = sorted(set(categories))
+    return jsonify({'categories': categories})
 
 # xem thông tin của `1 poc
 @blueprint.route('/view-poc', methods = ['GET'])
@@ -1017,3 +1052,5 @@ def get_segment(request):
 
     except:
         return None
+
+

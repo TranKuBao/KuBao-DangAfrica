@@ -1,4 +1,3 @@
-
   <!-- Additional CSS for Enhanced Styling -->
   <style>
     .CodeMirror {
@@ -97,40 +96,604 @@
       color: #000;
       box-shadow: 0 0 12px #f97316;
     }
+
+    .btn-hacker-success {
+      border: 1px solid #28a745;
+      color: #28a745;
+      box-shadow: 0 0 5px #28a745;
+    }
+  
+    .btn-hacker-success:hover {
+      background-color: #28a745;
+      color: #FFFFFF;
+      box-shadow: 0 0 12px #28a745;
+    }
+
+    /* POC List Styling */
+    .poc-list-container {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .poc-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f1f3f4;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .poc-item:hover {
+      background-color: #f8f9fa;
+      transform: translateX(5px);
+    }
+
+    .poc-item.selected {
+      background-color: #e3f2fd;
+      border-left: 4px solid #2196f3;
+    }
+
+    .poc-item:last-child {
+      border-bottom: none;
+    }
+
+    .poc-title {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .poc-description {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .poc-cve {
+      font-size: 11px;
+      color: #f97316;
+      font-weight: 500;
+    }
+
+    .poc-status {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .status-verified {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .status-pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .status-failed {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    /* Search and Filter Section */
+    .search-filter-section {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .filter-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 6px 12px;
+      border: 1px solid #dee2e6;
+      background: white;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn.active {
+      background: #f97316;
+      color: white;
+      border-color: #f97316;
+    }
+
+    .filter-btn:hover {
+      background: #f97316;
+      color: white;
+      border-color: #f97316;
+    }
+
+    /* Loading Animation */
+    .loading-spinner {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #f97316;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Target Selection */
+    .target-selection {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      border-left: 4px solid #2196f3;
+    }
+
+    .target-count {
+      font-weight: 600;
+      color: #1976d2;
+    }
   </style>
 
-
-
-<div class="modal fade" id="verifyPocWithTargetsModal" tabindex="-1" aria-labelledby="editpocModalLabel" aria-hidden="true" >
+<div class="modal fade" id="verifyPocWithTargetsModal" tabindex="-1" aria-labelledby="verifyPocModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
       <div class="modal-content shadow-lg" style="background-color: #f8f9fa; border-radius: 12px;">
         <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center" style="background-color: #e9ecef !important;">
-          <h5 class="modal-title font-weight-bold" id="editpocModalLabel">Select POC to test vulnerabilities on the target</h5>
+          <h5 class="modal-title font-weight-bold" id="verifyPocModalLabel">🔍 Verify Targets with POC</h5>
           <div class="d-flex gap-2" style="margin-top: 10px !important;">
-            <button type="button" class="btn btn-hacker px-4">▷ Save</button>
-            <button type="button" class="btn btn-hacker-danger px-4" data-bs-dismiss="modal">✖ Close</button>
+            <button type="button" class="btn btn-hacker-success px-4" onclick="verifySelectedPoc()">
+              <i class="fas fa-play"></i> Verify
+            </button>
+            <button type="button" class="btn btn-hacker px-4" onclick="saveVerificationResults()">
+              <i class="fas fa-save"></i> Save
+            </button>
+            <button type="button" class="btn btn-hacker-danger px-4" data-bs-dismiss="modal">
+              <i class="fas fa-times"></i> Close
+            </button>
           </div>
         </div>
-        <div class="modal-body p-4"  >
-              <h5 class="mb-3 text-primary">Edit Options</h5>
-              <div class="input-group" style="max-width: 320px;">
-                <span class="input-group-text text-body">
-                  <i class="fas fa-search" aria-hidden="true"></i>
-                </span>
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Tìm kiếm ..."
-                  id="id_search_target"
-                />
+        
+        <div class="modal-body p-4">
+          <!-- Target Selection Info -->
+          <div class="target-selection">
+            <i class="fas fa-bullseye me-2"></i>
+            <span class="target-count" id="selectedTargetCount"></span> targets selected for verification
+            <div class="mt-2">
+              <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Check console for detailed target information
+              </small>
+            </div>
+          </div>
+
+          <!-- Search and Filter Section -->
+          <div class="search-filter-section">
+            <h6 class="mb-3 text-primary">
+              <i class="fas fa-search me-2"></i>Search & Select POC
+            </h6>
+            
+            <div class="row">
+              <div class="col-md-8">
+                <div class="input-group">
+                  <span class="input-group-text text-body">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                  </span>
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Search POC by name, CVE, or description..."
+                    id="pocSearchInput"
+                    onkeyup="filterPocs()"
+                  />
+                </div>
               </div>
-              <span class="mb-3 text-primary" id="notiErrorPoc"></span>
-              <div class="form-group" style="margin-top: -22px !important;">
-                <label for="source-poc" class="col-form-label font-weight-semibold">Source code Poc</label>
-                <textarea class="form-control" id="source-poc-id" name="source_code" rows="12" ></textarea>
-              </div>  
+              <div class="col-md-4">
+                <select class="form-select" id="pocCategoryFilter" onchange="filterPocs()">
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-buttons">
+              <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+              <button class="filter-btn" data-filter="verified" onclick="setFilter('verified')">Verified</button>
+              <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">Pending</button>
+              <button class="filter-btn" data-filter="failed" onclick="setFilter('failed')">Failed</button>
+            </div>
+          </div>
+
+          <!-- POC List -->
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="mb-3 text-primary">
+                <i class="fas fa-list me-2"></i>Available POCs
+              </h6>
+              <div class="poc-list-container" id="pocListContainer" >
+                <!-- POC items will be loaded here -->
+                <div class="loading-spinner" id="pocLoadingSpinner" style="display: none;">
+                  <div class="spinner"></div>
+                  <p class="mt-2">Loading POCs...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selected POC Details -->
+            <div class="col-md-6">
+              <h6 class="mb-3 text-primary">
+                <i class="fas fa-code me-2"></i>POC Details
+              </h6>
+              <div id="pocDetailsContainer">
+                <div class="text-center text-muted py-5">
+                  <i class="fas fa-arrow-left fa-2x mb-3"></i>
+                  <p>Select a POC from the list to view details</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error Notification -->
+          <div class="alert alert-danger mt-3" id="notiErrorPoc" style="display: none;">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <span id="errorMessage"></span>
+          </div>
+
+          <!-- Success Notification -->
+          <div class="alert alert-success mt-3" id="notiSuccessPoc" style="display: none;">
+            <i class="fas fa-check-circle me-2"></i>
+            <span id="successMessage"></span>
+          </div>
         </div>
-  
       </div>
     </div>
   </div>
+
+<!-- JavaScript for POC functionality -->
+<script>
+let selectedPocId = null;
+let currentFilter = 'all';
+let allPocs = [];
+
+// Load POCs when modal opens
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('verifyPocWithTargetsModal');
+  modal.addEventListener('show.bs.modal', function() {
+    loadPocCategories();
+    loadPocs();
+    updateTargetCount();
+    displaySelectedTargetsInfo();
+  });
+});
+
+// Load POCs from server
+function loadPocs(search = '', page = 1) {
+  const spinner = document.getElementById('pocLoadingSpinner');
+  const container = document.getElementById('pocListContainer');
+  if (spinner) {
+    spinner.style.display = 'block';
+  }
+  container.innerHTML = '';
+  container.appendChild(spinner);
+
+  fetch(`/api/fetch-pocs?search=${encodeURIComponent(search)}&page=${page}&limit=100`)
+    .then(response => response.json())
+    .then(data => {
+      allPocs = data.pocs || [];
+      spinner.style.display = 'none';
+      displayPocs(allPocs);
+    })
+    .catch(error => {
+      console.error('Error loading POCs:', error);
+      container.innerHTML = '<div class="text-center text-danger py-3">Error loading POCs</div>';
+      spinner.style.display = 'none';
+    });
+}
+
+// Display POCs in the list
+function displayPocs(pocs) {
+  const container = document.getElementById('pocListContainer');
+  container.innerHTML = '';
+
+  if (pocs.length === 0) {
+    container.innerHTML = '<div class="text-center text-muted py-3">No POCs found</div>';
+    return;
+  }
+
+  pocs.forEach(poc => {
+    const pocItem = document.createElement('div');
+    pocItem.className = 'poc-item';
+    pocItem.onclick = () => selectPoc(poc);
+    
+    pocItem.innerHTML = `
+      <div class="flex-grow-1">
+        <div class="poc-title">${poc.name || 'Unnamed POC'}</div>
+        <div class="poc-description">${poc.description || 'No description available'}</div>
+        <div class="poc-cve">${poc.cve || 'N/A'}</div>
+      </div>
+      <div class="poc-status status-${poc.status || 'pending'}">
+        ${poc.status || 'pending'}
+      </div>
+    `;
+    
+    container.appendChild(pocItem);
+  });
+}
+
+// Select a POC
+function selectPoc(poc) {
+  selectedPocId = poc.id;
+  document.querySelectorAll('.poc-item').forEach(item => item.classList.remove('selected'));
+  // Tìm đúng item vừa click để add class selected
+  event.currentTarget.classList.add('selected');
+
+  // Nếu muốn lấy source code, gọi API lấy chi tiết, còn không thì show luôn
+  showPocDetails(poc);
+}
+
+// Show POC details
+function showPocDetails(poc) {
+  const container = document.getElementById('pocDetailsContainer');
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-body">
+        <h6 class="card-title">${poc.name || 'Unnamed POC'}</h6>
+        <p class="card-text">${poc.references || ''}</p>
+        <div class="row mb-3">
+          <div class="col-6"><strong>Type:</strong> ${poc.vulType || 'N/A'}</div>
+          <div class="col-6"><strong>Author:</strong> ${poc.author || 'N/A'}</div>
+        </div>
+        <div class="mb-3">
+          <strong>Path:</strong> ${poc.path || ''}
+        </div>
+        <div class="d-grid">
+          <button class="btn btn-hacker-success" onclick="verifySelectedPoc()">
+            <i class="fas fa-play me-2"></i>Verify with Selected Targets
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Filter POCs
+function filterPocs() {
+  const searchTerm = document.getElementById('pocSearchInput').value.toLowerCase();
+  const categoryFilter = document.getElementById('pocCategoryFilter').value;
+  
+  let filteredPocs = allPocs.filter(poc => {
+    const matchesSearch = !searchTerm || 
+      poc.name?.toLowerCase().includes(searchTerm) ||
+      poc.description?.toLowerCase().includes(searchTerm) ||
+      poc.cve?.toLowerCase().includes(searchTerm);
+    
+    const matchesCategory = !categoryFilter || poc.category === categoryFilter;
+    const matchesStatus = currentFilter === 'all' || poc.status === currentFilter;
+    
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+  
+  displayPocs(filteredPocs);
+}
+
+// Set filter
+function setFilter(filter) {
+  currentFilter = filter;
+  
+  // Update filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  filterPocs();
+}
+
+// Get risk color
+function getRiskColor(risk) {
+  switch(risk?.toLowerCase()) {
+    case 'critical': return 'danger';
+    case 'high': return 'warning';
+    case 'medium': return 'info';
+    case 'low': return 'success';
+    default: return 'secondary';
+  }
+}
+
+// Get status color
+function getStatusColor(status) {
+  switch(status?.toLowerCase()) {
+    case 'verified': return 'success';
+    case 'pending': return 'warning';
+    case 'failed': return 'danger';
+    default: return 'secondary';
+  }
+}
+
+// cập nhật tổng số lượng
+function updateTargetCount() {
+  const checkedTargets = getCheckedTargetIds();
+  const count = checkedTargets.length;
+  document.getElementById('selectedTargetCount').textContent = count;
+  
+  // Hiển thị thêm thông tin chi tiết nếu cần
+  console.log(`Modal: Đã chọn ${count} targets:`, checkedTargets);
+  
+  // Có thể thêm hiển thị danh sách target đã chọn
+  if (count > 0) {
+    // Ví dụ: hiển thị danh sách target IDs
+    const targetList = checkedTargets.join(', ');
+    console.log(`Target IDs: ${targetList}`);
+  }
+}
+
+// Hiển thị thông tin chi tiết về các target đã chọn
+function displaySelectedTargetsInfo() {
+  const targetIds = getCheckedTargetIds();
+  const count = targetIds.length;
+  
+  // Cập nhật số lượng
+  updateTargetCount();
+  
+  // Hiển thị thông tin chi tiết trong console
+  console.log('=== THÔNG TIN TARGETS ĐÃ CHỌN ===');
+  console.log(`Tổng số: ${count} targets`);
+  console.log('Target IDs:', targetIds);
+  
+  // Nếu có target được chọn, hiển thị thêm thông tin
+  if (count > 0) {
+    console.log('Danh sách Target IDs:', targetIds.join(', '));
+    
+    // Có thể thêm logic để lấy thông tin chi tiết của từng target
+    // Ví dụ: gọi API để lấy thông tin hostname, IP của các target
+    fetchTargetDetails(targetIds);
+  } else {
+    console.log('Chưa có target nào được chọn');
+  }
+}
+
+// Lấy thông tin chi tiết của các target (tùy chọn)
+function fetchTargetDetails(targetIds) {
+  // Gọi API để lấy thông tin chi tiết của các target
+  fetch('/api/getalltarget')
+    .then(response => response.json())
+    .then(data => {
+      if (data.targets) {
+        const selectedTargets = data.targets.filter(target => 
+          targetIds.includes(target.server_id.toString())
+        );
+        
+        console.log('Thông tin chi tiết targets đã chọn:');
+        selectedTargets.forEach(target => {
+          console.log(`- ID: ${target.server_id}, Hostname: ${target.hostname}, IP: ${target.ip_address}`);
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching target details:', error);
+    });
+}
+
+// Verify selected POC
+function verifySelectedPoc() {
+  if (!selectedPocId) {
+    showError('Please select a POC first');
+    return;
+  }
+  
+  const targetIds = getCheckedTargetIds();
+  if (targetIds.length === 0) {
+    showError('Please select at least one target');
+    return;
+  }
+  
+  // Show loading
+  showSuccess('Starting verification process...');
+  
+  // Send verification request
+  fetch('/api/verify_poc', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      poc_id: selectedPocId,
+      target_ids: targetIds
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showSuccess('Verification completed successfully!');
+      // Refresh POC list
+      loadPocs();
+    } else {
+      showError(data.message || 'Verification failed');
+    }
+  })
+  .catch(error => {
+    console.error('Verification error:', error);
+    showError('Error during verification process');
+  });
+}
+
+// Save verification results
+function saveVerificationResults() {
+  showSuccess('Verification results saved successfully!');
+  // Close modal after a short delay
+  setTimeout(() => {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('verifyPocWithTargetsModal'));
+    modal.hide();
+  }, 1500);
+}
+
+// Show error message
+function showError(message) {
+  const errorDiv = document.getElementById('notiErrorPoc');
+  const errorMessage = document.getElementById('errorMessage');
+  const successDiv = document.getElementById('notiSuccessPoc');
+  
+  errorMessage.textContent = message;
+  errorDiv.style.display = 'block';
+  successDiv.style.display = 'none';
+  
+  // Auto hide after 5 seconds
+  setTimeout(() => {
+    errorDiv.style.display = 'none';
+  }, 5000);
+}
+
+// Show success message
+function showSuccess(message) {
+  const successDiv = document.getElementById('notiSuccessPoc');
+  const successMessage = document.getElementById('successMessage');
+  const errorDiv = document.getElementById('notiErrorPoc');
+  
+  successMessage.textContent = message;
+  successDiv.style.display = 'block';
+  errorDiv.style.display = 'none';
+  
+  // Auto hide after 3 seconds
+  setTimeout(() => {
+    successDiv.style.display = 'none';
+  }, 3000);
+}
+
+// Load POC categories for filter
+function loadPocCategories() {
+  fetch('/api/poc-categories')
+    .then(response => response.json())
+    .then(data => {
+      const select = document.getElementById('pocCategoryFilter');
+      // Xóa các option cũ (trừ All)
+      select.innerHTML = '<option value="">All Vul Type</option>';
+      data.categories.forEach(cat => {
+        select.innerHTML += `<option value="${cat}">${cat}</option>`;
+      });
+    });
+}
+
+// Cập nhật thông tin target khi có thay đổi (có thể gọi từ trang chính)
+function refreshTargetInfo() {
+  updateTargetCount();
+  displaySelectedTargetsInfo();
+}
+</script>
