@@ -377,6 +377,15 @@ def api_pocs():
         allPocs.append(oneRow)
     return jsonify({"pocs": allPocs})
 
+
+def normalize_vultype(vt):
+    if isinstance(vt, list):
+        return vt[0] if vt else ""
+    if hasattr(vt, "value"):
+        return vt.value
+    if vt is None:
+        return ""
+    return str(vt)
 #lấy dữ liệu để hiện thị list POCs
 @blueprint.route('/api/fetch-pocs', methods=['GET'])
 def fetch_pocs():
@@ -400,7 +409,7 @@ def fetch_pocs():
             "path": module["path"],
             "author": module["author"],
             "references": module["references"],
-            "vulType": module["vulType"]
+            "vulType": normalize_vultype(module.get("vulType")),
         }
         allPocs.append(oneRow)
 
@@ -417,7 +426,7 @@ def fetch_pocs():
     current_pocs = allPocs[start:end]
 
     html = render_template("pocs/partial-list-pocs.html", pocs=current_pocs)
-    
+
     return jsonify({
         'html': html,
         'total_pages': total_pages,

@@ -20,6 +20,7 @@ from pocsuite3.lib.core.settings import IS_WIN
 from pocsuite3.lib.core.shell import auto_completion, readline
 from pocsuite3.thirdparty.prettytable import prettytable
 from pocsuite3.thirdparty.termcolor.termcolor import colored
+import importlib.util
 
 
 class BaseInterpreter(object):
@@ -442,7 +443,33 @@ class PocsuiteInterpreter(BaseInterpreter):
             self._show_info(args, kwargs)
             self._show_options(args, kwargs)
     
-    #Kimteawan write from 17-8-2020=====================================================================
+    #bảo write from ngày 4/7/2025=====================================================================
+    def get_vultype_from_poc_file(self,file_path):
+        try:
+            spec = importlib.util.spec_from_file_location("poc_module", file_path)
+            poc_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(poc_module)
+            # Tìm class kế thừa POCBase
+            for attr in dir(poc_module):
+                obj = getattr(poc_module, attr)
+                if isinstance(obj, type) and 'POCBase' in [base.__name__ for base in obj.__bases__]:
+                    poc_class = obj
+                    break
+            else:
+                return ""
+            vt = getattr(poc_class, "vulType", "")
+            # Chuẩn hóa
+            if isinstance(vt, list):
+                return vt[0] if vt else ""
+            if hasattr(vt, "value"):
+                return vt.value
+            if vt is None:
+                return ""
+            return str(vt)
+        except Exception as e:
+            # Có thể log lỗi nếu cần
+            return ""
+
     def get_all_modules(self):
          # 展现所有可用的poc
         search_result = []
@@ -458,7 +485,7 @@ class PocsuiteInterpreter(BaseInterpreter):
             #Mlemkem đã fix ở đây
             author=get_poc_author(code)
             references=get_poc_references(code)
-            vulType=get_poc_vulType(code)
+            vulType=self.get_vultype_from_poc_file(found)
             item={"appname":appname,"name":name,"appversion":appversion,"path":tmp_module,
                   "author":author, "references":references, "vulType":vulType}
             search_result.append(item)
