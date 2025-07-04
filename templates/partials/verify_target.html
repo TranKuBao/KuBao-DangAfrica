@@ -304,22 +304,17 @@
                     class="form-control"
                     placeholder="Search POC by name, CVE, or description..."
                     id="pocSearchInput"
-                    onkeyup="filterPocs()"
+                    onchange="filterPocs()"
                   />
                 </div>
               </div>
               <div class="col-md-4">
-                <select class="form-select" id="pocCategoryFilter" onchange="filterPocs()">
+                <select class="form-select" id="pocVulTypeFilter" onchange="filterPocs()">
                 </select>
               </div>
             </div>
 
-            <div class="filter-buttons">
-              <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
-              <button class="filter-btn" data-filter="verified" onclick="setFilter('verified')">Verified</button>
-              <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">Pending</button>
-              <button class="filter-btn" data-filter="failed" onclick="setFilter('failed')">Failed</button>
-            </div>
+            
           </div>
 
           <!-- POC List -->
@@ -370,6 +365,7 @@
 <!-- JavaScript for POC functionality -->
 <script>
 let selectedPocId = null;
+let selectedPocPath = null;
 let currentFilter = 'all';
 let allPocs = [];
 
@@ -421,13 +417,13 @@ function displayPocs(pocs) {
   pocs.forEach(poc => {
     const pocItem = document.createElement('div');
     pocItem.className = 'poc-item';
-    pocItem.onclick = () => selectPoc(poc);
+    pocItem.onclick = () => selectPoc(poc); // them cái sự kiện này vô để khi chọn poc thì nó nhảy qua bên phải đẻ verify
     
     pocItem.innerHTML = `
       <div class="flex-grow-1">
         <div class="poc-title">${poc.name || 'Unnamed POC'}</div>
-        <div class="poc-description">${poc.description || 'No description available'}</div>
-        <div class="poc-cve">${poc.cve || 'N/A'}</div>
+        <div class="poc-description">${poc.appversion || 'No description available'}</div>
+        <div class="poc-cve">Auth: ${poc.author || 'N/A'}</div>
       </div>
       <div class="poc-status status-${poc.status || 'pending'}">
         ${poc.status || 'pending'}
@@ -441,11 +437,9 @@ function displayPocs(pocs) {
 // Select a POC
 function selectPoc(poc) {
   selectedPocId = poc.id;
+  selectedPocPath = poc.path;
   document.querySelectorAll('.poc-item').forEach(item => item.classList.remove('selected'));
-  // Tìm đúng item vừa click để add class selected
   event.currentTarget.classList.add('selected');
-
-  // Nếu muốn lấy source code, gọi API lấy chi tiết, còn không thì show luôn
   showPocDetails(poc);
 }
 
@@ -477,35 +471,26 @@ function showPocDetails(poc) {
 // Filter POCs
 function filterPocs() {
   const searchTerm = document.getElementById('pocSearchInput').value.toLowerCase();
-  const categoryFilter = document.getElementById('pocCategoryFilter').value;
-  
+  const vultypeFilter = document.getElementById('pocVulTypeFilter').value;
+  console.log(vultypeFilter);
+  console.log(searchTerm);
   let filteredPocs = allPocs.filter(poc => {
     const matchesSearch = !searchTerm || 
       poc.name?.toLowerCase().includes(searchTerm) ||
-      poc.description?.toLowerCase().includes(searchTerm) ||
-      poc.cve?.toLowerCase().includes(searchTerm);
-    
-    const matchesCategory = !categoryFilter || poc.category === categoryFilter;
+      poc.appname?.toLowerCase().includes(searchTerm) ||
+      poc.appversion?.toLowerCase().includes(searchTerm);
+
+    //const matchesCategory = !categoryFilter || poc.category === categoryFilter;
+    const matchesVulType = !vultypeFilter || poc.vultype === vultypeFilter; // Thêm điều kiện vultype
     const matchesStatus = currentFilter === 'all' || poc.status === currentFilter;
-    
-    return matchesSearch && matchesCategory && matchesStatus;
+
+    return matchesSearch && matchesVulType && matchesStatus;
   });
-  
+
   displayPocs(filteredPocs);
 }
 
-// Set filter
-function setFilter(filter) {
-  currentFilter = filter;
-  
-  // Update filter buttons
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  event.target.classList.add('active');
-  
-  filterPocs();
-}
+
 
 // Get risk color
 function getRiskColor(risk) {
@@ -594,7 +579,7 @@ function fetchTargetDetails(targetIds) {
 
 // Verify selected POC
 function verifySelectedPoc() {
-  if (!selectedPocId) {
+  if (!selectedPocId || !selectedPocPath) {
     showError('Please select a POC first');
     return;
   }
@@ -608,6 +593,23 @@ function verifySelectedPoc() {
   // Show loading
   showSuccess('Starting verification process...');
   
+  // request đến /api/get-poc-info => để lấy các thêm số cũng như load POC
+  showSuccess('Loading POC.........');
+  $.ajax({
+    url: '/api/get-poc-info',
+    type: 'POST',
+    data: {poc_path: selectedPocPath.slice(5) }
+  })
+  .done((resp) => {
+    
+          if (response['status'] === 0) {
+            showSuccess('POC loaded');
+          } else {
+            showSuccess('Error load POC');
+          }
+  })
+
+/////////////////////////////////////////////////////////////////////////////////////////////
   // Send verification request
   fetch('/api/verify_poc', {
     method: 'POST',
@@ -682,11 +684,11 @@ function loadPocCategories() {
   fetch('/api/poc-categories')
     .then(response => response.json())
     .then(data => {
-      const select = document.getElementById('pocCategoryFilter');
+      const select = document.getElementById('pocVulTypeFilter');
       // Xóa các option cũ (trừ All)
       select.innerHTML = '<option value="">All Vul Type</option>';
       data.categories.forEach(cat => {
-        select.innerHTML += `<option value="${cat}">${cat}</option>`;
+        select.innerHTML += `<option value="${cat.name}">${cat.value}</option>`;
       });
     });
 }
@@ -697,3 +699,5 @@ function refreshTargetInfo() {
   displaySelectedTargetsInfo();
 }
 </script>
+
+<!--V-->

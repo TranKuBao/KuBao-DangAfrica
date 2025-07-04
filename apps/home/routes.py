@@ -434,15 +434,22 @@ def fetch_pocs():
         'pocs':current_pocs
     })
 
+#lấy tất cả danh sách loại lỗ hổng
 @blueprint.route('/api/poc-categories', methods=['GET'])
 def api_poc_categories():
     """API trả về tất cả vultype (category) chuẩn từ class VUL_TYPE"""
     categories = []
     for attr in dir(VUL_TYPE):
         if not attr.startswith('__') and not callable(getattr(VUL_TYPE, attr)):
-            categories.append(getattr(VUL_TYPE, attr))
-    # Loại bỏ trùng lặp và sắp xếp
-    categories = sorted(set(categories))
+            categories.append({
+                "name": attr,
+                "value": getattr(VUL_TYPE, attr)
+            })
+    # Loại bỏ trùng lặp theo value (nếu cần)
+    unique = {}
+    for cat in categories:
+        unique[cat["value"]] = cat  # Nếu value trùng thì giữ cái cuối
+    categories = sorted(unique.values(), key=lambda x: x["value"])
     return jsonify({'categories': categories})
 
 # xem thông tin của `1 poc

@@ -30,6 +30,7 @@ class BaseInterpreter(object):
         self.setup()
         self.banner = ""
         self.complete = None
+        self.vultype_cache = {} # bảo thêm
 
     def setup(self):
         """ Initialization of third-party libraries
@@ -444,7 +445,10 @@ class PocsuiteInterpreter(BaseInterpreter):
             self._show_options(args, kwargs)
     
     #bảo write from ngày 4/7/2025=====================================================================
+    
     def get_vultype_from_poc_file(self,file_path):
+        if file_path in self.vultype_cache:
+            return self.vultype_cache[file_path]
         try:
             spec = importlib.util.spec_from_file_location("poc_module", file_path)
             poc_module = importlib.util.module_from_spec(spec)
@@ -470,6 +474,26 @@ class PocsuiteInterpreter(BaseInterpreter):
             # Có thể log lỗi nếu cần
             return ""
 
+    def fast_vultype_from_code(self,code):
+        # Bắt chuỗi, enum, hoặc list đơn giản
+        m = re.search(r"vulType\s*=\s*([^\n#]+)", code)
+        if not m:
+            return ""
+        vultype = m.group(1).strip()
+        # Nếu là chuỗi
+        if vultype.startswith(("'", '"')):
+            return vultype.strip("'\"")
+        # Nếu là enum
+        if "VUL_TYPE." in vultype:
+            return vultype.split('.')[-1].replace(']', '').replace(')', '').replace('}', '').strip()
+        # Nếu là list
+        if vultype.startswith("["):
+            # Lấy phần tử đầu tiên trong list
+            m2 = re.search(r"\[\s*['\"](.*?)['\"]", vultype)
+            if m2:
+                return m2.group(1)
+        return vultype
+
     def get_all_modules(self):
          # 展现所有可用的poc
         search_result = []
@@ -485,7 +509,8 @@ class PocsuiteInterpreter(BaseInterpreter):
             #Mlemkem đã fix ở đây
             author=get_poc_author(code)
             references=get_poc_references(code)
-            vulType=self.get_vultype_from_poc_file(found)
+            vulType=self.fast_vultype_from_code(code)
+            #vulType = get_poc_vulType(code)
             item={"appname":appname,"name":name,"appversion":appversion,"path":tmp_module,
                   "author":author, "references":references, "vulType":vulType}
             search_result.append(item)
