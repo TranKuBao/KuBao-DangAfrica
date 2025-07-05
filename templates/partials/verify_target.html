@@ -635,7 +635,7 @@
                 })
                   .done((resp) => {
                     if (resp['status'] === 0) {
-                      showSuccess(`[+] Verification completed successfully in target ${targetName}`);
+                      showSuccess(`[+] Verification completed successfully in target ['${targetName}']`);
                       window.resp_verify.push({
                         target: targetName,
                         result: resp['data']
@@ -670,19 +670,272 @@
 
   // Save verification results
   function saveVerificationResults() {
-    showSuccess('Verification results saved successfully!');
-    // Close modal after a short delay
-    setTimeout(() => {
-      const modal = bootstrap.Modal.getInstance(document.getElementById('verifyPocWithTargetsModal'));
+    if (!window.resp_verify || window.resp_verify.length === 0) {
+      showError('No verification results to save. Please run verification first.');
+      return;
+    }
+
+    // Tạo modal để chọn cách xuất dữ liệu
+    showExportOptions();
+  }
+
+  // Hiển thị các tùy chọn xuất dữ liệu
+  function showExportOptions() {
+    const exportModal = `
+      <div class="modal fade" id="exportOptionsModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">💾 Export Verification Results</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <i class="fas fa-file-csv fa-3x text-success mb-3"></i>
+                      <h6>Export to CSV</h6>
+                      <p class="text-muted">Download as CSV file</p>
+                      <button class="btn btn-success" onclick="exportToCSV()">
+                        <i class="fas fa-download"></i> Export CSV
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <i class="fas fa-file-json fa-3x text-warning mb-3"></i>
+                      <h6>Export to JSON</h6>
+                      <p class="text-muted">Download as JSON file</p>
+                      <button class="btn btn-warning" onclick="exportToJSON()">
+                        <i class="fas fa-download"></i> Export JSON
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                      <h6>Export to PDF</h6>
+                      <p class="text-muted">Generate PDF report</p>
+                      <button class="btn btn-danger" onclick="exportToPDF()">
+                        <i class="fas fa-download"></i> Export PDF
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <i class="fas fa-database fa-3x text-info mb-3"></i>
+                      <h6>Save to Database</h6>
+                      <p class="text-muted">Store results in database</p>
+                      <button class="btn btn-info" onclick="saveToDatabase()">
+                        <i class="fas fa-save"></i> Save to DB
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Xóa modal cũ nếu có
+    const existingModal = document.getElementById('exportOptionsModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // Thêm modal mới vào body
+    document.body.insertAdjacentHTML('beforeend', exportModal);
+
+    // Hiển thị modal
+    const modal = new bootstrap.Modal(document.getElementById('exportOptionsModal'));
+    modal.show();
+  }
+
+  // Xuất dữ liệu ra CSV
+  function exportToCSV() {
+    const results = window.resp_verify;
+    if (!results || results.length === 0) {
+      showError('No data to export');
+      return;
+    }
+
+    let csvContent = "Target,Result,Status,Details\n";
+    
+    results.forEach(item => {
+      const target = item.target || 'N/A';
+      const result = item.result || {};
+      const status = result.status || 'Unknown';
+      const details = JSON.stringify(result).replace(/"/g, '""');
+      
+      csvContent += `"${target}","${status}","${details}"\n`;
+    });
+
+    downloadFile(csvContent, 'verification_results.csv', 'text/csv');
+    showSuccess('CSV file downloaded successfully!');
+    closeExportModal();
+  }
+
+  // Xuất dữ liệu ra JSON
+  function exportToJSON() {
+    const results = window.resp_verify;
+    if (!results || results.length === 0) {
+      showError('No data to export');
+      return;
+    }
+
+    const jsonData = {
+      verification_date: new Date().toISOString(),
+      poc_info: {
+        id: selectedPocId,
+        path: selectedPocPath
+      },
+      results: results
+    };
+
+    const jsonContent = JSON.stringify(jsonData, null, 2);
+    downloadFile(jsonContent, 'verification_results.json', 'application/json');
+    showSuccess('JSON file downloaded successfully!');
+    closeExportModal();
+  }
+
+  // Xuất dữ liệu ra PDF (sử dụng jsPDF)
+  function exportToPDF() {
+    const results = window.resp_verify;
+    if (!results || results.length === 0) {
+      showError('No data to export');
+      return;
+    }
+
+    // Kiểm tra xem jsPDF đã được load chưa
+    if (typeof jsPDF === 'undefined') {
+      // Load jsPDF từ CDN
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = () => generatePDF(results);
+      document.head.appendChild(script);
+    } else {
+      generatePDF(results);
+    }
+  }
+
+  // Tạo PDF
+  function generatePDF(results) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Tiêu đề
+    doc.setFontSize(20);
+    doc.text('Verification Results Report', 20, 20);
+    
+    doc.setFontSize(12);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30);
+    doc.text(`POC: ${selectedPocPath || 'N/A'}`, 20, 40);
+    doc.text(`Total Targets: ${results.length}`, 20, 50);
+    
+    let yPosition = 70;
+    
+    results.forEach((item, index) => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.text(`Target ${index + 1}: ${item.target}`, 20, yPosition);
+      yPosition += 10;
+      
+      doc.setFontSize(10);
+      const result = item.result || {};
+      Object.keys(result).forEach(key => {
+        const value = typeof result[key] === 'object' ? JSON.stringify(result[key]) : result[key];
+        doc.text(`${key}: ${value}`, 25, yPosition);
+        yPosition += 5;
+      });
+      
+      yPosition += 10;
+    });
+    
+    doc.save('verification_results.pdf');
+    showSuccess('PDF file generated successfully!');
+    closeExportModal();
+  }
+
+  // Lưu vào database
+  function saveToDatabase() {
+    const results = window.resp_verify;
+    if (!results || results.length === 0) {
+      showError('No data to save');
+      return;
+    }
+
+    // Chuẩn bị dữ liệu để gửi lên server
+    const dataToSave = {
+      poc_id: selectedPocId,
+      poc_path: selectedPocPath,
+      verification_date: new Date().toISOString(),
+      results: results
+    };
+
+    // Gọi API để lưu vào database
+    fetch('/api/save-verification-results', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dataToSave)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 0) {
+        showSuccess('Results saved to database successfully!');
+      } else {
+        showError(data.message || 'Failed to save to database');
+      }
+    })
+    .catch(error => {
+      console.error('Error saving to database:', error);
+      showError('Error saving to database');
+    })
+    .finally(() => {
+      closeExportModal();
+    });
+  }
+
+  // Hàm helper để download file
+  function downloadFile(content, filename, contentType) {
+    const blob = new Blob([content], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Đóng modal export
+  function closeExportModal() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('exportOptionsModal'));
+    if (modal) {
       modal.hide();
-    }, 1500);
+    }
   }
 
   // Hàm hiển thị kết quả ra giao diện
   function showVerifyResults(results) {
     let html = '<h6>Kết quả verify:</h6><table class="table table-bordered"><thead><tr><th>Target</th><th>Kết quả</th></tr></thead><tbody>';
     results.forEach(item => {
-      html += `<tr><td>${item.target}</td><td><pre>${JSON.stringify(item.result, null, 2)}</pre></td></tr>`;
+      html += `<tr><td>${item.target}</td><td><pre>${JSON.stringify(item.result, null, 1)}</pre></td></tr>`;
     });
     html += '</tbody></table>';
     document.getElementById('verifyResult').innerHTML = html;

@@ -4,9 +4,10 @@ Copyright (c) 2019 - present AppSeed.us
 """
 import json
 import wtforms
+import datetime as dt
 from apps.home import blueprint
 from apps import db
-from apps.models import Targets, Incidents, Credentials, VulInTarget, Collections, CollectedFiles
+from apps.models import Targets, Incidents, Credentials, VulInTarget, Collections, CollectedFiles, VerificationResults
 from apps.authentication.models import Users
 from jinja2 import TemplateNotFound
 from flask_wtf import FlaskForm
@@ -616,6 +617,98 @@ def AttackMode():
     # x = kb.plugins
     result['Mode'] = 'Attacked'
     return jsonify({'status': 0, 'data': result})
+
+
+@blueprint.route('/api/save-verification-results', methods=['POST'])
+def save_verification_results():
+    """Save verification results to database"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'results' not in data:
+            return jsonify({'status': -1, 'message': 'No results data provided'}), 400
+        
+        poc_id = data.get('poc_id')
+        poc_path = data.get('poc_path')
+        results = data.get('results', [])
+        
+        saved_count = 0
+        for result_item in results:
+            target = result_item.get('target', 'Unknown')
+            result_data = result_item.get('result', {})
+            
+            # Convert result_data to JSON string
+            result_json = json.dumps(result_data, indent=2) if result_data else None
+            
+            # Get target IP if available
+            target_ip = None
+            if isinstance(result_data, dict) and 'Target' in result_data:
+                # Try to extract IP from target info
+                target_info = result_data.get('Target', '')
+                # You might need to adjust this based on your target format
+                if ':' in target_info:
+                    target_ip = target_info.split(':')[0]
+            
+            # Create verification result
+            VerificationResults.create_result(
+                target_hostname=target,
+                poc_id=poc_id,
+                poc_path=poc_path,
+                target_ip=target_ip,
+                result_data=result_json,
+                status='completed',
+                notes=f'Verification completed at {dt.datetime.utcnow().isoformat()}'
+            )
+            saved_count += 1
+        
+        return jsonify({
+            'status': 0, 
+            'message': f'Successfully saved {saved_count} verification results',
+            'saved_count': saved_count
+        })
+        
+    except Exception as e:
+        print(f"Error saving verification results: {str(e)}")
+        return jsonify({'status': -1, 'message': f'Error saving results: {str(e)}'}), 500
+
+
+@blueprint.route('/api/get-verification-results', methods=['GET'])
+def get_verification_results():
+    """Get verification results from database"""
+    try:
+        # Get query parameters
+        target = request.args.get('target')
+        poc_id = request.args.get('poc_id')
+        limit = request.args.get('limit', 50, type=int)
+        
+        if target:
+            results = VerificationResults.get_by_target(target)
+        elif poc_id:
+            results = VerificationResults.get_by_poc(poc_id)
+        else:
+            results = VerificationResults.get_recent_results(limit)
+        
+        # Convert to list of dictionaries
+        results_list = []
+        for result in results:
+            result_dict = result.to_dict()
+            # Parse JSON data back to object
+            if result_dict.get('result_data'):
+                try:
+                    result_dict['result_data'] = json.loads(result_dict['result_data'])
+                except:
+                    pass  # Keep as string if parsing fails
+            results_list.append(result_dict)
+        
+        return jsonify({
+            'status': 0,
+            'results': results_list,
+            'count': len(results_list)
+        })
+        
+    except Exception as e:
+        print(f"Error getting verification results: {str(e)}")
+        return jsonify({'status': -1, 'message': f'Error getting results: {str(e)}'}), 500
 
 #các hàm của server shell
 @blueprint.route('/server-status', methods = ['GET'])

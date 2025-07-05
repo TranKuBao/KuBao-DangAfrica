@@ -730,6 +730,115 @@ class CollectedFiles(db.Model):
 
 
 
+class VerificationResults(db.Model):
+    """Model for storing verification results"""
+    __tablename__ = 'verification_results'
+    
+    result_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    poc_id = db.Column(db.String(255), nullable=True)
+    poc_path = db.Column(db.String(500), nullable=True)
+    target_hostname = db.Column(db.String(255), nullable=False)
+    target_ip = db.Column(db.String(45), nullable=True)
+    verification_date = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
+    result_data = db.Column(db.Text, nullable=True)  # JSON string of result data
+    status = db.Column(db.String(50), nullable=False, default='completed')
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+    
+    def __init__(self, target_hostname, poc_id=None, poc_path=None, target_ip=None, 
+                 result_data=None, status='completed', notes=None):
+        self.target_hostname = target_hostname
+        self.poc_id = poc_id
+        self.poc_path = poc_path
+        self.target_ip = target_ip
+        self.result_data = result_data
+        self.status = status
+        self.notes = notes
+    
+    def __repr__(self):
+        return f'<VerificationResult {self.result_id}: {self.target_hostname}>'
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'result_id': self.result_id,
+            'poc_id': self.poc_id,
+            'poc_path': self.poc_path,
+            'target_hostname': self.target_hostname,
+            'target_ip': self.target_ip,
+            'verification_date': self.verification_date.isoformat() if self.verification_date else None,
+            'result_data': self.result_data,
+            'status': self.status,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    @classmethod
+    def create_result(cls, target_hostname, poc_id=None, poc_path=None, target_ip=None, 
+                     result_data=None, status='completed', notes=None):
+        """Create a new verification result"""
+        try:
+            result = cls(
+                target_hostname=target_hostname,
+                poc_id=poc_id,
+                poc_path=poc_path,
+                target_ip=target_ip,
+                result_data=result_data,
+                status=status,
+                notes=notes
+            )
+            db.session.add(result)
+            db.session.commit()
+            return result
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error creating verification result: {str(e)}")
+    
+    @classmethod
+    def get_by_id(cls, result_id):
+        """Get verification result by ID"""
+        return cls.query.filter_by(result_id=result_id).first()
+    
+    @classmethod
+    def get_by_target(cls, target_hostname):
+        """Get verification results by target hostname"""
+        return cls.query.filter_by(target_hostname=target_hostname).all()
+    
+    @classmethod
+    def get_by_poc(cls, poc_id):
+        """Get verification results by POC ID"""
+        return cls.query.filter_by(poc_id=poc_id).all()
+    
+    @classmethod
+    def get_recent_results(cls, limit=50):
+        """Get recent verification results"""
+        return cls.query.order_by(cls.created_at.desc()).limit(limit).all()
+    
+    def update(self, **kwargs):
+        """Update verification result attributes"""
+        try:
+            for key, value in kwargs.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+            self.updated_at = dt.datetime.utcnow()
+            db.session.commit()
+            return self
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error updating verification result: {str(e)}")
+    
+    def delete(self):
+        """Delete verification result"""
+        try:
+            db.session.delete(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error deleting verification result: {str(e)}")
+
+
 # Utility functions for database operations
 class DatabaseUtils:
     """Utility class for common database operations"""
