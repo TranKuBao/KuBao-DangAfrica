@@ -1,4 +1,7 @@
-from wappalyzer import Wappalyzer, WebPage
+#from python_wappalyzer import Wappalyzer, WebPage
+from Wappalyzer import Wappalyzer, WebPage
+#from Wappalyzer import Wappalyzer,WebPage
+
 
 class Recon_Wappalyzer:
     def __init__(self, url):
@@ -25,5 +28,4 @@ class Recon_Wappalyzer:
     def get_results(self):
         return self.tech_list
 
-
-#print(Recon_Wappalyzer('http://meomlemkem.id.vn:8000/')._extract_tech_list())
+#print(Recon_Wappalyzer('http://testphp.vulnweb.com/')._extract_tech_list())

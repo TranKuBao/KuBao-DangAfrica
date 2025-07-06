@@ -3,7 +3,7 @@ import sys
 import shutil
 import nmap
 
-class NmapScanner:
+class Recon_Nmap:
     def __init__(self, target):
         self.target = target
         self._prepare_nmap()
@@ -68,10 +68,10 @@ class NmapScanner:
         return self._scan_and_return(arguments)
 
 
-scanner = NmapScanner("127.0.0.1")
+# scanner = Recon_Nmap("127.0.0.1")
     
-data = scanner.scan_custom("-sVC")  # hoặc .scan_os(), .scan_services(), .scan_custom("-sS -p 80") .scan_all()
-print(data)
+# data = scanner.scan_custom("-sVC")  # hoặc .scan_os(), .scan_services(), .scan_custom("-sS -p 80") .scan_all()
+# print(data)
 
 # [
 #     {'host': '127.0.0.1', 
