@@ -18,8 +18,7 @@ def recon_nmap_scan():
         data = request.get_json()
         url_target = data.get('hostname')
         mode_scan = data.get('mode')
-        scanner = Recon_Nmap(target=url_target)
-
+        print(f"Data scan nmap: {data}")
         # Host Discovery: chỉ xem host nào đang online   nmap -sn 192.168.1.5   
         # Fast Scan: Quét nhanh ~100 cổng phổ biến.     nmap -T4 -F -Pn 10.10.10.10
         # Service Detection: Quét TCP stealth, dò dịch vụ + phiên bản.    nmap -sS -sV -Pn -T4 10.10.10.10

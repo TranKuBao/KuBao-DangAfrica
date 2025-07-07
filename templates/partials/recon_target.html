@@ -393,6 +393,7 @@
 
 <!--V-->
 <script>
+    
     // Load POCs when modal opens
     document.addEventListener('DOMContentLoaded', function () {
         const modal = document.getElementById('reconTargetsModal');
@@ -494,32 +495,57 @@
         scanInProgress = true;
         document.getElementById('reconScanLoading').style.display = 'block';
         document.getElementById('reconScanResult').textContent = '';
-        const tool = document.querySelector('input[name="toolSelect"]:checked').value;
+
+        const tool = document.querySelector('input[name="toolSelect"]:checked').value;        
         let mode = '';
-        if (tool === 'dirsearch') {
-            mode = document.getElementById('reconModeDirsearch').value;
-            url = fetchTargetDetails(targetIds)
-            hander_Dirsearch(url[0].hostname,mode,'start');
-        }
-        if (tool === 'wpscan') mode = document.getElementById('reconModeWpscan').value;
-        if (tool === 'nmap') mode = document.getElementById('reconModeNmap').value;
-        if (tool === 'wappalyzer') mode = document.getElementById('reconModeWappalyzer').value;
-        setTimeout(() => {
-            document.getElementById('reconScanLoading').style.display = 'none';
-            
-            document.getElementById('reconScanResult').textContent = `Kết quả quét với tool: ${tool}, mode: ${mode}\n(Đây là kết quả demo, thay bằng kết quả thực tế)`;
-            scanInProgress = false;
-        }, 2500);
+        // Lấy danh sách target đã chọn
+        const targetIds = getCheckedTargetIds();
+        // fetchTargetDetails là async, nên phải dùng .then
+        fetchTargetDetails(targetIds).then(urls => {
+            if (tool === 'dirsearch') {
+                mode = document.getElementById('reconModeDirsearch').value;
+                hander_Dirsearch(urls[0].hostname,mode,'start');
+            }
+            if (tool === 'wpscan') {
+                mode = document.getElementById('reconModeWpscan').value;
+                hander_Wp_scan(urls[0].hostname,mode,'start');
+            }
+            if (tool === 'nmap'){
+                mode = document.getElementById('reconModeNmap').value;
+                hander_Nmap(urls[0].hostname,mode,'start');
+            }
+            if (tool === 'wappalyzer') {
+                mode = document.getElementById('reconModeWappalyzer').value;
+                hander_Wappalyzer(urls[0].hostname,mode,'start');
+            }
+        });
     }
 
     function stopScan() {
         scanInProgress = false;
         const tool = document.querySelector('input[name="toolSelect"]:checked').value;
         let mode = '';
-        if (tool === 'dirsearch') mode = document.getElementById('reconModeDirsearch').value;
-        if (tool === 'wpscan') mode = document.getElementById('reconModeWpscan').value;
-        if (tool === 'nmap') mode = document.getElementById('reconModeNmap').value;
-        if (tool === 'wappalyzer') mode = document.getElementById('reconModeWappalyzer').value;
+        // Lấy danh sách target đã chọn
+        const targetIds = getCheckedTargetIds();
+        // fetchTargetDetails là async, nên phải dùng .then
+        fetchTargetDetails(targetIds).then(urls => {
+            if (tool === 'dirsearch') {
+                mode = document.getElementById('reconModeDirsearch').value;
+                hander_Dirsearch(urls[0].hostname,mode,'stop');
+            }
+            if (tool === 'wpscan') {
+                mode = document.getElementById('reconModeWpscan').value;
+                hander_Wp_scan(urls[0].hostname,mode,'stop');
+            }
+            if (tool === 'nmap'){
+                mode = document.getElementById('reconModeNmap').value;
+                hander_Nmap(urls[0].hostname,mode,'stop');
+            }
+            if (tool === 'wappalyzer') {
+                mode = document.getElementById('reconModeWappalyzer').value;
+                hander_Wappalyzer(urls[0].hostname,mode,'stop');
+            }
+        });
 
         document.getElementById('reconScanLoading').style.display = 'none';
         document.getElementById('reconScanResult').textContent += '\n[Đã dừng quét]';
@@ -532,9 +558,30 @@
     }
 
     function showResultRecon(data) {
-        document.getElementById('reconScanResult').textContent = JSON.stringify(data, null, 2);
-    }
+        if (!data || data.length === 0) {
+            document.getElementById('reconScanResult').innerHTML = '<span class="text-danger">Không có kết quả.</span>';
+            return;
+        }
 
+        let text = '';
+        data.forEach((host, idx) => {
+            text += `Host: ${host.host} (${host.state})\n`;
+            if (host.os && host.os.length > 0) {
+                text += `  OS Guess: ${host.os.map(os => `${os.name} (${os.accuracy}%)`).join(', ')}\n`;
+            }
+            Object.keys(host.protocols).forEach(proto => {
+                text += `  Protocol: ${proto}\n`;
+                host.protocols[proto].forEach(portInfo => {
+                    text += `    Port ${portInfo.port}/${
+                        proto
+                    }  ${portInfo.state}  ${portInfo.service || ''}  ${portInfo.product || ''}  ${portInfo.version || ''}\n`;
+                });
+            });
+            text += '\n';
+        });
+
+        document.getElementById('reconScanResult').innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
+    }
 
     //Xử lý gửi request Dirsearch
     function hander_Dirsearch(hostname, mode, action){
@@ -554,6 +601,7 @@
 
     //Xử lý gửi request Nmap
     function hander_Nmap(hostname, mode, action){
+        console.log('Handle`s Nmap is processing....')
         const data ={hostname: hostname, mode:mode};
         if(action == 'start')
         {
@@ -561,10 +609,12 @@
                 url: '/recon/nmap/scan',
                 type: 'POST',
                 data: JSON.stringify(data),
+                contentType: 'application/json',
             })
             .done((resp) => {
                 if(resp['status'] === 0){
                     alert("Scaning .....");
+                    pollNmapResult();
                 }
                 else{
                     alert('Error');
@@ -603,12 +653,16 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === 0) {
+                    // Ẩn loading khi có kết quả
+                    document.getElementById('reconScanLoading').style.display = 'none';
                     // Hiển thị kết quả, dừng polling
                     showResultRecon(data.data);
+                    scanInProgress = false;
                 } else {
                     // Chưa xong, tiếp tục polling sau 2s
                     setTimeout(pollNmapResult, 2000);
                 }
+                //hander_Nmap(1,1,'stop');
             });
     }
 
