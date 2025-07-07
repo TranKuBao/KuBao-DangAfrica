@@ -2,10 +2,12 @@ import os
 import sys
 import shutil
 import nmap
+import re
+from urllib.parse import urlparse
 
 class Recon_Nmap:
     def __init__(self, target):
-        self.target = target
+        self.target = self.normalize_target(target)
         self._prepare_nmap()
         self.scanner = nmap.PortScanner()
 
@@ -67,6 +69,23 @@ class Recon_Nmap:
     def scan_custom(self, arguments):
         return self._scan_and_return(arguments)
 
+    @staticmethod
+    def normalize_target(target):
+        # Nếu là IP thì trả về luôn
+        ip_regex = r'^\d{1,3}(?:\.\d{1,3}){3}$'
+        if re.match(ip_regex, target):
+            return target
+        # Nếu là url thì lấy netloc
+        if not target.startswith('http'):
+            target = 'http://' + target
+        try:
+            parsed = urlparse(target)
+            if parsed.hostname:
+                return parsed.hostname
+            else:
+                return target
+        except Exception:
+            return target
 
 # scanner = Recon_Nmap("127.0.0.1")
     

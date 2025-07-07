@@ -1,0 +1,518 @@
+<!-- Additional CSS for Enhanced Styling -->
+<style>
+    .CodeMirror {
+        font-size: 13px !important;
+        min-height: 400px;
+        height: 80%;
+        width: 100%;
+        background: #282a36;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+
+    .modal-body {
+        max-height: none;
+        overflow-y: visible;
+        overflow-x: hidden;
+        /* Chặn cuộn ngang */
+        padding: 1rem 1.5rem;
+    }
+
+    .modal-content {
+        transition: all 0.3s ease;
+    }
+
+    .modal-content:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+    }
+
+    .btn {
+        transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .modal-header {
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .modal-footer {
+        border-top: 2px solid #e9ecef;
+    }
+
+    .modal-header,
+    .modal-footer {
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        min-height: 28px;
+        align-items: center !important;
+    }
+
+    .modal-header .modal-title {
+        font-size: 1.1rem;
+        padding: 0;
+        margin: 0;
+    }
+
+    h5.text-primary {
+        font-weight: 600;
+    }
+
+    .shadow-sm {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .btn-hacker {
+        font-family: 'Courier New', monospace;
+        border: 1px solid #f97316;
+        background-color: #FFFFFF;
+        color: #f97316;
+        padding: 10px 20px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 5px #f97316;
+    }
+
+    .btn-hacker:hover {
+        background-color: #f97316;
+        color: #FFFFFF;
+        box-shadow: 0 0 12px #f97316;
+    }
+
+    .btn-hacker-danger {
+        border: 1px solid #ff0033;
+        color: #ff0033;
+        box-shadow: 0 0 5px #ff0033;
+    }
+
+    .btn-hacker-danger:hover {
+        background-color: #ff0033;
+        color: #000;
+        box-shadow: 0 0 12px #ff0033;
+    }
+
+    .btn-hacker-warning {
+        border: 1px solid #f97316;
+        color: #f97316;
+        box-shadow: 0 0 5px #f97316;
+    }
+
+    .btn-hacker-warning:hover {
+        background-color: #f97316;
+        color: #000;
+        box-shadow: 0 0 12px #f97316;
+    }
+
+    .btn-hacker-success {
+        border: 1px solid #28a745;
+        color: #28a745;
+        box-shadow: 0 0 5px #28a745;
+    }
+
+    .btn-hacker-success:hover {
+        background-color: #28a745;
+        color: #FFFFFF;
+        box-shadow: 0 0 12px #28a745;
+    }
+
+    /* POC List Styling */
+    .poc-list-container {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .poc-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f1f3f4;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .poc-item:hover {
+        background-color: #f8f9fa;
+        transform: translateX(5px);
+    }
+
+    .poc-item.selected {
+        background-color: #e3f2fd;
+        border-left: 4px solid #2196f3;
+    }
+
+    .poc-item:last-child {
+        border-bottom: none;
+    }
+
+    .poc-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .poc-description {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+    }
+
+    .poc-cve {
+        font-size: 11px;
+        color: #f97316;
+        font-weight: 500;
+    }
+
+    .poc-status {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    .status-verified {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-failed {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    /* Search and Filter Section */
+    .search-filter-section {
+        background: #f8f9fa;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .filter-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+    }
+
+    .filter-btn {
+        padding: 6px 12px;
+        border: 1px solid #dee2e6;
+        background: white;
+        border-radius: 20px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .filter-btn.active {
+        background: #f97316;
+        color: white;
+        border-color: #f97316;
+    }
+
+    .filter-btn:hover {
+        background: #f97316;
+        color: white;
+        border-color: #f97316;
+    }
+
+    /* Loading Animation */
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #f97316;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Target Selection */
+    .target-selection {
+        background: #e3f2fd;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        border-left: 4px solid #2196f3;
+    }
+
+    .target-count {
+        font-weight: 600;
+        color: #1976d2;
+    }
+</style>
+
+<div class="modal fade" id="reconTargetsModal" tabindex="-1" aria-labelledby="reconTargetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content shadow-lg" style="background-color: #f8f9fa; border-radius: 12px;">
+            <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center"
+                style="background-color: #e9ecef !important;">
+                <h5 class="modal-title font-weight-bold" id="reconTargetModalLabel">🔍 Recon Targets with Tools</h5>
+                <div class="d-flex gap-2" style="margin-top: 10px !important;">
+                    <button type="button" class="btn btn-hacker-success px-4" onclick="xxxxxx()">
+                        <i class="fas fa-play"></i> Run <!--màu xanh-->
+                    </button>
+                    <button type="button" class="btn btn-hacker-success px-4" onclick="sssss()">
+                        <i class="fas fa-play"></i> Stop <!--màu vang-->
+                    </button>
+                    <button type="button" class="btn btn-hacker px-4" onclick="aaaaaaa()">
+                        <i class="fas fa-save"></i> Save <!--màu cam-->
+                    </button>
+                    <button type="button" class="btn btn-hacker-danger px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Close <!--màu cam-->
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-body p-4">
+                <!-- Target Selection Info -->
+                <div class="target-selection">
+                    <i class="fas fa-bullseye me-2"></i>
+                    <span class="target-count" id="reconSelectedTargetCount"></span> targets selected for verification
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Check console for detailed target information
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Error Notification -->
+                <div class="alert alert-danger mt-3" id="reconErrorAlert" style="display: none;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="reconErrorMessage"></span>
+                </div>
+
+                <!-- Success Notification -->
+                <div class="alert alert-success mt-3" id="reconSuccessAlert" style="display: none;">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span id="reconSuccessMessage"></span>
+                </div>
+
+                <!--thông báo về kết quả verify-->
+                <div id="reconVerifyResult" class="mt-3"></div>
+
+                <!-- Tool & Mode Selection Section -->
+                <div class="my-4 p-3 bg-white rounded shadow-sm">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 mb-2 mb-md-0">
+                            <label class="fw-bold mb-2">Chọn công cụ:</label>
+                            <div class="d-flex gap-3 flex-wrap" id="reconToolSelectGroup">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="toolSelect" id="toolDirsearch" value="dirsearch" checked onchange="onToolChange()">
+                                    <label class="form-check-label" for="toolDirsearch">Dirsearch</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="toolSelect" id="toolWpscan" value="wpscan" onchange="onToolChange()">
+                                    <label class="form-check-label" for="toolWpscan">WP-Scan</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="toolSelect" id="toolNmap" value="nmap" onchange="onToolChange()">
+                                    <label class="form-check-label" for="toolNmap">Nmap</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="toolSelect" id="toolWappalyzer" value="wappalyzer" onchange="onToolChange()">
+                                    <label class="form-check-label" for="toolWappalyzer">Wappalyzer</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold mb-2">Chọn mode:</label>
+                            <div id="reconModeSelectGroup">
+                                <!-- Mode select sẽ thay đổi theo công cụ -->
+                                <select class="form-select" id="reconModeDirsearch">
+                                    <option value="fast">Fast</option>
+                                    <option value="normal" selected>Normal</option>
+                                    <option value="deep">Deep</option>
+                                </select>
+                                <select class="form-select d-none" id="reconModeWpscan">
+                                    <option value="quick">Quick</option>
+                                    <option value="full" selected>Full</option>
+                                </select>
+                                <select class="form-select d-none" id="reconModeNmap">\
+                                    <option value="1" selected>Host Discovery</option>
+                                    <option value="2">Fast Scan</option>
+                                    <option value="3">Service Detection</option>
+                                    <option value="4">Vulnerability Scan</option>
+                                    <option value="5">Aggressive Scan</option>
+                                </select>
+                                <select class="form-select d-none" id="reconModeWappalyzer">
+                                    <option value="standard" selected>Standard</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result & Loading Section -->
+                <div class="my-4">
+                    <div id="reconScanLoading" class="loading-spinner" style="display: none;">
+                        <div class="spinner"></div>
+                        <p class="mt-2">Đang quét, vui lòng chờ...</p>
+                    </div>
+                    <div id="reconScanResult" class="bg-light p-3 rounded shadow-sm" style="min-height: 120px; font-family: monospace; white-space: pre-wrap;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--V-->
+<script>
+    // Load POCs when modal opens
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('reconTargetsModal');
+        modal.addEventListener('show.bs.modal', function () {
+            updateTargetCount();
+            displaySelectedTargetsInfo();
+        });
+    });
+
+    // cập nhật tổng số lượng
+    function updateTargetCount() {
+        const checkedTargets = getCheckedTargetIds();
+        const count = checkedTargets.length;
+        document.getElementById('reconSelectedTargetCount').textContent = count;
+
+        // Hiển thị thêm thông tin chi tiết nếu cần
+        console.log(`Modal: Đã chọn ${count} targets:`, checkedTargets);
+
+        // Có thể thêm hiển thị danh sách target đã chọn
+        if (count > 0) {
+            // Ví dụ: hiển thị danh sách target IDs
+            const targetList = checkedTargets.join(', ');
+            //console.log(`Target IDs: ${targetList}`);
+        }
+    }
+
+    // Hiển thị thông tin chi tiết về các target đã chọn
+    function displaySelectedTargetsInfo() {
+        const targetIds = getCheckedTargetIds();
+        const count = targetIds.length;
+
+        // Cập nhật số lượng
+        updateTargetCount();
+
+        // Hiển thị thông tin chi tiết trong console
+        console.log('=== THÔNG TIN TARGETS ĐÃ CHỌN ===');
+        console.log(`Tổng số: ${count} targets`);
+        console.log('Target IDs:', targetIds);
+
+        // Nếu có target được chọn, hiển thị thêm thông tin
+        if (count > 0) {
+        console.log('Danh sách Target IDs:', targetIds.join(', '));
+
+        // Có thể thêm logic để lấy thông tin chi tiết của từng target
+        // Ví dụ: gọi API để lấy thông tin hostname, IP của các target
+        fetchTargetDetails(targetIds);
+        } else {
+        console.log('Chưa có target nào được chọn');
+        }
+  }
+
+    // Lấy thông tin chi tiết của các target (tùy chọn)
+    function fetchTargetDetails(targetIds) {
+        return fetch('/api/getalltarget')
+            .then(response => response.json())
+            .then(data => {
+                if (data.targets) {
+                    return data.targets.filter(target =>
+                        targetIds.includes(target.server_id.toString())
+                    ).map(target => ({
+                        id: target.server_id,
+                        hostname: target.hostname,
+                        ip: target.ip_address
+                    }));
+                }
+                return [];
+            });
+    }
+
+    // Tool & Mode logic
+    function onToolChange() {
+        const tool = document.querySelector('input[name="toolSelect"]:checked').value;
+        document.getElementById('reconModeDirsearch').classList.add('d-none');
+        document.getElementById('reconModeWpscan').classList.add('d-none');
+        document.getElementById('reconModeNmap').classList.add('d-none');
+        document.getElementById('reconModeWappalyzer').classList.add('d-none');
+        if (tool === 'dirsearch') document.getElementById('reconModeDirsearch').classList.remove('d-none');
+        if (tool === 'wpscan') document.getElementById('reconModeWpscan').classList.remove('d-none');
+        if (tool === 'nmap') document.getElementById('reconModeNmap').classList.remove('d-none');
+        if (tool === 'wappalyzer') document.getElementById('reconModeWappalyzer').classList.remove('d-none');
+    }
+
+    // Khởi tạo đúng mode khi load lại modal
+    onToolChange();
+
+    // Scan state
+    let scanInProgress = false;
+
+    function startScan() {
+        if (scanInProgress) return;
+        scanInProgress = true;
+        document.getElementById('reconScanLoading').style.display = 'block';
+        document.getElementById('reconScanResult').textContent = '';
+        const tool = document.querySelector('input[name="toolSelect"]:checked').value;
+        let mode = '';
+        if (tool === 'dirsearch') mode = document.getElementById('reconModeDirsearch').value;
+        if (tool === 'wpscan') mode = document.getElementById('reconModeWpscan').value;
+        if (tool === 'nmap') mode = document.getElementById('reconModeNmap').value;
+        if (tool === 'wappalyzer') mode = document.getElementById('reconModeWappalyzer').value;
+        setTimeout(() => {
+            document.getElementById('reconScanLoading').style.display = 'none';
+            document.getElementById('reconScanResult').textContent = `Kết quả quét với tool: ${tool}, mode: ${mode}\n(Đây là kết quả demo, thay bằng kết quả thực tế)`;
+            scanInProgress = false;
+        }, 2500);
+    }
+
+    function stopScan() {
+        scanInProgress = false;
+        document.getElementById('reconScanLoading').style.display = 'none';
+        document.getElementById('reconScanResult').textContent += '\n[Đã dừng quét]';
+        //gửi request về
+    }
+
+    function saveScan() {
+        // Lưu kết quả (tùy ý)
+        alert('Đã lưu kết quả (demo)');
+    }
+
+    // Gán nút
+    window.xxxxxx = startScan;
+    window.sssss = stopScan;
+    window.aaaaaaa = saveScan;
+</script>
