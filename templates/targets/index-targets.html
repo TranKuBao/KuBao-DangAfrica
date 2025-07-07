@@ -914,6 +914,11 @@ function Recon_handle(func){
       return ;
     }    
     
+    if(data.length >1) {
+      alert("Function only allowed with 1 target")
+      return;
+    }
+
     // ... cập nhật các field khác
     const modal = new bootstrap.Modal(document.getElementById('reconTargetsModal'));
     modal.show();

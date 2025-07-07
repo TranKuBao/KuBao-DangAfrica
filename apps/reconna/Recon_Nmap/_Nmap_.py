@@ -4,6 +4,16 @@ import shutil
 import nmap
 import re
 from urllib.parse import urlparse
+import multiprocessing
+
+# Quản lý process scan toàn cục (hoặc dùng dict nếu muốn đa user)
+scan_process = None
+result_queue = None
+
+def scan_worker(target, arguments, result_queue):
+    scanner = Recon_Nmap(target)
+    result = scanner._scan_and_return(arguments)
+    result_queue.put(result)
 
 class Recon_Nmap:
     def __init__(self, target):
@@ -55,6 +65,7 @@ class Recon_Nmap:
                 host_info['protocols'][proto] = ports_info
 
             results.append(host_info)
+        print(f'[+]Nmap`s result {results}')
         return results
 
     def scan_os(self):
@@ -68,6 +79,7 @@ class Recon_Nmap:
 
     def scan_custom(self, arguments):
         return self._scan_and_return(arguments)
+
 
     @staticmethod
     def normalize_target(target):
@@ -86,6 +98,33 @@ class Recon_Nmap:
                 return target
         except Exception:
             return target
+
+    @staticmethod
+    def start_scan(target, arguments):
+        global scan_process, result_queue
+        if scan_process and scan_process.is_alive():
+            return False, "A scan is already running"
+        result_queue = multiprocessing.Queue()
+        scan_process = multiprocessing.Process(target=scan_worker, args=(target, arguments, result_queue))
+        scan_process.start()
+        return True, "Scan started"
+
+    @staticmethod
+    def stop_scan():
+        global scan_process
+        if scan_process and scan_process.is_alive():
+            scan_process.terminate()
+            scan_process.join()
+            return True, "Scan stopped"
+        return False, "No scan running"
+
+    @staticmethod
+    def get_scan_result():
+        global result_queue
+        if result_queue and not result_queue.empty():
+            return result_queue.get()
+        return None
+    
 
 # scanner = Recon_Nmap("127.0.0.1")
     
