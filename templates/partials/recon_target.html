@@ -355,9 +355,9 @@
                             <div id="reconModeSelectGroup">
                                 <!-- Mode select sẽ thay đổi theo công cụ -->
                                 <select class="form-select" id="reconModeDirsearch">
-                                    <option value="fast">Fast</option>
-                                    <option value="normal" selected>Normal</option>
-                                    <option value="deep">Deep</option>
+                                    <option value="1">Fast</option>
+                                    <option value="2" selected>Normal</option>
+                                    <option value="3">Deep</option>
                                 </select>
                                 <select class="form-select d-none" id="reconModeWpscan">
                                     <option value="quick">Quick</option>
@@ -557,40 +557,9 @@
         alert('Đã lưu kết quả (demo)');
     }
 
-    function showResultRecon(data) {
-        if (!data || data.length === 0) {
-            document.getElementById('reconScanResult').innerHTML = '<span class="text-danger">Không có kết quả.</span>';
-            return;
-        }
-
-        let text = '';
-        data.forEach((host, idx) => {
-            text += `Host: ${host.host} (${host.state})\n`;
-            if (host.os && host.os.length > 0) {
-                text += `  OS Guess: ${host.os.map(os => `${os.name} (${os.accuracy}%)`).join(', ')}\n`;
-            }
-            Object.keys(host.protocols).forEach(proto => {
-                text += `  Protocol: ${proto}\n`;
-                host.protocols[proto].forEach(portInfo => {
-                    text += `    Port ${portInfo.port}/${
-                        proto
-                    }  ${portInfo.state}  ${portInfo.service || ''}  ${portInfo.product || ''}  ${portInfo.version || ''}\n`;
-                });
-            });
-            text += '\n';
-        });
-
-        document.getElementById('reconScanResult').innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
-    }
-
+    
     //Xử lý gửi request Dirsearch
     function hander_Dirsearch(hostname, mode, action){
-        
-    }
-
-
-    //Xử lý gửi request Wappalyzer
-    function hander_Wappalyzer(hostname, mode, action){
         
     }
 
@@ -599,7 +568,7 @@
         
     }
 
-    //Xử lý gửi request Nmap
+    //=============================== Nmap =======================================
     function hander_Nmap(hostname, mode, action){
         console.log('Handle`s Nmap is processing....')
         const data ={hostname: hostname, mode:mode};
@@ -613,7 +582,7 @@
             })
             .done((resp) => {
                 if(resp['status'] === 0){
-                    alert("Scaning .....");
+                    alert("Nmap is scaning .....");
                     pollNmapResult();
                 }
                 else{
@@ -656,7 +625,7 @@
                     // Ẩn loading khi có kết quả
                     document.getElementById('reconScanLoading').style.display = 'none';
                     // Hiển thị kết quả, dừng polling
-                    showResultRecon(data.data);
+                    showResultReconNmap(data.data);
                     scanInProgress = false;
                 } else {
                     // Chưa xong, tiếp tục polling sau 2s
@@ -666,14 +635,177 @@
             });
     }
 
+    function showResultReconNmap(data) {
+        if (!data || data.length === 0) {
+            document.getElementById('reconScanResult').innerHTML = '<span class="text-danger">Không có kết quả.</span>';
+            return;
+        }
+
+        let text = '';
+        data.forEach((host, idx) => {
+            text += `Host: ${host.host} (${host.state})\n`;
+            if (host.os && host.os.length > 0) {
+                text += `  OS Guess: ${host.os.map(os => `${os.name} (${os.accuracy}%)`).join(', ')}\n`;
+            }
+            Object.keys(host.protocols).forEach(proto => {
+                text += `  Protocol: ${proto}\n`;
+                host.protocols[proto].forEach(portInfo => {
+                    text += `    Port ${portInfo.port}/${
+                        proto
+                    }  ${portInfo.state}  ${portInfo.service || ''}  ${portInfo.product || ''}  ${portInfo.version || ''}\n`;
+                });
+            });
+            text += '\n';
+        });
+
+        document.getElementById('reconScanResult').innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
+    }
 
 
 
+    //=============================== Wappalyzer =======================================
+    function hander_Wappalyzer(hostname, mode, action){
+        console.log('Handle`s Wappalyzer is processing....')
+        const data ={hostname: hostname, mode:mode};
+        if(action == 'start')
+        {
+            $.ajax({
+                url: '/recon/wappalyzer/scan',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+            })
+            .done((resp) => {
+                if(resp['status'] === 0){
+                    alert("Wappalyzer is scaning .....");
+                    pollWappalyzerResult();
+                }
+                else{
+                    alert('Error');
+                    console.log(resp['msg'])
+                }
+            })
+            .fail((error) => {
+                alert(resp['msg']);
+                console.log(`Error ${resp['msg']}`);
+            });
+        }
+        else{
+            $.ajax({
+                url: '/recon/wappalyzer/stop',
+                type: 'POST'
+            })
+            .done((resp) => {
+                if(resp['status'] === 0){
+                    alert("Successful stop");
+                    console.log(resp['msg'])
+                }
+                else{
+                    alert('Error stop');
+                    console.log(resp['msg'])
+                }
+            })
+            .fail((error) => {
+                alert(resp['msg']);
+                console.log(`Error ${resp['msg']}`);
+            });
+        }
+    }
+
+    function pollWappalyzerResult() {
+        fetch('/recon/wappalyzer/result')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 0) {
+                    // Ẩn loading khi có kết quả
+                    document.getElementById('reconScanLoading').style.display = 'none';
+                    // Hiển thị kết quả, dừng polling
+                    showResultReconWappalyzer(data.data);
+                    console.log(data.data);
+                    scanInProgress = false;
+                } else {
+                    // Chưa xong, tiếp tục polling sau 2s
+                    setTimeout(pollWappalyzerResult, 2000);
+                }
+                //hander_Nmap(1,1,'stop');
+            });
+    }
+
+    function showResultReconWappalyzer(data) {
+        let container = document.getElementById('reconScanResult');
+        if (!Array.isArray(data) || data.length === 0) {
+            container.innerHTML = '<span class="text-danger">Không có kết quả.</span>';
+            return;
+        }
+        let text = '';
+        data.forEach(item => {
+            if (item.version && item.version !== 'Unknown' && item.version.trim() !== '') {
+                text += `${item.technology} (v${item.version})\n`;
+            } else {
+                text += `${item.technology}\n`;
+            }
+        });
+        container.innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
+    }
 
 
+    //=============================== Dirsearch =======================================
+    //Xử lý gửi request Dirsearch
+    function hander_Dirsearch(hostname, mode, action){
+        console.log('Handle`s Dirsearch is processing....')
+        const data ={hostname: hostname, mode:mode};
+        if(action == 'start')
+        {
+            $.ajax({
+                url: '/recon/Dirsearch/scan',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+            })
+            .done((resp) => {
+                if(resp['status'] === 0){
+                    alert("Dirsearch is scaning .....");
+                    pollDirsearchResult();
+                }
+                else{
+                    alert('Error');
+                    console.log(resp['msg'])
+                }
+            })
+            .fail((error) => {
+                alert(resp['msg']);
+                console.log(`Error ${resp['msg']}`);
+            });
+        }
+        else{
+            $.ajax({
+                url: '/recon/Dirsearch/stop',
+                type: 'POST'
+            })
+            .done((resp) => {
+                if(resp['status'] === 0){
+                    alert("Successful stop");
+                    console.log(resp['msg'])
+                }
+                else{
+                    alert('Error stop');
+                    console.log(resp['msg'])
+                }
+            })
+            .fail((error) => {
+                alert(resp['msg']);
+                console.log(`Error ${resp['msg']}`);
+            });
+        }
+    }
 
+    function pollDirsearchResult(){
 
+    }
 
+    function showResultReconDirsearch(data){
+
+    }
 
 
 
