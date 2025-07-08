@@ -109,10 +109,11 @@ def recon_Dirsearch_scan():
 @blueprint.route('/recon/Dirsearch/result', methods=['GET'])
 def get_Dirsearch_result():
     result = DirsearchManager.get_scan_result()
+    done = not DirsearchManager._is_running
     if result is not None:
-        return jsonify({'status': 0, 'data': result})
+        return jsonify({'status': 0, 'data': result, 'done': done})
     else:
-        return jsonify({'status': -1, 'msg': 'No result available'})
+        return jsonify({'status': -1, 'msg': 'No result available', 'done': done})
 
 @blueprint.route('/recon/Dirsearch/stop', methods=['POST'])
 def stop_Dirsearch_scan():

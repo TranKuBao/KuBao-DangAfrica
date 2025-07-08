@@ -749,7 +749,7 @@
 
 
     //=============================== Dirsearch =======================================
-    //Xử lý gửi request Dirsearch
+    let lastDirsearchResultCount = 0;
     function hander_Dirsearch(hostname, mode, action){
         console.log('Handle`s Dirsearch is processing....')
         const data ={hostname: hostname, mode:mode};
@@ -796,25 +796,27 @@
                 console.log(`Error ${resp['msg']}`);
             });
         }
+        // ... stop
     }
-
+    
     function pollDirsearchResult(){
         if(scanInProgress){
             fetch('/recon/Dirsearch/result')
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 0) {
-                        // Ẩn loading khi có kết quả
-                        document.getElementById('reconScanLoading').style.display = 'none';
-                        // Hiển thị kết quả, dừng polling
                         showResultReconDirsearch(data.data);
-                        console.log(data.data);
-                        scanInProgress = false;
+                        if (data.done) {
+                            // Đã xong, dừng polling
+                            scanInProgress = false;
+                            document.getElementById('reconScanLoading').style.display = 'none';
+                            alert('Dirsearch scan completed!');
+                        } else {
+                            setTimeout(pollDirsearchResult, 1500);
+                        }
                     } else {
-                        // Chưa xong, tiếp tục polling sau 2s
-                        setTimeout(pollDirsearchResult, 2000);
+                        setTimeout(pollDirsearchResult, 1500);
                     }
-                    //hander_Nmap(1,1,'stop');
                 });
         }
     }
@@ -825,20 +827,16 @@
             container.innerHTML = '<span class="text-danger">Không có kết quả.</span>';
             return;
         }
-
         // Lọc chỉ các kết quả tìm thấy (found = true)
         const found = data.filter(item => item.found);
-
         if (found.length === 0) {
             container.innerHTML = '<span class="text-warning">Không phát hiện thư mục/file nào tồn tại!</span>';
             return;
         }
-
         let text = '';
         found.forEach(item => {
             text += `${item.url} (Status: ${item.status_code}, Time: ${item.response_time}s)\n`;
         });
-
         container.innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
     }
 
