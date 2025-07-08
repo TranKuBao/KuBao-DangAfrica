@@ -558,11 +558,6 @@
     }
 
     
-    //Xử lý gửi request Dirsearch
-    function hander_Dirsearch(hostname, mode, action){
-        
-    }
-
     //Xử lý gửi request Wp-scan
     function hander_Wp_scan(hostname, mode, action){
         
@@ -618,6 +613,7 @@
     }
 
     function pollNmapResult() {
+        if(scanInProgress){
         fetch('/recon/nmap/result')
             .then(res => res.json())
             .then(data => {
@@ -633,6 +629,7 @@
                 }
                 //hander_Nmap(1,1,'stop');
             });
+        }
     }
 
     function showResultReconNmap(data) {
@@ -713,6 +710,7 @@
     }
 
     function pollWappalyzerResult() {
+        if(scanInProgress){
         fetch('/recon/wappalyzer/result')
             .then(res => res.json())
             .then(data => {
@@ -729,6 +727,7 @@
                 }
                 //hander_Nmap(1,1,'stop');
             });
+        }
     }
 
     function showResultReconWappalyzer(data) {
@@ -800,11 +799,47 @@
     }
 
     function pollDirsearchResult(){
-
+        if(scanInProgress){
+            fetch('/recon/Dirsearch/result')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 0) {
+                        // Ẩn loading khi có kết quả
+                        document.getElementById('reconScanLoading').style.display = 'none';
+                        // Hiển thị kết quả, dừng polling
+                        showResultReconDirsearch(data.data);
+                        console.log(data.data);
+                        scanInProgress = false;
+                    } else {
+                        // Chưa xong, tiếp tục polling sau 2s
+                        setTimeout(pollDirsearchResult, 2000);
+                    }
+                    //hander_Nmap(1,1,'stop');
+                });
+        }
     }
 
-    function showResultReconDirsearch(data){
+    function showResultReconDirsearch(data) {
+        const container = document.getElementById('reconScanResult');
+        if (!Array.isArray(data) || data.length === 0) {
+            container.innerHTML = '<span class="text-danger">Không có kết quả.</span>';
+            return;
+        }
 
+        // Lọc chỉ các kết quả tìm thấy (found = true)
+        const found = data.filter(item => item.found);
+
+        if (found.length === 0) {
+            container.innerHTML = '<span class="text-warning">Không phát hiện thư mục/file nào tồn tại!</span>';
+            return;
+        }
+
+        let text = '';
+        found.forEach(item => {
+            text += `${item.url} (Status: ${item.status_code}, Time: ${item.response_time}s)\n`;
+        });
+
+        container.innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
     }
 
 

@@ -6,7 +6,7 @@ from apps.models import Product
 
 from apps.reconna.Recon_Nmap._Nmap_ import Recon_Nmap
 from apps.reconna.Recon_Wappalyzer._Wappalyzer_ import Recon_Wappalyzer
-
+from apps.reconna.Recon_Dirsearch._Dirseach_ import Recon_Directory, DirsearchManager
 
 from multiprocessing import Process, Queue
 
@@ -91,8 +91,13 @@ def recon_Dirsearch_scan():
     try:
         data = request.get_json()
         url_target = data.get('hostname')
+        mode_scan = data.get('mode')
+        mode = "fast" if mode_scan == 1 else \
+                "normal" if mode_scan == 2 else \
+                "deep" 
+
         print(f"Data scan Dirsearch: {data}")
-        ok, msg = Recon_Wappalyzer.start_scan(url_target)
+        ok, msg = DirsearchManager.start_scan(url_target, 'default')
         return jsonify({'status': 0 if ok else -1, 'msg': msg})
     except Exception as e:
         return jsonify({
@@ -103,7 +108,7 @@ def recon_Dirsearch_scan():
 
 @blueprint.route('/recon/Dirsearch/result', methods=['GET'])
 def get_Dirsearch_result():
-    result = Recon_Wappalyzer.get_scan_result()
+    result = DirsearchManager.get_scan_result()
     if result is not None:
         return jsonify({'status': 0, 'data': result})
     else:
@@ -111,5 +116,5 @@ def get_Dirsearch_result():
 
 @blueprint.route('/recon/Dirsearch/stop', methods=['POST'])
 def stop_Dirsearch_scan():
-    ok, msg = Recon_Wappalyzer.stop_scan()
+    ok, msg = DirsearchManager.stop_scan()
     return jsonify({'status': 0 if ok else -1, 'msg': msg})

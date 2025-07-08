@@ -12,6 +12,7 @@ import re
 from urllib.parse import urlparse, urljoin
 import json
 from typing import Dict, List, Optional, Callable
+from multiprocessing import Process, Queue as MPQueue
 
 # Khởi tạo colorama để hiển thị màu sắc trên tất cả các hệ điều hành
 init(autoreset=True)
@@ -494,6 +495,64 @@ def print_result_callback(result: Dict):
     elif result['error']:
         # Có lỗi: màu đỏ
         print(f"{Fore.RED}[!] Error: {result['path']} - {result['error']}{Style.RESET_ALL}")
+
+
+class DirsearchManager:
+    _process = None
+    _queue = None
+    _result = []
+    _is_running = False
+    _wordlist_map = {
+        'normal': os.path.join(os.path.dirname(__file__), 'Dictionary', 'normal.txt'),
+        'deep': os.path.join(os.path.dirname(__file__), 'Dictionary', 'deep.txt'),
+        'fast': os.path.join(os.path.dirname(__file__), 'Dictionary', 'fast.txt'),
+        'default': os.path.join(os.path.dirname(__file__), 'Dictionary', 'default.txt'),
+    }
+
+    @staticmethod
+    def _scan_worker(url, wordlist_file, queue):
+        def callback(result):
+            queue.put(result)
+        scanner = Recon_Directory(url, wordlist_file=wordlist_file, callback=callback)
+        scanner.start_scan()
+        scanner.wait_for_completion()
+        queue.put('DONE')
+
+    @staticmethod
+    def start_scan(url, mode):
+        if DirsearchManager._process is not None and DirsearchManager._process.is_alive():
+            return False, 'A scan is already running'
+        wordlist_file = DirsearchManager._wordlist_map.get(mode, DirsearchManager._wordlist_map['default'])
+        print(f"[DirsearchManager] Start scan: url={url}, mode={mode}, wordlist={wordlist_file}")
+        DirsearchManager._queue = MPQueue()
+        DirsearchManager._result = []
+        DirsearchManager._process = Process(target=DirsearchManager._scan_worker, args=(url, wordlist_file, DirsearchManager._queue))
+        DirsearchManager._process.start()
+        DirsearchManager._is_running = True
+        return True, 'Scan started'
+
+    @staticmethod
+    def get_scan_result():
+        results = []
+        if DirsearchManager._queue is not None:
+            while not DirsearchManager._queue.empty():
+                item = DirsearchManager._queue.get()
+                if item == 'DONE':
+                    DirsearchManager._is_running = False
+                    break
+                results.append(item)
+        DirsearchManager._result.extend(results)
+        return DirsearchManager._result
+
+    @staticmethod
+    def stop_scan():
+        if DirsearchManager._process is not None and DirsearchManager._process.is_alive():
+            DirsearchManager._process.terminate()
+            DirsearchManager._process = None
+            DirsearchManager._is_running = False
+            return True, 'Scan stopped'
+        else:
+            return False, 'No scan is running'
 
 
 
