@@ -381,26 +381,12 @@
                   <span class="tooltip">Delete Selected</span>
                 </button>
                 
-                <!-- Information Collection Dropdown -->
+                <!-- Button Reconnassance with 4 Tools -->
                 <div class="custom-dropdown">
-                  <button class="action-btn btn-info" onclick="toggleDropdown('info-dropdown')">
+                  <button class="action-btn btn-info" onclick="toggleDropdown('info-dropdown')" id="btn-Recon-function">
                     <i class="fas fa-binoculars"></i>
                     <span class="tooltip">Thu thập thông tin</span>
                   </button>
-                  <div class="custom-dropdown-menu" id="info-dropdown">
-                    <a class="custom-dropdown-item" href="javascript:;" onclick="Recon_handle('wappalyzer')">
-                      <i class="fas fa-search me-2"></i>Wappalyzer
-                    </a>
-                    <a class="custom-dropdown-item" href="javascript:;" onclick="Recon_handle('nmap')">
-                      <i class="fas fa-network-wired me-2"></i>Nmap
-                    </a>
-                    <a class="custom-dropdown-item" href="javascript:;" onclick="Recon_handle('dirsearch')">
-                      <i class="fas fa-folder-open me-2"></i>Dirsearch
-                    </a>
-                    <a class="custom-dropdown-item" href="javascript:;" onclick="Recon_handle('wpscan')">
-                      <i class="fab fa-wordpress me-2"></i>WP-Scan
-                    </a>
-                  </div>
                 </div>
                 {% include "partials/recon_target.html" %}
 
@@ -890,7 +876,7 @@ function updateSelectAllCheckbox() {
 }
 
 
-//verify 1 POC với nhiểu tảget đã chọn
+//verify 1 POC với nhiểu target đã chọn
 document.getElementById('btn-verify-selected').addEventListener("click",function(){
   const data = getCheckedTargetIds();
     if( data.length ==0 ){
@@ -906,8 +892,8 @@ document.getElementById('btn-verify-selected').addEventListener("click",function
     modal.show();
 });
 
-//Chức năng recon
-function Recon_handle(func){
+//Chức năng Recon
+document.getElementById('btn-Recon-function').addEventListener("click",function(){
   const data = getCheckedTargetIds();
     if( data.length == 0 ){
       alert('Please check the target you want to Reconnaissance.');
@@ -922,7 +908,7 @@ function Recon_handle(func){
     // ... cập nhật các field khác
     const modal = new bootstrap.Modal(document.getElementById('reconTargetsModal'));
     modal.show();
-}
+});
 
 //Xóa target 
 document.getElementById("btn-delete-selected").addEventListener("click", function(){

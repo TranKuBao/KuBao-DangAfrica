@@ -97,7 +97,7 @@ def recon_Dirsearch_scan():
                 "deep" 
 
         print(f"Data scan Dirsearch: {data}")
-        ok, msg = DirsearchManager.start_scan(url_target, 'default')
+        ok, msg = DirsearchManager.start_scan(url_target, mode)
         return jsonify({'status': 0 if ok else -1, 'msg': msg})
     except Exception as e:
         return jsonify({

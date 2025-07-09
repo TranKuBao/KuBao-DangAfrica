@@ -212,7 +212,9 @@ class Targets(db.Model):
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
     
-        
+    # Quan hệ 1-n: 1 target có nhiều report
+    reports = db.relationship('Reports', backref='target', lazy=True)
+    
     def __init__(self, hostname, ip_address, server_type, os=None, location=None, 
                  status='active', privilege_escalation=None, exploitation_level=None, 
                  incident_id=None, notes=None):
@@ -248,13 +250,33 @@ class Targets(db.Model):
         }
     
     @classmethod
-    def create_target(cls, hostname, **kwargs):
-        """Create a new target"""
+    def create_target(cls, hostname, ip_address, server_type, os=None, location=None, 
+                      status='active', privilege_escalation=None, exploitation_level=None, 
+                      incident_id=None, notes=None, report_data=None):
+        """Create a new target và đồng thời tạo report với server_id tương ứng"""
+        from apps.models import Reports, db
         try:
-            target = cls(hostname=hostname, **kwargs)
+            target = cls(
+                hostname=hostname,
+                ip_address=ip_address,
+                server_type=server_type,
+                os=os,
+                location=location,
+                status=status,
+                privilege_escalation=privilege_escalation,
+                exploitation_level=exploitation_level,
+                incident_id=incident_id,
+                notes=notes
+            )
             db.session.add(target)
+            db.session.flush()  # Để lấy server_id vừa tạo
+            # Tạo report với server_id giống target
+            report = Reports(
+                server_id=target.server_id,
+                **(report_data or {})
+            )
+            db.session.add(report)
             db.session.commit()
-            print(target)
             return target
         except Exception as e:
             db.session.rollback()
@@ -341,6 +363,104 @@ class Targets(db.Model):
         except SQLAlchemyError as e:
             db.session.rollback()
             raise InvalidUsage(f"Error deleting target: {str(e)}")
+
+
+class Reports(db.Model):
+    __tablename__ = 'reports'
+    
+    report_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    server_id = db.Column(db.Integer, db.ForeignKey('targets.server_id'), nullable=False, unique=True)
+    nmap = db.Column(db.String(255), nullable=True)
+    dirsearch = db.Column(db.String(255), nullable=True)
+    wappalyzer = db.Column(db.String(255), nullable=True)
+    wpscan = db.Column(db.String(255), nullable=True)
+    pocs = db.Column(db.String(255), nullable=True)
+    update_nmap = db.Column(db.String(255), nullable=True)
+    update_dirsearch = db.Column(db.String(255), nullable=True)
+    update_wappalyzer = db.Column(db.String(255), nullable=True)
+    update_wpscan = db.Column(db.String(255), nullable=True)
+    update_pocs = db.Column(db.String(255), nullable=True)
+    
+
+    def __init__(self, server_id, nmap=None, dirsearch=None, wappalyzer=None, wpscan=None, pocs=None, 
+                 update_nmap=None, update_dirsearch=None, update_wappalyzer=None, update_wpscan=None, update_pocs=None):
+        self.server_id = server_id
+        self.nmap = nmap
+        self.dirsearch = dirsearch
+        self.wappalyzer = wappalyzer
+        self.wpscan = wpscan
+        self.pocs = pocs
+        self.update_nmap = update_nmap
+        self.update_dirsearch = update_dirsearch
+        self.update_wappalyzer = update_wappalyzer
+        self.update_wpscan = update_wpscan
+        self.update_pocs = update_pocs
+
+    def to_dict(self):
+        return {
+            'server_id': self.server_id,
+            'nmap': self.nmap,
+            'dirsearch': self.dirsearch,
+            'wappalyzer': self.wappalyzer,
+            'wpscan': self.wpscan,
+            'pocs': self.pocs,
+            'update_nmap': self.update_nmap,
+            'update_dirsearch': self.update_dirsearch,
+            'update_wappalyzer': self.update_wappalyzer,
+            'update_wpscan': self.update_wpscan,
+            'update_pocs': self.update_pocs,
+            'created_at': self.created_at
+        }
+
+    @classmethod
+    def create_report(cls, server_id, nmap, dirsearch, wappalyzer, wpscan, pocs, update_nmap, update_dirsearch, update_wappalyzer, update_wpscan, update_pocs):
+        try:
+            report = cls(
+                server_id=server_id,
+                nmap=nmap,
+                dirsearch=dirsearch,
+                wappalyzer=wappalyzer,
+                wpscan=wpscan,
+                pocs=pocs,
+                update_nmap=update_nmap,
+                update_dirsearch=update_dirsearch,
+                update_wappalyzer=update_wappalyzer,
+                update_wpscan=update_wpscan,
+                update_pocs=update_pocs
+            )
+            db.session.add(report)
+            db.session.commit()
+            return report
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error creating report: {str(e)}")
+
+    @classmethod
+    def get_by_id(cls, server_id):
+        return cls.query.filter_by(server_id=server_id).first()
+
+    @classmethod
+    def get_all(cls):
+        return cls.query.all()
+
+    def update(self, **kwargs):
+        try:
+            for key, value in kwargs.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+            db.session.commit()
+            return self
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error updating report: {str(e)}")
+
+    def delete(self):
+        try:
+            db.session.delete(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error deleting report: {str(e)}")
 
 
 class Credentials(db.Model):
