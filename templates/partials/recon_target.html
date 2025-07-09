@@ -558,9 +558,53 @@
     }
 
     
-    //Xử lý gửi request Wp-scan
+    //=============================== Wpscan =======================================
     function hander_Wp_scan(hostname, mode, action){
-        
+        if (action === 'start') {
+            const data = { target: hostname };
+            // Hiển thị loading
+            document.getElementById('reconScanLoading').style.display = 'block';
+            document.getElementById('reconScanResult').textContent = '';
+
+            fetch('http://192.168.104.137:5000/scan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.body) {
+                    throw new Error('No response body');
+                }
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let resultText = '';
+
+                function read() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) {
+                            document.getElementById('reconScanLoading').style.display = 'none';
+                            return;
+                        }
+                        // Giải mã và cộng dồn kết quả
+                        const chunk = decoder.decode(value, { stream: true });
+                        resultText += chunk;
+                        document.getElementById('reconScanResult').textContent = resultText;
+                        // Đọc tiếp
+                        return read();
+                    });
+                }
+                return read();
+            })
+            .catch(error => {
+                document.getElementById('reconScanLoading').style.display = 'none';
+                alert('WP-Scan request failed');
+                console.error(error);
+            });
+        } else if (action === 'stop') {
+            alert('Stop WP-Scan chưa được hỗ trợ!');
+        }
     }
 
     //=============================== Nmap =======================================
