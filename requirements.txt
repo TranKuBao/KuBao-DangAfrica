@@ -34,12 +34,14 @@ gunicorn==23.0.0
 Flask-Minify==0.49
 Flask-CDN==1.5.3
 
-
+chardet
 
 python-Wappalyzer
 setuptools
-request
+requests
 python-nmap    
 colorama
 # flask_mysqldb
 # psycopg2-binary
+requests_toolbelt
+bcrypt
