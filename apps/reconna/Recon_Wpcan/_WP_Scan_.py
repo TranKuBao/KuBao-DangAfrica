@@ -47,7 +47,7 @@ class Recon_Wpscan:
                 raise ValueError("Target is not set")
                 
             cls.process = subprocess.Popen(
-                ["wpscan", "--url", cls.target, "--random-user-agent"],
+                ["wpscan", "--url", cls.target, "--random-user-agent", "--disable-tls-checks"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 bufsize=1,

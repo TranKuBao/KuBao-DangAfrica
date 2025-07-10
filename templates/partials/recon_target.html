@@ -355,8 +355,8 @@
                             <div id="reconModeSelectGroup">
                                 <!-- Mode select sẽ thay đổi theo công cụ -->
                                 <select class="form-select" id="reconModeDirsearch">
-                                    <option value="1">Fast</option>
-                                    <option value="2" selected>Normal</option>
+                                    <option value="1"selected>Fast</option>
+                                    <option value="2" >Normal</option>
                                     <option value="3">Deep</option>
                                 </select>
                                 <select class="form-select d-none" id="reconModeWpscan">
@@ -417,10 +417,11 @@
         if (count > 0) {
             const details = await fetchTargetDetails(checkedTargets);
             if (details.length > 0) {
-                hostname = details[0].hostname + ' | ';
+                hostname = details[0].hostname ;
             }
         }
-        document.getElementById('reconSelectedTargetCount').textContent = `${hostname}${count}`;
+        const url = hostname.startsWith('http') ? hostname : `http://${hostname}`;
+        document.getElementById('reconSelectedTargetCount').innerHTML = `<a class="target-count" href="${url}" target="_blank" >${hostname}</a>  |  ${count}`;
         
         // Hiển thị thêm thông tin chi tiết nếu cần
         console.log(`Modal: Đã chọn ${count} targets:`, checkedTargets);
@@ -557,12 +558,23 @@
         //gửi request về
     }
 
+    //lưu dữ liệu
     function saveScan() {
         // Lưu kết quả (tùy ý)
         console.log("===================Dữ liệu lưu đây====================")
         console.log(window.latestReconResult.tool); // tên công cụ
         console.log(window.latestReconResult.data); // dữ liệu kết quả
-        alert('Đã lưu kết quả (demo)');
+        if (!window.latestReconResult.tool || window.latestReconResult.data.length === 0) {
+            alert('No verification results to save. Please run verification first.');
+            return;
+        }
+        // Lấy danh sách target đã chọn
+        const targetIds = getCheckedTargetIds();
+        // fetchTargetDetails là async, nên phải dùng .then
+        fetchTargetDetails(targetIds).then(urls => {
+
+        });
+        alert(`Đã lưu kết quả (demo) ${window.latestReconResult.data.length}`);
     }
 
     
@@ -614,6 +626,7 @@
             if (data.message === 'SCAN_COMPLETED') {
                 eventSource.close();
                 console.log('Scan completed!');
+                scanInProgress = false;
             }
         };
         

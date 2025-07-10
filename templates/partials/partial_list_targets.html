@@ -26,7 +26,11 @@
                       
                       </div>
                       <div class="d-flex flex-column justify-content-center">
-                        <h6 class="mb-0 text-sm">{{ target.hostname }}</h6> 
+                        <h6 class="mb-0 text-sm">
+                          <a href="{{ 'http://' + target.hostname if not target.hostname.startswith('http') else target.hostname }}" target="_blank">
+                          {{ target.hostname }}
+                          </a>
+                        </h6> 
                         <p class="text-xs text-secondary mb-0">
                           IP: {{ target.ip_address }}
                         </p>
