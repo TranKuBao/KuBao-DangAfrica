@@ -7,6 +7,7 @@ from apps.models import Product
 from apps.reconna.Recon_Nmap._Nmap_ import Recon_Nmap
 from apps.reconna.Recon_Wappalyzer._Wappalyzer_ import Recon_Wappalyzer
 from apps.reconna.Recon_Dirsearch._Dirseach_ import Recon_Directory, DirsearchManager
+from apps.reconna.Recon_Wpcan._WP_Scan_ import Recon_Wpscan
 
 from multiprocessing import Process, Queue
 
@@ -119,3 +120,24 @@ def get_Dirsearch_result():
 def stop_Dirsearch_scan():
     ok, msg = DirsearchManager.stop_scan()
     return jsonify({'status': 0 if ok else -1, 'msg': msg})
+
+
+#================================= Wpscan ======================================================
+@blueprint.route('/recon/wpscan/scan',methods=['POST'])
+def recon_wpscan_scan():
+    try:
+        data = request.get_json()
+        url_target = data.get('hostname')
+        if not url_target:
+            return jsonify({"status":-1,"msg":"Thiếu URL target","error": "Thiếu URL"}), 400
+
+        print(f"Data scan Wpscan: {data}")
+        ok, msg = Recon_Wpscan.start_scan(url_target)
+        return jsonify({'status':0,'msg':msg})
+    except Exception as e:
+        return jsonify({'status':-1,"error":str(e),"msg":str(e)})
+
+@blueprint.route('/recon/wpscan/stream', methods=['GET'])
+def wpscan_stream():
+    """Stream real-time data từ WPScan"""
+    return Recon_Wpscan.stream_data()

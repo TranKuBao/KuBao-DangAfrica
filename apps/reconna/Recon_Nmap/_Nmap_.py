@@ -22,9 +22,11 @@ class Recon_Nmap:
         self.scanner = nmap.PortScanner()
 
     def _prepare_nmap(self):
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        nmap_dir = os.path.join(current_dir, "Nmap")
-        os.environ["PATH"] = nmap_dir + os.pathsep + os.environ["PATH"]
+        # Nếu là Windows, ưu tiên thư mục Nmap local
+        if os.name == "nt":
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            nmap_dir = os.path.join(current_dir, "Nmap")
+            os.environ["PATH"] = nmap_dir + os.pathsep + os.environ["PATH"]
 
         if not shutil.which("nmap"):
             raise EnvironmentError("❌ Không tìm thấy chương trình 'nmap' trong PATH.")
