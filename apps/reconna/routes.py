@@ -2,16 +2,16 @@
 from unittest import result
 from flask import render_template, request, redirect, url_for, jsonify, session
 from apps.reconna import blueprint
-from apps.models import Product
+import datetime
 
+# import ccác tool recon
 from apps.reconna.Recon_Nmap._Nmap_ import Recon_Nmap
 from apps.reconna.Recon_Wappalyzer._Wappalyzer_ import Recon_Wappalyzer
 from apps.reconna.Recon_Dirsearch._Dirseach_ import Recon_Directory, DirsearchManager
 from apps.reconna.Recon_Wpcan._WP_Scan_ import Recon_Wpscan
 
-from multiprocessing import Process, Queue
-
-
+#import các model để luwu dữ liệu
+from apps.models import Reports
 #=================================NMAP======================================================
 @blueprint.route('/recon/nmap/scan',methods=['GET','POST'])
 def recon_nmap_scan():    
@@ -141,3 +141,38 @@ def recon_wpscan_scan():
 def wpscan_stream():
     """Stream real-time data từ WPScan"""
     return Recon_Wpscan.stream_data()
+
+
+#================================= lưu sữ liệu ==========================================================   
+@blueprint.route('/api/save_report', methods=['POST'])
+def save_recon():
+    try:
+        data = request.get_json()
+        Server_ID = data.get('server_id')
+        tool = data.get('tool')
+        data_scan = data.get('data_scan')
+                
+        # tìm server id đã
+        report = Reports.query.filter_by(server_id=Server_ID).first()
+        if not report:
+            return jsonify({'status':-1, 'msg':'No information found server_ID'})
+
+        #phân tích request để tìm tool
+        now_time = datetime.datetime.now()
+        if tool == 'nmap':
+            report.update(nmap=data_scan,update_nmap=str(now_time))
+        elif tool == 'dirsearch':
+            report.update(dirsearch=data_scan,update_dirsearch=str(now_time))    
+        elif tool == 'wappalyzer':
+            report.update(wappalyzer=data_scan,update_wappalyzer=str(now_time))    
+        elif tool == 'wpscan':
+            report.update(wpscan=data_scan,update_wpscan=str(now_time))    
+        elif tool == 'pocs':
+            report.update(pocs=data_scan, update_pocs=str(now_time))
+
+        return jsonify({'status':0, 'msg': "Saving successfully"})
+    except Exception as e:
+        print(f"Lỗi ở hàm lưu dữ liệu recon... {e}")
+        return jsonify({"status": -1, 'msg': str(e), 'error': str(e)})
+
+

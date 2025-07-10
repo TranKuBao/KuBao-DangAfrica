@@ -398,6 +398,7 @@ class Reports(db.Model):
 
     def to_dict(self):
         return {
+            'report_id': self.report_id,
             'server_id': self.server_id,
             'nmap': self.nmap,
             'dirsearch': self.dirsearch,
@@ -408,8 +409,7 @@ class Reports(db.Model):
             'update_dirsearch': self.update_dirsearch,
             'update_wappalyzer': self.update_wappalyzer,
             'update_wpscan': self.update_wpscan,
-            'update_pocs': self.update_pocs,
-            'created_at': self.created_at
+            'update_pocs': self.update_pocs
         }
 
     @classmethod

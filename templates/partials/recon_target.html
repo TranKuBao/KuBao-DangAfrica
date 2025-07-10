@@ -558,7 +558,7 @@
         //gửi request về
     }
 
-    //lưu dữ liệu
+    //==============lưu dữ liệu ----------------------
     function saveScan() {
         // Lưu kết quả (tùy ý)
         console.log("===================Dữ liệu lưu đây====================")
@@ -572,9 +572,47 @@
         const targetIds = getCheckedTargetIds();
         // fetchTargetDetails là async, nên phải dùng .then
         fetchTargetDetails(targetIds).then(urls => {
+            //console.log(`${urls[0].hostname} and ${urls[0].id}`);
+            if(window.latestReconResult.tool == 'wappalyzer'){
+                //reverse data => lấy data_scan
+                text_data = wappalyzerArrayToText(window.latestReconResult.data);
+                //${urls[0].id} => lấy server_id
+                //window.latestReconResult.tool => lấy tool
+                //   =====> bỏ vào data
+                const data = {server_id:urls[0].id, tool:'wappalyzer', data_scan: text_data};
+                request_save(data);
+
+            } else if(window.latestReconResult.tool == 'wpscan'){
+
+            } else if(window.latestReconResult.tool == 'nmap'){
+                
+            } else if(window.latestReconResult.tool == 'dirsearch'){
+                
+            }
+
+
+
 
         });
         alert(`Đã lưu kết quả (demo) ${window.latestReconResult.data.length}`);
+    }
+
+    // request api save data
+    function request_save(data){
+        fetch('/api/save_report', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Log Saving: ${response.msg}`);
+            return response.msg;
+        })
+        .catch(error => {
+                alert('Request to Save is Fail');
+                console.error(error);
+            });
     }
 
     
@@ -853,6 +891,21 @@
         container.innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
     }
 
+    //ĐẨY LÀ HÀM CHUYỂN ĐỔI ĐỂ LƯU VÀO CSDL VỚI WAPPALYZER
+    function wappalyzerArrayToText(arr) {
+        if (!Array.isArray(arr)) return '';
+        return arr.map(item => {
+            // Nếu version là Unknown hoặc rỗng thì chỉ ghi (Unknown)
+            let version = (item.version && item.version.trim() !== '' && item.version !== 'Unknown')
+                ? `(v${item.version})`
+                : '(Unknown)';
+            // Nếu version là Unknown thì không thêm 'v'
+            if (item.version === 'Unknown' || !item.version || item.version.trim() === '') {
+                version = '(Unknown)';
+            }
+            return `${item.technology} ${version}`;
+        }).join('\n');
+    }
 
     //=============================== Dirsearch =======================================
     let lastDirsearchResultCount = 0;
