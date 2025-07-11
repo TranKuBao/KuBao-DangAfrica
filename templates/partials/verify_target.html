@@ -389,14 +389,27 @@
   let currentFilter = 'all';
   let allPocs = [];
   let resp_verify = [];
+  // Thêm biến lưu kết quả verify cho từng target
+  let verifiedReports = [];
+  // Thêm biến toàn cục lưu danh sách target từ server
+  let allTargets = [];
+  // Hàm lấy danh sách target từ server
+  function fetchAllTargets() {
+    fetch('/api/getalltarget')
+      .then(res => res.json())
+      .then(data => {
+        allTargets = data.targets || [];
+      });
+  }
   // Load POCs when modal opens
   document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('verifyPocWithTargetsModal');
     modal.addEventListener('show.bs.modal', function () {
+      fetchAllTargets();
       loadPocCategories();
       loadPocs();
-      updateTargetCount();
-      displaySelectedTargetsInfo();
+      verifyUpdateTargetCount();
+      verifyDisplaySelectedTargetsInfo();
     });
   });
 
@@ -533,14 +546,16 @@
     }
   }
 
+  
+
   // cập nhật tổng số lượng
-  function updateTargetCount() {
-    const checkedTargets = getCheckedTargetIds();
+  async function verifyUpdateTargetCount() {
+    const checkedTargets = await getCheckedTargetIds();
     const count = checkedTargets.length;
     document.getElementById('selectedTargetCount').textContent = count;
 
     // Hiển thị thêm thông tin chi tiết nếu cần
-    console.log(`Modal: Đã chọn ${count} targets:`, checkedTargets);
+    //console.log(`Modal: Đã chọn ${count} targets:`, checkedTargets);
 
     // Có thể thêm hiển thị danh sách target đã chọn
     if (count > 0) {
@@ -551,32 +566,32 @@
   }
 
   // Hiển thị thông tin chi tiết về các target đã chọn
-  function displaySelectedTargetsInfo() {
+  function verifyDisplaySelectedTargetsInfo() {
     const targetIds = getCheckedTargetIds();
     const count = targetIds.length;
 
     // Cập nhật số lượng
-    updateTargetCount();
+    verifyUpdateTargetCount();
 
     // Hiển thị thông tin chi tiết trong console
-    console.log('=== THÔNG TIN TARGETS ĐÃ CHỌN ===');
+    console.log('=== THÔNG TIN TARGETS VERIFY ĐÃ CHỌN ===');
     console.log(`Tổng số: ${count} targets`);
-    console.log('Target IDs:', targetIds);
+    //console.log('Target IDs:', targetIds);
 
     // Nếu có target được chọn, hiển thị thêm thông tin
     if (count > 0) {
-      console.log('Danh sách Target IDs:', targetIds.join(', '));
+      console.log('Danh sách Target VERIFY IDs:', targetIds.join(', '));
 
       // Có thể thêm logic để lấy thông tin chi tiết của từng target
       // Ví dụ: gọi API để lấy thông tin hostname, IP của các target
-      fetchTargetDetails(targetIds);
+      verifyFetchTargetDetails(targetIds);
     } else {
       console.log('Chưa có target nào được chọn');
     }
   }
 
   // Lấy thông tin chi tiết của các target (tùy chọn)
-  function fetchTargetDetails(targetIds) {
+  function verifyFetchTargetDetails(targetIds) {
     return fetch('/api/getalltarget')
       .then(response => response.json())
       .then(data => {
@@ -620,7 +635,7 @@
 
           // Chỉ verify khi load POC thành công
           //const checkedTargets = getCheckedTargetIds();
-          fetchTargetDetails(targetIds).then(list_target_verify => {
+          verifyFetchTargetDetails(targetIds).then(list_target_verify => {
             let total = list_target_verify.length;
             window.resp_verify = [];
             for (let i = 0; i < total; i++) {
@@ -871,42 +886,58 @@
 
   // Lưu vào database
   function saveToDatabase() {
-    const results = window.resp_verify;
-    if (!results || results.length === 0) {
-      showError('No data to save');
+    if (!verifiedReports || verifiedReports.length === 0) {
+      showError('Không có dữ liệu để lưu!');
       return;
     }
-
-    // Chuẩn bị dữ liệu để gửi lên server
-    const dataToSave = {
-      poc_id: selectedPocId,
-      poc_path: selectedPocPath,
-      verification_date: new Date().toISOString(),
-      results: results
-    };
-
-    // Gọi API để lưu vào database
-    fetch('/api/save-verification-results', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(dataToSave)
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.status === 0) {
-        showSuccess('Results saved to database successfully!');
-      } else {
-        showError(data.message || 'Failed to save to database');
+    let successCount = 0;
+    let failCount = 0;
+    verifiedReports.forEach(report => {
+      if (!report.server_id) {
+        console.warn('Thiếu server_id cho target:', report.target);
+        failCount++;
+        return;
       }
-    })
-    .catch(error => {
-      console.error('Error saving to database:', error);
-      showError('Error saving to database');
-    })
-    .finally(() => {
-      closeExportModal();
+      // Đảm bảo data_scan là text
+      let dataToSave = {};
+      if (typeof report.result === 'object' || typeof report.poc === 'object') {
+        dataToSave = JSON.stringify({
+          poc: report.poc,
+          result: report.result
+        });
+      } else {
+        dataToSave = String(report.result);
+      }
+      fetch('/api/save_report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          server_id: report.server_id,
+          tool: 'pocs',
+          data_scan: dataToSave
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 0) {
+          successCount++;
+        } else {
+          failCount++;
+          console.error('Lỗi lưu DB:', data);
+        }
+        if (successCount + failCount === verifiedReports.length) {
+          showSuccess(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
+          alert(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
+        }
+      })
+      .catch(err => {
+        failCount++;
+        console.error('Lỗi fetch:', err);
+        if (successCount + failCount === verifiedReports.length) {
+          showError(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
+          alert(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
+        }
+      });
     });
   }
 
@@ -940,7 +971,33 @@
     html += '</tbody></table>';
     document.getElementById('verifyResult').innerHTML = html;
     //document.getElementById('successMessage').innerHTML = html;
+    // Lưu lại kết quả verify vào verifiedReports
+    saveVerifiedReports();
   }
+
+  // Hàm lưu lại kết quả verify cho từng target với thông tin POC
+  function saveVerifiedReports() {
+    verifiedReports = [];
+    window.resp_verify.forEach(item => {
+      // Tìm target theo hostname hoặc IP
+      const matchedTarget = allTargets.find(t =>
+        t.hostname === item.target || t.ip_address === item.target
+      );
+      verifiedReports.push({
+        target: item.target,
+        server_id: matchedTarget ? matchedTarget.server_id : null,
+        poc: {
+          id: selectedPocId,
+          path: selectedPocPath
+        },
+        result: item.result
+      });
+    });
+    console.log('Đã lưu verifiedReports:', verifiedReports);
+  }
+
+  // Hàm lưu toàn bộ verifiedReports vào DB
+  
 
   // Show error message
   function showError(message) {
@@ -990,8 +1047,7 @@
 
   // Cập nhật thông tin target khi có thay đổi (có thể gọi từ trang chính)
   function refreshTargetInfo() {
-    updateTargetCount();
-    displaySelectedTargetsInfo();
+    verifyDisplaySelectedTargetsInfo();
   }
 </script>
 

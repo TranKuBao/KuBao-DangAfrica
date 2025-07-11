@@ -782,7 +782,6 @@ function onTargetCheckboxChange(checkbox) {
   }
   
   // Hiển thị số lượng target đã chọn
-  updateSelectedCount();
   updateSelectAllCheckbox();
   
   // Cập nhật thông tin trong modal nếu đang mở
@@ -791,14 +790,6 @@ function onTargetCheckboxChange(checkbox) {
   }
 }
 
-// Hiển thị số lượng target đã chọn
-function updateSelectedCount() {
-  const count = window.checkedTargetIds.length;
-  console.log(`Đã chọn ${count} targets:`, window.checkedTargetIds);
-  
-  // Có thể thêm hiển thị UI nếu cần
-  // Ví dụ: document.getElementById('selected-count').textContent = count;
-}
 
 // Khi check/uncheck select-all
 function toggleAllCheckboxes(source) {
@@ -844,7 +835,6 @@ function restoreCheckedTargets() {
   }
   
   updateSelectAllCheckbox();
-  updateSelectedCount();
 }
 
 // Cập nhật trạng thái của select-all checkbox
@@ -887,6 +877,7 @@ document.getElementById('btn-verify-selected').addEventListener("click",function
     console.log(data); 
     // Lấy thông tin modes từ API
     
+    document.getElementById('selectedTargetCount').textContent = window.checkedTargetIds.length;
     
     // ... cập nhật các field khác
     const modal = new bootstrap.Modal(document.getElementById('verifyPocWithTargetsModal'));

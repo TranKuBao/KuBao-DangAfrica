@@ -403,19 +403,19 @@
     document.addEventListener('DOMContentLoaded', function () {
         const modal = document.getElementById('reconTargetsModal');
         modal.addEventListener('show.bs.modal', function () {
-            updateTargetCount();
-            displaySelectedTargetsInfo();
+            reconUpdateTargetCount();
+            reconDisplaySelectedTargetsInfo();
         });
     });
 
     // cập nhật tổng số lượng
-    async function updateTargetCount() {
+    async function reconUpdateTargetCount() {
         const checkedTargets = getCheckedTargetIds();
         const count = checkedTargets.length;
         // Lấy thông tin chi tiết (nếu cần)
         let hostname = '';
         if (count > 0) {
-            const details = await fetchTargetDetails(checkedTargets);
+            const details = await reconFetchTargetDetails(checkedTargets);
             if (details.length > 0) {
                 hostname = details[0].hostname ;
             }
@@ -424,7 +424,7 @@
         document.getElementById('reconSelectedTargetCount').innerHTML = `<a class="target-count" href="${url}" target="_blank" >${hostname}</a>  |  ${count}`;
         
         // Hiển thị thêm thông tin chi tiết nếu cần
-        console.log(`Modal: Đã chọn ${count} targets:`, checkedTargets);
+        //console.log(`Modal: Đã chọn ${count} targets:`, checkedTargets);
 
         // Có thể thêm hiển thị danh sách target đã chọn
         if (count > 0) {
@@ -435,32 +435,32 @@
     }
 
     // Hiển thị thông tin chi tiết về các target đã chọn
-    function displaySelectedTargetsInfo() {
+    function reconDisplaySelectedTargetsInfo() {
         const targetIds = getCheckedTargetIds();
         const count = targetIds.length;
 
         // Cập nhật số lượng
-        updateTargetCount();
+        reconUpdateTargetCount();
 
         // Hiển thị thông tin chi tiết trong console
-        console.log('=== THÔNG TIN TARGETS ĐÃ CHỌN ===');
+        console.log('=== THÔNG TIN TARGETS ĐÃ CHỌN RECON ===');
         console.log(`Tổng số: ${count} targets`);
-        console.log('Target IDs:', targetIds);
+        //console.log('Target IDs:', targetIds);
 
         // Nếu có target được chọn, hiển thị thêm thông tin
         if (count > 0) {
-        console.log('Danh sách Target IDs:', targetIds.join(', '));
+            console.log('Danh sách Target RECON IDs:', targetIds.join(', '));
 
-        // Có thể thêm logic để lấy thông tin chi tiết của từng target
-        // Ví dụ: gọi API để lấy thông tin hostname, IP của các target
-        fetchTargetDetails(targetIds);
+            // Có thể thêm logic để lấy thông tin chi tiết của từng target
+            // Ví dụ: gọi API để lấy thông tin hostname, IP của các target
+            reconFetchTargetDetails(targetIds);
         } else {
         console.log('Chưa có target nào được chọn');
         }
     }
 
     // Lấy thông tin chi tiết của các target (tùy chọn)
-    function fetchTargetDetails(targetIds) {
+    function reconFetchTargetDetails(targetIds) {
         return fetch('/api/getalltarget')
             .then(response => response.json())
             .then(data => {
@@ -507,7 +507,7 @@
         // Lấy danh sách target đã chọn
         const targetIds = getCheckedTargetIds();
         // fetchTargetDetails là async, nên phải dùng .then
-        fetchTargetDetails(targetIds).then(urls => {
+        reconFetchTargetDetails(targetIds).then(urls => {
             if (tool === 'dirsearch') {
                 mode = document.getElementById('reconModeDirsearch').value;
                 hander_Dirsearch(urls[0].hostname,mode,'start');
@@ -534,7 +534,7 @@
         // Lấy danh sách target đã chọn
         const targetIds = getCheckedTargetIds();
         // fetchTargetDetails là async, nên phải dùng .then
-        fetchTargetDetails(targetIds).then(urls => {
+        reconFetchTargetDetails(targetIds).then(urls => {
             if (tool === 'dirsearch') {
                 mode = document.getElementById('reconModeDirsearch').value;
                 hander_Dirsearch(urls[0].hostname,mode,'stop');
@@ -570,7 +570,7 @@
         // Lấy danh sách target đã chọn
         const targetIds = getCheckedTargetIds();
         // fetchTargetDetails là async, nên phải dùng .then
-        fetchTargetDetails(targetIds).then(urls => {
+        reconFetchTargetDetails(targetIds).then(urls => {
             //console.log(`${urls[0].hostname} and ${urls[0].id}`);
             if(!confirm('Do you want to save new data?'))
                 return;
@@ -982,9 +982,7 @@
                         } else {
                             setTimeout(pollDirsearchResult, 1500);
                         }
-                    } else {
-                        setTimeout(pollDirsearchResult, 1500);
-                    }
+                    } /// nÀO RẢNH THÌ TEST LẠI CÁI NÀY
                 });
         }
     }
