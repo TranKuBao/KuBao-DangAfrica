@@ -159,6 +159,7 @@ def save_recon():
         Server_ID = data.get('server_id')
         tool = data.get('tool')
         data_scan = data.get('data_scan')
+        #print(f"[+] Debug data_save {data}")   
         #print(f"[+] Debug data_save_scan: {data_scan}")      
         # tìm server id đã
         report = Reports.query.filter_by(server_id=Server_ID).first()

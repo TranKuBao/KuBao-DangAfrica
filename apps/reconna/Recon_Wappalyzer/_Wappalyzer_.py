@@ -30,7 +30,7 @@ class Recon_Wappalyzer:
         Recon_Wappalyzer._process = Process(target=Recon_Wappalyzer._scan_worker, args=(url, Recon_Wappalyzer._queue))
         Recon_Wappalyzer._process.start()
         Recon_Wappalyzer._result = None
-        return True, 'Scan started'
+        return True, 'Wappalyzer is scanning...'
 
     @staticmethod
     def get_scan_result():

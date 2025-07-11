@@ -572,8 +572,10 @@
         // fetchTargetDetails là async, nên phải dùng .then
         fetchTargetDetails(targetIds).then(urls => {
             //console.log(`${urls[0].hostname} and ${urls[0].id}`);
-            let text_data = '';
-            
+            if(!confirm('Do you want to save new data?'))
+                return;
+
+            let text_data = '';            
             if(window.latestReconResult.tool == 'wappalyzer'){
                 text_data = wappalyzerArrayToText(window.latestReconResult.data);
             } else if(window.latestReconResult.tool == 'nmap'){
@@ -594,7 +596,7 @@
             console.log(`Data to save: ${text_data}`);
             request_save(data);
         });
-        alert(`Đã lưu kết quả (demo) ${window.latestReconResult.data.length}`);
+        //alert(`Đã lưu kết quả (demo) ${window.latestReconResult.data.length}`);
     }
 
     // request api save data
@@ -607,6 +609,7 @@
         .then(response => response.json())
         .then(data => {
             console.log(`Log Saving: ${data.msg}`);
+            alert(`${data.msg}`);
             return data.msg;
         })
         .catch(error => {
@@ -757,9 +760,8 @@
 
     function showResultReconNmap(data) {
         // Lưu lại kết quả mới nhất cho nmap
-        window.latestReconResult.tool = 'nmap'
-        window.latestReconResult.data = [];  // reset mảng
-        window.latestReconResult.data.push(data);
+        window.latestReconResult.tool = 'nmap';
+        window.latestReconResult.data=data;
 
         if (!data || data.length === 0) {
             document.getElementById('reconScanResult').innerHTML = '<span class="text-danger">Không có kết quả.</span>';

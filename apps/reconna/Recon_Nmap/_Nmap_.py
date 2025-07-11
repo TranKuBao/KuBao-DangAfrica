@@ -109,7 +109,7 @@ class Recon_Nmap:
         result_queue = multiprocessing.Queue()
         scan_process = multiprocessing.Process(target=scan_worker, args=(target, arguments, result_queue))
         scan_process.start()
-        return True, "Scan started"
+        return True, "Nmap is scanning"
 
     @staticmethod
     def stop_scan():

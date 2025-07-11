@@ -529,7 +529,7 @@ class DirsearchManager:
         DirsearchManager._process = Process(target=DirsearchManager._scan_worker, args=(url, wordlist_file, DirsearchManager._queue))
         DirsearchManager._process.start()
         DirsearchManager._is_running = True
-        return True, 'Scan started'
+        return True, 'Dirsearch is scanning..'
 
     @staticmethod
     def get_scan_result():

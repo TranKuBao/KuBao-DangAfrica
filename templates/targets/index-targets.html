@@ -906,6 +906,9 @@ document.getElementById('btn-Recon-function').addEventListener("click",function(
       return;
     }
 
+    document.getElementById('reconScanLoading').style.display = 'none';
+    document.getElementById('reconScanResult').textContent += '\n[Data will be display in here]';
+
     // ... cập nhật các field khác
     const modal = new bootstrap.Modal(document.getElementById('reconTargetsModal'));
     modal.show();

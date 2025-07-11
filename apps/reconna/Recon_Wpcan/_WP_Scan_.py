@@ -45,7 +45,7 @@ class Recon_Wpscan:
         cls.scan_thread.daemon = True
         cls.scan_thread.start()
         
-        return True,f"Start scanning {cls.target}...."
+        return True,f"Wpscan is scanning {cls.target}...."
 
     @classmethod
     def _run_scan(cls):
