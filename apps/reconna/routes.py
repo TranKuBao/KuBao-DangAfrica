@@ -137,10 +137,18 @@ def recon_wpscan_scan():
     except Exception as e:
         return jsonify({'status':-1,"error":str(e),"msg":str(e)})
 
-@blueprint.route('/recon/wpscan/stream', methods=['GET'])
-def wpscan_stream():
-    """Stream real-time data từ WPScan"""
-    return Recon_Wpscan.stream_data()
+# @blueprint.route('/recon/wpscan/stream', methods=['GET'])
+# def wpscan_stream():
+#     """Stream real-time data từ WPScan"""
+#     return Recon_Wpscan.stream_data()
+
+@blueprint.route('/recon/wpscan/result', methods=['GET'])
+def get_wpscan_result():
+    result = Recon_Wpscan.get_scan_result()
+    if result is not None:
+        return jsonify({'status': 0, 'data': result})
+    else:
+        return jsonify({'status': -1, 'msg': 'No result available'})
 
 
 #================================= lưu sữ liệu ==========================================================   
@@ -151,7 +159,7 @@ def save_recon():
         Server_ID = data.get('server_id')
         tool = data.get('tool')
         data_scan = data.get('data_scan')
-                
+        #print(f"[+] Debug data_save_scan: {data_scan}")      
         # tìm server id đã
         report = Reports.query.filter_by(server_id=Server_ID).first()
         if not report:

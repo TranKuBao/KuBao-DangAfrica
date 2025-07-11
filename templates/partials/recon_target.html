@@ -562,8 +562,7 @@
     function saveScan() {
         // Lưu kết quả (tùy ý)
         console.log("===================Dữ liệu lưu đây====================")
-        console.log(window.latestReconResult.tool); // tên công cụ
-        console.log(window.latestReconResult.data); // dữ liệu kết quả
+        
         if (!window.latestReconResult.tool || window.latestReconResult.data.length === 0) {
             alert('No verification results to save. Please run verification first.');
             return;
@@ -573,26 +572,27 @@
         // fetchTargetDetails là async, nên phải dùng .then
         fetchTargetDetails(targetIds).then(urls => {
             //console.log(`${urls[0].hostname} and ${urls[0].id}`);
+            let text_data = '';
+            
             if(window.latestReconResult.tool == 'wappalyzer'){
-                //reverse data => lấy data_scan
                 text_data = wappalyzerArrayToText(window.latestReconResult.data);
-                //${urls[0].id} => lấy server_id
-                //window.latestReconResult.tool => lấy tool
-                //   =====> bỏ vào data
-                const data = {server_id:urls[0].id, tool:'wappalyzer', data_scan: text_data};
-                request_save(data);
-
-            } else if(window.latestReconResult.tool == 'wpscan'){
-
             } else if(window.latestReconResult.tool == 'nmap'){
-                
+                text_data = nmapArrayToText(window.latestReconResult.data);
             } else if(window.latestReconResult.tool == 'dirsearch'){
-                
+                text_data = dirsearchArrayToText(window.latestReconResult.data);
+            } else if(window.latestReconResult.tool == 'wpscan'){
+                //console.log('WPScan raw data:', window.latestReconResult);
+                text_data = wpscanArrayToText(window.latestReconResult.data);
             }
-
-
-
-
+            
+            const data = {
+                server_id: urls[0].id, 
+                tool: window.latestReconResult.tool, 
+                data_scan: text_data
+            };
+            
+            console.log(`Data to save: ${text_data}`);
+            request_save(data);
         });
         alert(`Đã lưu kết quả (demo) ${window.latestReconResult.data.length}`);
     }
@@ -606,8 +606,8 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log(`Log Saving: ${response.msg}`);
-            return response.msg;
+            console.log(`Log Saving: ${data.msg}`);
+            return data.msg;
         })
         .catch(error => {
                 alert('Request to Save is Fail');
@@ -621,8 +621,6 @@
         console.log('Handle`s Wpscan is processing....')
         if (action === 'start') {
             const data = { hostname: hostname };
-            //console.log(data);
-            // Hiển thị loading
             document.getElementById('reconScanLoading').style.display = 'block';
             document.getElementById('reconScanResult').textContent = '';
 
@@ -634,7 +632,7 @@
             .then(response => response.json())
             .then(data => {
                 alert(data.msg);
-                console.log(`${data.msg}`);
+                pollWPScanResult();
             })
             .catch(error => {
                 document.getElementById('reconScanLoading').style.display = 'none';
@@ -642,61 +640,52 @@
                 console.error(error);
             });
         } else if (action === 'stop') {
-            alert('Stop WP-Scan isn`s support!');
+            alert('Stop WP-Scan isn`t support!');
         }
-
-        // Kết nối stream để nhận real-time data
-        connectWPScanStream();
     }
 
-    // Kết nối SSE để nhận real-time data
-    function connectWPScanStream() {
-        const eventSource = new EventSource('/recon/wpscan/stream');
-        
-        eventSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            console.log('Real-time data:', data);
-            
-            // Hiển thị data real-time
-            displayWPScanData(data);
-            
-            // Nếu scan hoàn thành
-            if (data.message === 'SCAN_COMPLETED') {
-                eventSource.close();
-                console.log('Scan completed!');
-                scanInProgress = false;
-            }
-        };
-        
-        eventSource.onerror = function(error) {
-            console.error('SSE Error:', error);
-            eventSource.close();
-        };
+    function pollWPScanResult() {
+        if(scanInProgress){
+            fetch('/recon/wpscan/result')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 0) {
+                        document.getElementById('reconScanLoading').style.display = 'none';
+                        showResultReconWPScan(data.data);
+                        scanInProgress = false;
+                    } else {
+                        setTimeout(pollWPScanResult, 2000);
+                    }
+                });
+        }
     }
 
-    function displayWPScanData(data) {
-        // Nếu chưa phải wpscan hoặc chưa có mảng, reset lại
-        if (window.latestReconResult.tool !== 'wpscan' || !Array.isArray(window.latestReconResult.data)) {
-            window.latestReconResult = {
-                tool: 'wpscan',
-                data: []
-            };
-        }
-        // Lưu lại toàn bộ dữ liệu
-        window.latestReconResult.data.push(data);
+    function removeAnsi(str) {
+        return str.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '');
+    }   
 
-        
-        // Ẩn loading khi có kết quả
-        document.getElementById('reconScanLoading').style.display = 'none';
-
-        // Hiển thị data vào UI
+    function showResultReconWPScan(data) {
+        window.latestReconResult.tool = 'wpscan';
+        // Loại bỏ mã màu khi lưu vào latestReconResult.data
+        window.latestReconResult.data = data.map(line => removeAnsi(line));
         const container = document.getElementById('reconScanResult');
-        const line = document.createElement('div');
-        line.textContent = `[${new Date(data.timestamp * 1000).toLocaleTimeString()}] ${data.message}`;
-        container.appendChild(line);
-        container.scrollTop = container.scrollHeight;
-}
+        if (!Array.isArray(data) || data.length === 0) {
+            container.innerHTML = '<span class="text-danger">Không có kết quả.</span>';
+            return;
+        }
+        let text = '';
+        data.forEach(line => {
+            text += removeAnsi(line) + '\n';
+        });
+        container.innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
+    }
 
+    function wpscanArrayToText(arr) {
+        if (!Array.isArray(arr)) return '';
+        return arr.map(line => removeAnsi(line)).join('\n');
+    }
+
+        
     //=============================== Nmap =======================================
     function hander_Nmap(hostname, mode, action){
         console.log('Handle`s Nmap is processing....')
@@ -797,8 +786,27 @@
         document.getElementById('reconScanResult').innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
     }
 
+    function nmapArrayToText(arr) {
+        if (!Array.isArray(arr)) return '';
+        let text = '';
+        arr.forEach((host, idx) => {
+            text += `Host: ${host.host} (${host.state})\n`;
+            if (host.os && host.os.length > 0) {
+                text += `  OS Guess: ${host.os.map(os => `${os.name} (${os.accuracy}%)`).join(', ')}\n`;
+            }
+            Object.keys(host.protocols).forEach(proto => {
+                text += `  Protocol: ${proto}\n`;
+                host.protocols[proto].forEach(portInfo => {
+                    text += `    Port ${portInfo.port}/${proto}  ${portInfo.state}  ${portInfo.service || ''}  ${portInfo.product || ''}  ${portInfo.version || ''}\n`;
+                });
+            });
+            text += '\n';
+        });
+        return text;
+    }
 
 
+    
     //=============================== Wappalyzer =======================================
     function hander_Wappalyzer(hostname, mode, action){
         console.log('Handle`s Wappalyzer is processing....')
@@ -870,11 +878,10 @@
     }
 
     function showResultReconWappalyzer(data) {
-        // Lưu lại kết quả mới nhất cho WPScan
+        // Lưu lại kết quả mới nhất cho wappalyzer
         window.latestReconResult.tool = 'wappalyzer'
-        window.latestReconResult.data = [];  // reset mảng
-        window.latestReconResult.data.push(data);
-
+        window.latestReconResult.data = data;  // Gán trực tiếp, không push
+        
         let container = document.getElementById('reconScanResult');
         if (!Array.isArray(data) || data.length === 0) {
             container.innerHTML = '<span class="text-danger">Không có kết quả.</span>';
@@ -983,8 +990,8 @@
     function showResultReconDirsearch(data) {
         // Lưu lại kết quả mới nhất cho WPScan
         window.latestReconResult.tool = 'dirsearch'
-        window.latestReconResult.data = [];  // reset mảng
-        window.latestReconResult.data.push(data);
+        //window.latestReconResult.data = [];  // reset mảng
+        window.latestReconResult.data=data;
 
         const container = document.getElementById('reconScanResult');
         if (!Array.isArray(data) || data.length === 0) {
@@ -1003,6 +1010,18 @@
         });
         container.innerHTML = `<pre style="font-size:14px;line-height:1.5;">${text}</pre>`;
     }
+
+    function dirsearchArrayToText(arr) {
+        if (!Array.isArray(arr)) return '';
+        const found = arr.filter(item => item.found);
+        if (found.length === 0) return 'Không phát hiện thư mục/file nào tồn tại!';
+        
+        return found.map(item => 
+            `${item.url} (Status: ${item.status_code}, Time: ${item.response_time}s)`
+        ).join('\n');
+    }
+
+    
 
 
 

@@ -356,8 +356,14 @@ class Targets(db.Model):
             raise InvalidUsage(f"Error updating target: {str(e)}")
     
     def delete(self):
-        """Delete target"""
+        """Delete target and associated report"""
         try:
+            # Xóa report trước (nếu có)
+            report = Reports.get_by_server_id(self.server_id)
+            if report:
+                db.session.delete(report)
+            
+            # Sau đó xóa target
             db.session.delete(self)
             db.session.commit()
         except SQLAlchemyError as e:
@@ -370,11 +376,11 @@ class Reports(db.Model):
     
     report_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     server_id = db.Column(db.Integer, db.ForeignKey('targets.server_id'), nullable=False, unique=True)
-    nmap = db.Column(db.String(255), nullable=True)
-    dirsearch = db.Column(db.String(255), nullable=True)
-    wappalyzer = db.Column(db.String(255), nullable=True)
-    wpscan = db.Column(db.String(255), nullable=True)
-    pocs = db.Column(db.String(255), nullable=True)
+    nmap = db.Column(db.Text, nullable=True)
+    dirsearch = db.Column(db.Text, nullable=True)
+    wappalyzer = db.Column(db.Text, nullable=True)
+    wpscan = db.Column(db.Text, nullable=True)
+    pocs = db.Column(db.Text, nullable=True)
     update_nmap = db.Column(db.String(255), nullable=True)
     update_dirsearch = db.Column(db.String(255), nullable=True)
     update_wappalyzer = db.Column(db.String(255), nullable=True)
@@ -436,7 +442,11 @@ class Reports(db.Model):
             raise InvalidUsage(f"Error creating report: {str(e)}")
 
     @classmethod
-    def get_by_id(cls, server_id):
+    def get_by_id(cls, report_id):
+        return cls.query.filter_by(report_id=report_id).first()
+    
+    @classmethod
+    def get_by_server_id(cls, server_id):
         return cls.query.filter_by(server_id=server_id).first()
 
     @classmethod

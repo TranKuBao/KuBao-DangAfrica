@@ -6,6 +6,13 @@ import threading
 import time
 import queue
 import json
+import re
+
+
+#hàm này để xóa cái mã màu ko nên hiện
+def remove_ansi_escape(text):
+    ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+    return ansi_escape.sub('', text)
 
 class Recon_Wpscan:
     process = None
@@ -61,10 +68,10 @@ class Recon_Wpscan:
                         
                     line = line.strip()
                     if line:
-                        cls.scan_data.append(line)
-                        # Gửi real-time cho tất cả clients
-                        cls._broadcast_to_clients(line)
-                        
+                        clean_line = remove_ansi_escape(line)
+                        cls.scan_data.append(clean_line)
+                        cls._broadcast_to_clients(clean_line)
+                                    
                 cls.process.stdout.close()
             cls.process.wait()
             
@@ -100,7 +107,14 @@ class Recon_Wpscan:
             try:
                 while cls.is_running or not client_queue.empty():
                     try:
-                        data = client_queue.get(timeout=1)
+                        #data = client_queue.get(timeout=1)
+                        try:
+                            data = client_queue.get(timeout=5)  # Tăng timeout
+                        except queue.Empty:
+                            # Gửi keepalive hoặc kết thúc stream
+                            yield f"data: {json.dumps({'message': 'keepalive'})}\n\n"
+                            continue
+
                         yield f"data: {json.dumps(data)}\n\n"
                     except queue.Empty:
                         if not cls.is_running:
@@ -112,3 +126,9 @@ class Recon_Wpscan:
                     cls.clients.remove(client_queue)
                     
         return Response(generate(), mimetype='text/event-stream')
+    
+    @classmethod
+    def get_scan_result(cls):
+        if not cls.is_running and cls.scan_data:
+            return cls.scan_data
+        return None
