@@ -130,23 +130,25 @@
         console.log("Modes:", modes); // Thêm log để debug
         
         // Hiển thị/ẩn các button dựa trên modes hỗ trợ
-        const verifyBtn = document.getElementById('btn-verify');
-        const attackBtn = document.getElementById('btn-attack');
-        const shellBtn = document.getElementById('btn-shell');        
-        // Ẩn tất cả button trước
-        verifyBtn.style.display = 'none';
-        attackBtn.style.display = 'none';
-        shellBtn.style.display = 'none';        
-        // Hiển thị button theo modes hỗ trợ
-        if (modes && modes.includes('verify')) {
-          verifyBtn.style.display = 'inline-block';
-        }
-        if (modes && modes.includes('attack')) {
-          attackBtn.style.display = 'inline-block';
-        }
-        if (modes && modes.includes('shell')) {
-          shellBtn.style.display = 'inline-block';
-        }
+        const verifyBtn = document.getElementById('verify');
+          const attackBtn = document.getElementById('attack');
+          const shellBtn = document.getElementById('shell');
+          
+          // Ẩn tất cả button trước
+          if (verifyBtn) verifyBtn.style.display = 'none';
+          if (attackBtn) attackBtn.style.display = 'none';
+          if (shellBtn) shellBtn.style.display = 'none';
+          
+          // Hiển thị button theo modes hỗ trợ (nếu tồn tại)
+          if (modes && modes.includes('verify') && verifyBtn) {
+            verifyBtn.style.display = 'inline-block';
+          }
+          if (modes && modes.includes('attack') && attackBtn) {
+            attackBtn.style.display = 'inline-block';
+          }
+          if (modes && modes.includes('shell') && shellBtn) {
+            shellBtn.style.display = 'inline-block';
+          }
 
 
         // Hiển thị giao diện module option 

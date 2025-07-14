@@ -383,26 +383,44 @@
           const shellBtn = document.getElementById('shell');
           
           // Ẩn tất cả button trước
-          verifyBtn.style.display = 'none';
-          attackBtn.style.display = 'none';
-          shellBtn.style.display = 'none';
+          if (verifyBtn) verifyBtn.style.display = 'none';
+          if (attackBtn) attackBtn.style.display = 'none';
+          if (shellBtn) shellBtn.style.display = 'none';
           
-          // Hiển thị button theo modes hỗ trợ
-          if (modes && modes.includes('verify')) {
+          // Hiển thị button theo modes hỗ trợ (nếu tồn tại)
+          if (modes && modes.includes('verify') && verifyBtn) {
             verifyBtn.style.display = 'inline-block';
           }
-          if (modes && modes.includes('attack')) {
+          if (modes && modes.includes('attack') && attackBtn) {
             attackBtn.style.display = 'inline-block';
           }
-          if (modes && modes.includes('shell')) {
+          if (modes && modes.includes('shell') && shellBtn) {
             shellBtn.style.display = 'inline-block';
           }
+
+          // Hiển thị giao diện module option 
+          const options = response['data']['options'] || [];
+          const dynamicOptionsDiv = document.getElementById('dynamic-options');
+          dynamicOptionsDiv.innerHTML = '';
+          options.forEach(opt => {
+            const [name, value, type, desc] = opt;
+            dynamicOptionsDiv.innerHTML += `
+              <div class="form-group mb-2">
+                <label class="col-form-label font-weight-semibold">${name} (${type})</label>
+                <input type="text" class="form-control" id="opt-${name}" value="${value || ''}" placeholder="${desc || ''}">
+              </div>
+            `;
+          });
+
+
         }
       })
       .fail((error) => {
         console.error("Lỗi khi lấy thông tin PoC:", error);
       });
       
+      
+
       // ... cập nhật các field khác
       const modal = new bootstrap.Modal(document.getElementById('pocModal'));
       modal.show();
