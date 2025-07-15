@@ -393,6 +393,8 @@
   let verifiedReports = [];
   // Thêm biến toàn cục lưu danh sách target từ server
   let allTargets = [];
+  // Thêm biến lưu danh sách POC được chọn
+  let selectedPocList = [];
   // Hàm lấy danh sách target từ server
   function fetchAllTargets() {
     fetch('/api/getalltarget')
@@ -450,10 +452,12 @@
     pocs.forEach(poc => {
       const pocItem = document.createElement('div');
       pocItem.className = 'poc-item';
-      pocItem.onclick = () => selectPoc(poc); // them cái sự kiện này vô để khi chọn poc thì nó nhảy qua bên phải đẻ verify
-
+      // Checkbox cho phép chọn nhiều POC
       pocItem.innerHTML = `
-      <div class="flex-grow-1">
+      <div class="form-check" style="margin-right: 10px;">
+        <input class="form-check-input poc-checkbox" type="checkbox" value="${poc.id}" data-pocid="${poc.id}" data-pocpath="${poc.path}" id="poc-checkbox-${poc.id}">
+      </div>
+      <div class="flex-grow-1" onclick="showPocDetails(${poc.id})">
         <div class="poc-title">${poc.name || 'Unnamed POC'}</div>
         <div class="poc-description">${poc.appversion || 'No description available'}</div>
         <div class="poc-cve">Auth: ${poc.author || 'N/A'}</div>
@@ -465,19 +469,25 @@
 
       container.appendChild(pocItem);
     });
+
+    // Sự kiện khi tick chọn POC
+    document.querySelectorAll('.poc-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        const pocId = this.getAttribute('data-pocid');
+        const pocPath = this.getAttribute('data-pocpath');
+        if (this.checked) {
+          selectedPocList.push({id: pocId, path: pocPath});
+        } else {
+          selectedPocList = selectedPocList.filter(p => p.id !== pocId);
+        }
+      });
+    });
   }
 
-  // Select a POC
-  function selectPoc(poc) {
-    selectedPocId = poc.id;
-    selectedPocPath = poc.path;
-    document.querySelectorAll('.poc-item').forEach(item => item.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-    showPocDetails(poc);
-  }
-
-  // Show POC details
-  function showPocDetails(poc) {
+  // Sửa showPocDetails để nhận id, tìm poc từ allPocs
+  function showPocDetails(pocId) {
+    const poc = allPocs.find(p => p.id == pocId);
+    if (!poc) return;
     const container = document.getElementById('pocDetailsContainer');
     container.innerHTML = `
     <div class="card">
@@ -490,11 +500,6 @@
         </div>
         <div class="mb-3">
           <strong>Path:</strong> ${poc.path || ''}
-        </div>
-        <div class="d-grid">
-          <button class="btn btn-hacker-success" onclick="verifySelectedPoc()">
-            <i class="fas fa-play me-2"></i>Verify with Selected Targets
-          </button>
         </div>
       </div>
     </div>
@@ -523,30 +528,6 @@
     displayPocs(filteredPocs);
   }
 
-
-
-  // Get risk color
-  function getRiskColor(risk) {
-    switch (risk?.toLowerCase()) {
-      case 'critical': return 'danger';
-      case 'high': return 'warning';
-      case 'medium': return 'info';
-      case 'low': return 'success';
-      default: return 'secondary';
-    }
-  }
-
-  // Get status color
-  function getStatusColor(status) {
-    switch (status?.toLowerCase()) {
-      case 'verified': return 'success';
-      case 'pending': return 'warning';
-      case 'failed': return 'danger';
-      default: return 'secondary';
-    }
-  }
-
-  
 
   // cập nhật tổng số lượng
   async function verifyUpdateTargetCount() {
@@ -609,83 +590,66 @@
   }
 
 
-  // Verify selected POC
-  function verifySelectedPoc() {
-    if (!selectedPocId || !selectedPocPath) {
-      showError('Please select a POC first');
-      return;
-    }
-    const targetIds = getCheckedTargetIds();
-    if (targetIds.length === 0) {
-      showError('Please select at least one target');
-      return;
-    }
-    showSuccess('Loading POC.........');
-    $.ajax({
-      url: '/get-poc-info',
-      type: 'POST',
-      data: { poc_path: selectedPocPath.slice(5) }
-    })
+  // Verify selected nhiều POC với nhiều target
+  async function verifySelectedPoc() {
+  if (!selectedPocList || selectedPocList.length === 0) {
+    showError('Please select at least one POC');
+    return;
+  }
+  const targetIds = getCheckedTargetIds();
+  if (targetIds.length === 0) {
+    showError('Please select at least one target');
+    return;
+  }
+  showSuccess('Loading POCs.........');
+  let allResults = [];
+
+  for (const poc of selectedPocList) {
+    // 1. Load POC lên server (chờ xong)
+    await new Promise((resolve, reject) => {
+      $.ajax({
+        url: '/get-poc-info',
+        type: 'POST',
+        data: { poc_path: poc.path.slice(5) }
+      })
       .done((resp) => {
-
         if (resp['status'] === 0) {
-          showSuccess('POC loaded, verifying...');
-          //reset lại toàn bộ
-          window.resp_verify = [];
-
-          // Chỉ verify khi load POC thành công
-          //const checkedTargets = getCheckedTargetIds();
-          verifyFetchTargetDetails(targetIds).then(list_target_verify => {
-            let total = list_target_verify.length;
-            window.resp_verify = [];
-            for (let i = 0; i < total; i++) {
-              let data = {};
-              data['target-value'] = list_target_verify[i].hostname;
-              // closure để giữ đúng index
-              ((targetName) => {
-                $.ajax({
-                  url: '/api/verify-mode',
-                  type: 'POST',
-                  data: data
-                })
-                  .done((resp) => {
-                    if (resp['status'] === 0) {
-                      showSuccess(`[+] Verification completed successfully in target ['${targetName}']`);
-                      window.resp_verify.push({
-                        target: targetName,
-                        result: resp['data']
-                      });
-                      // Chỉ show khi đã đủ kết quả
-                      if (window.resp_verify.length === total) {
-                        showVerifyResults(window.resp_verify);
-                      }
-                    }
-                    else {
-                      showError(data.message || 'Verification failed');
-                    }
-                  })
-                  .fail((error) => {
-                    console.error('Verification error:', error);
-                    showError('Error during verification process');
-                  });
-              })(list_target_verify[i].hostname);
-            }
-          });
-          //kết thúc verify và showw toàn bọ ra cho mọi người xem
-
+          resolve();
         } else {
-          showError('Error loading POC');
+          resolve(); // vẫn resolve để không bị kẹt
         }
       })
-      .fail((error) => {
-        showError('Error loading POC');
-        console.log("Phát hiện lỗi: ", error);
+      .fail(() => resolve());
+    });
+
+    // 2. Verify với từng target (chờ từng cái xong)
+    const targets = await verifyFetchTargetDetails(targetIds);
+    for (const target of targets) {
+      await new Promise((resolve, reject) => {
+        $.ajax({
+          url: '/api/verify-mode',
+          type: 'POST',
+          data: { 'target-value': target.hostname }
+        })
+        .done((resp) => {
+          allResults.push({
+            poc: poc,
+            target: target.hostname,
+            result: resp['data']
+          });
+          resolve();
+        })
+        .fail(() => resolve());
       });
+    }
   }
+
+  showVerifyResults(allResults);
+}
 
   // Save verification results
   function saveVerificationResults() {
-    if (!window.resp_verify || window.resp_verify.length === 0) {
+    if (!verifiedReports || verifiedReports.length === 0) {
       showError('No verification results to save. Please run verification first.');
       return;
     }
@@ -696,6 +660,7 @@
 
   // Hiển thị các tùy chọn xuất dữ liệu
   function showExportOptions() {
+    console.log('Hiển thị modal save của verify');
     const exportModal = `
       <div class="modal fade" id="exportOptionsModal" tabindex="-1">
         <div class="modal-dialog">
@@ -777,23 +742,20 @@
 
   // Xuất dữ liệu ra CSV
   function exportToCSV() {
-    const results = window.resp_verify;
+    const results = verifiedReports;
     if (!results || results.length === 0) {
       showError('No data to export');
       return;
     }
-
-    let csvContent = "Target,Result,Status,Details\n";
-    
+    let csvContent = "POC,Target,Result,Status,Details\n";
     results.forEach(item => {
+      const poc = item.poc.name || item.poc.id || 'N/A';
       const target = item.target || 'N/A';
       const result = item.result || {};
       const status = result.status || 'Unknown';
       const details = JSON.stringify(result).replace(/"/g, '""');
-      
-      csvContent += `"${target}","${status}","${details}"\n`;
+      csvContent += `"${poc}","${target}","${status}","${details}"\n`;
     });
-
     downloadFile(csvContent, 'verification_results.csv', 'text/csv');
     showSuccess('CSV file downloaded successfully!');
     closeExportModal();
@@ -801,21 +763,15 @@
 
   // Xuất dữ liệu ra JSON
   function exportToJSON() {
-    const results = window.resp_verify;
+    const results = verifiedReports;
     if (!results || results.length === 0) {
       showError('No data to export');
       return;
     }
-
     const jsonData = {
       verification_date: new Date().toISOString(),
-      poc_info: {
-        id: selectedPocId,
-        path: selectedPocPath
-      },
       results: results
     };
-
     const jsonContent = JSON.stringify(jsonData, null, 2);
     downloadFile(jsonContent, 'verification_results.json', 'application/json');
     showSuccess('JSON file downloaded successfully!');
@@ -824,12 +780,11 @@
 
   // Xuất dữ liệu ra PDF (sử dụng jsPDF)
   function exportToPDF() {
-    const results = window.resp_verify;
+    const results = verifiedReports;
     if (!results || results.length === 0) {
       showError('No data to export');
       return;
     }
-
     // Kiểm tra xem jsPDF đã được load chưa
     if (typeof jsPDF === 'undefined') {
       // Load jsPDF từ CDN
@@ -885,60 +840,61 @@
   }
 
   // Lưu vào database
-  function saveToDatabase() {
+  async function saveToDatabase() {
     if (!verifiedReports || verifiedReports.length === 0) {
       showError('Không có dữ liệu để lưu!');
       return;
     }
+
+    // Gom kết quả theo từng target
+    let resultsByTarget = {};
+    verifiedReports.forEach(report => {
+      // Tìm đúng server_id từ hostname hoặc IP
+      let matchedTarget = allTargets.find(t =>
+        t.hostname === report.target || t.ip_address === report.target
+      );
+      let server_id = matchedTarget ? matchedTarget.server_id : null;
+      if (!server_id) return;
+
+      if (!resultsByTarget[server_id]) {
+        resultsByTarget[server_id] = [];
+      }
+      resultsByTarget[server_id].push({
+        poc: report.poc,
+        result: report.result
+      });
+    });
+
+    let serverIds = Object.keys(resultsByTarget);
     let successCount = 0;
     let failCount = 0;
-    verifiedReports.forEach(report => {
-      if (!report.server_id) {
-        console.warn('Thiếu server_id cho target:', report.target);
-        failCount++;
-        return;
-      }
-      // Đảm bảo data_scan là text
-      let dataToSave = {};
-      if (typeof report.result === 'object' || typeof report.poc === 'object') {
-        dataToSave = JSON.stringify({
-          poc: report.poc,
-          result: report.result
+
+    for (const server_id of serverIds) {
+      let dataToSave = JSON.stringify(resultsByTarget[server_id]);
+      try {
+        const res = await fetch('/api/save_report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            server_id: server_id,
+            tool: 'pocs',
+            data_scan: dataToSave
+          })
         });
-      } else {
-        dataToSave = String(report.result);
-      }
-      fetch('/api/save_report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          server_id: report.server_id,
-          tool: 'pocs',
-          data_scan: dataToSave
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
+        const data = await res.json();
         if (data.status === 0) {
           successCount++;
         } else {
           failCount++;
           console.error('Lỗi lưu DB:', data);
         }
-        if (successCount + failCount === verifiedReports.length) {
-          showSuccess(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
-          alert(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
-        }
-      })
-      .catch(err => {
+      } catch (err) {
         failCount++;
         console.error('Lỗi fetch:', err);
-        if (successCount + failCount === verifiedReports.length) {
-          showError(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
-          alert(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
-        }
-      });
-    });
+      }
+    }
+    showSuccess(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
+    alert(`Lưu DB hoàn tất: Thành công ${successCount}, lỗi ${failCount}`);
   }
 
   // Hàm helper để download file
@@ -964,32 +920,26 @@
 
   // Hàm hiển thị kết quả ra giao diện
   function showVerifyResults(results) {
-    let html = '<h6>Kết quả verify:</h6><table class="table table-bordered"><thead><tr><th>Target</th><th>Kết quả</th></tr></thead><tbody>';
+    let html = '<h6>Kết quả verify:</h6><table class="table table-bordered"><thead><tr><th>POC</th><th>Target</th><th>Kết quả</th></tr></thead><tbody>';
     results.forEach(item => {
-      html += `<tr><td>${item.target}</td><td><pre>${JSON.stringify(item.result, null, 1)}</pre></td></tr>`;
+      html += `<tr>
+      <td>${item.poc.name || item.poc.id}</td>
+      <td>${item.target}</td>
+      <td><pre>${JSON.stringify(item.result, null, 1)}</pre></td>
+    </tr>`;
     });
     html += '</tbody></table>';
     document.getElementById('verifyResult').innerHTML = html;
-    //document.getElementById('successMessage').innerHTML = html;
-    // Lưu lại kết quả verify vào verifiedReports
-    saveVerifiedReports();
+    saveVerifiedReports(results);
   }
 
   // Hàm lưu lại kết quả verify cho từng target với thông tin POC
-  function saveVerifiedReports() {
+  function saveVerifiedReports(results) {
     verifiedReports = [];
-    window.resp_verify.forEach(item => {
-      // Tìm target theo hostname hoặc IP
-      const matchedTarget = allTargets.find(t =>
-        t.hostname === item.target || t.ip_address === item.target
-      );
+    results.forEach(item => {
       verifiedReports.push({
+        poc: item.poc,
         target: item.target,
-        server_id: matchedTarget ? matchedTarget.server_id : null,
-        poc: {
-          id: selectedPocId,
-          path: selectedPocPath
-        },
         result: item.result
       });
     });

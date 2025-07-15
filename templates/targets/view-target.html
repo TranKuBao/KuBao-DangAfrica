@@ -440,10 +440,12 @@
             </div>
             <div class="col-6 d-flex align-items-center justify-content-end">
               <div class="d-flex gap-2">
-                <a class="btn btn-success btn-sm mb-0" href="javascript:;">Verify</a>
-                <a class="btn btn-info btn-sm mb-0" href="javascript:;">Recon</a>
+                <a class="btn btn-success btn-sm mb-0" href="javascript:void(0);" id="btn-verify-target">Verify</a>
+                <a class="btn btn-info btn-sm mb-0" href="javascript:void(0);"id="btn-recon-target">Recon</a>
               </div>
             </div>
+            {% include "partials/verify_target.html" %}
+            {% include "partials/recon_target.html" %}
           </div>
         </div>
         <div class="card-body p-3">
@@ -583,6 +585,38 @@
 </script>
 
 
-<!--recon target-->
+<!--recon target and verify target-->
+<script>
+  //verify 1 POC với nhiểu target đã chọn
+document.getElementById('btn-verify-target').addEventListener("click",function(){
+  const data = getCheckedTargetIds();
+    if( data.length ==0 ){
+      alert('Please check the target you want to Verify with POC.');
+      return ;
+    }
+    console.log(data); 
+    // Lấy thông tin modes từ API
+    
+    document.getElementById('selectedTargetCount').textContent = window.checkedTargetIds.length;
+    
+    // ... cập nhật các field khác
+    const modal = new bootstrap.Modal(document.getElementById('verifyPocWithTargetsModal'));
+    modal.show();
+});
+
+//Chức năng Recon
+document.getElementById('btn-recon-target').addEventListener("click",function(){
+  const data = getCheckedTargetIds();
+    
+
+    document.getElementById('reconScanLoading').style.display = 'none';
+    document.getElementById('reconScanResult').textContent += '\n[Data will be display in here]';
+
+    // ... cập nhật các field khác
+    const modal = new bootstrap.Modal(document.getElementById('reconTargetsModal'));
+    modal.show();
+});
+
+</script>
 
 {% endblock content %}
