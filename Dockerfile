@@ -16,7 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN apt-get update && \
     apt-get install -y ruby-full build-essential libcurl4-openssl-dev libxml2 libxml2-dev libxslt1-dev zlib1g-dev git && \
     gem install wpscan && \
-    apt-get install -y nmap
+    apt-get install -y nmap 
+
+RUN pip install --no-cache-dir pwncat-cs
 
 COPY env.sample .env
 

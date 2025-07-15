@@ -45,3 +45,6 @@ colorama
 # psycopg2-binary
 requests_toolbelt
 bcrypt
+
+#pwncat-cs 
+#quản lý shell

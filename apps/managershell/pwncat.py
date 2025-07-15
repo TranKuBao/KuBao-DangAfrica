@@ -46,7 +46,7 @@ class PwncatManager:
 
     def start_listener(self, port, name=None, url=None):
         proc = subprocess.Popen(
-            ["pwncat", "-lp", str(port)],
+            ["python", "-m", "pwncat", "-lp", str(port)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             stdin=subprocess.PIPE,
@@ -83,7 +83,7 @@ class PwncatManager:
             print(f"[!] Could not resolve IP for target: {target}")
             return None
         proc = subprocess.Popen(
-            ["pwncat", ip, str(target_port)],
+            ["python", "-m", "pwncat", ip, str(target_port)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             stdin=subprocess.PIPE,
