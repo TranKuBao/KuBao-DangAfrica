@@ -272,12 +272,11 @@ def delete_target():
         print(f"Error in delete_target: {str(e)}")
         return jsonify({'status': -1, 'msg': f'Server error: {str(e)}'}), 500
 
-#xem thông tin của 1 target
+#xem thông tin của 1 target 
 @blueprint.route('/view-target', methods=['GET'])
 def view_target():
     idtarget = request.args.get('idtarget')
     # tạm thời không kiểm tra có tồn tại
-
     #lấy thông tin của CSDL
     target = Targets.get_by_id(idtarget)
     

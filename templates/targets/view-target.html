@@ -347,11 +347,11 @@
       <div class="card h-100">
         <div class="card-header pb-0 p-3">
           <div class="row">
-            <div class="col-6 d-flex align-items-center">
+            <div class="col-6 d-flex align-items-center justify-content-center">
               <h6 class="mb-0">Invoices</h6>
             </div>
-            <div class="col-6 text-end">
-              <button class="btn btn-outline-primary btn-sm mb-0">
+            <div class="col-6 d-flex justify-content-center align-items-center" style="margin-top: -5px !important;">
+              <button class="btn btn-sm mb-0" style="background-color: #f97316; color: #fff; border: none;">
                 File Collect
               </button>
             </div>
@@ -373,8 +373,7 @@
                 <span class="text-xs">#MS-415646</span>
               </div>
               <div
-                class="d-flex align-items-center text-sm"
-                style="margin-right: -15px !important"
+                class="d-flex align-items-center text-sm justify-content-center"
               >
                 $180
                 <button class="btn btn-link text-dark text-sm mb-0 px-0 ms-4">
@@ -432,143 +431,71 @@
     </div>
 
     <!-- Hiện thị thông tin RCE-->
-    <div class="col-lg-6" style="margin: -20px -15px -10px -15px !important">
-      <div class="row">
-        <div class="col-md-12 mb-lg-0 mb-4">
-          <div class="card mt-4">
-            <div class="card-header pb-0 p-3">
-              <div class="row">
-                <div class="col-6 d-flex align-items-center">
-                  <h6 class="mb-0">Kết quả thống kê POC đã quét</h6>
-                </div>
-                <div class="col-6 text-end">
-                  <a
-                    class="btn btn-outline-primary btn-sm mb-0"
-                    href="javascript:;"
-                    >&nbsp;&nbsp;Quét lại</a
-                  >
+    <div class="col-lg-6">
+      <div class="card mt-4">
+        <div class="card-header pb-0 p-3">
+          <div class="row">
+            <div class="col-6 d-flex align-items-center justify-content-center">
+              <h6 class="mb-0">Kết quả thống kê POC đã quét</h6>
+            </div>
+            <div class="col-6 d-flex align-items-center justify-content-end">
+              <div class="d-flex gap-2">
+                <a class="btn btn-success btn-sm mb-0" href="javascript:;">Verify</a>
+                <a class="btn btn-info btn-sm mb-0" href="javascript:;">Recon</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-3">
+          <div class="row justify-content-center align-items-center">
+            <div class="col-lg-4 d-flex justify-content-center">
+              <div class="chart-container sales-colors" style="width: 180px; height: 180px;">
+                <canvas id="salesChart" style="width: 100%; height: 100%;"></canvas>
+              </div>
+            </div>
+            <div class="col-lg-8 d-flex align-items-center">
+              <div class="chart-legend w-100">
+                <div class="legend-item d-flex flex-column w-100">
+                  <span>Đã khai thác được  33%</span>
+                  <span>Không khai thác được  17%</span>
+                  <span>Khác  50%</span>
                 </div>
               </div>
             </div>
-            <div class="card-body p-3">
-              <div class="col">
-                <!-- Biểu đồ tròn -->
-                <div class="card">
-                  <div class="card-body row">
-                    <div
-                      class="chart-container sales-colors col-lg-3"
-                      style="width: 180px; height: 180px; margin-left: 0 auto"
-                    >
-                      <canvas
-                        id="salesChart"
-                        style="
-                          width: 100% !important;
-                          height: 100% !important;
-                          margin-right: 0 auto !important;
-                        "
-                      ></canvas>
-                    </div>
-                    <div class="chart-legend col-lg-7">
-                      <div class="legend-item col">
-                        <span>Đã khai thác được  33%</span>
-                        <span>Không khai thác được  17%</span>
-                        <span>Khác  50%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- button POC to RCE-->
-                  <div class="row" style="margin-top: -20px !important">
-                    <div class="card-body p-3 col-lg-6">
-                      <div class="row d-flex flex-wrap gap-3">
-
-                        <!-- Dropdown 3 -->
-                        <div>
-                          <div class="form-group">
-                            <label class="form-control-label" for="select-PCB">Chọn POC đã được lọc</label>
-                            <select id="select-POC" name="Server_id" class="form-control">
-                              <option value="" disabled selected>-- Chọn POC --</option>
-                              {% for poc in list_poc %}
-                              <option value="{{poc}}" {% if poc == "Hello Các em" %}selected{% endif %}>
-                                  {{ poc }}
-                              </option>
-                              {% endfor %}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <!--button cho chạy rce-->
-                    <div class="card-body p-3 col-lg-6">
-                      <div class="row d-flex flex-wrap gap-3" style="margin-top:30px !important; color" >
-                          <div>
-                            <a class="btn btn-outline-primary" id="reverse_button" name="Server_id" class="form-control">Run Reverse Shell</a>
-                          </div>
-                        
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Terminal đặt ở đây -->
-                 <div class="card" style="background-color: #000;
-                                                      color: #00ff00;
-                                                      font-family: 'Courier New', Courier, monospace;
-                                                      margin: 0;
-                                                      padding: 0;
-                                                      height: 100vh;
-                                                      overflow: hidden;">
-                  <div id="terminal">
-                    <div id="output_terminal">
-                      Các lệnh có thể dùng:
-                      <br>- ls - Liệt kê các file và thư mục
-                      <br>- pwd - Hiện thư mục hiện tại
-                      <br>- cd [thư mục] - Di chuyển đến thư mục
-                      <br>- cat [tên file] - Xem nội dung file
-                      <br>- mkdir [tên thư mục] - Tạo thư mục mới
-                      <br>- touch [tên file] - Tạo file mới
-                      <br><br>$ 
-                    </div>
-                    
-                    <div class="input-line">
-                      <span class="prompt">root@ctf:~$</span>
-                      <input type="text" id="input_terminal" autofocus autocomplete="off"/>
-                    </div>
-                  </div>
-
-                  <!--script chạy cmd-->
-                  <script>
-                    const output = document.getElementById('output_terminal');
-                      const input = document.getElementById('input_terminal');
-
-                      input.addEventListener('keypress', function(e) {
-                        if (e.key === 'Enter') {
-                          const command = input.value.trim();
-                          const userInput = '$ ' + command + '\n';
-                          output.textContent += userInput;
-
-                          fetch('/run-cmd', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ command })
-                          })
-                          .then(res => res.json())
-                          .then(data => {
-                            output.textContent += data.output + '\n';
-                            output.scrollTop = output.scrollHeight;
-                          })
-                          .catch(() => {
-                            output.textContent += 'Lỗi kết nối tới server\n';
-                          });
-
-                          input.value = '';
-                        }
-                      });
-                  </script>
-                </div>
+          </div>
+          <div class="row mt-4 justify-content-center align-items-center">
+            <div class="col-md-6 mb-2">
+              <div class="form-group">
+                <label class="form-control-label" for="select-PCB">Chọn POC đã được lọc</label>
+                <select id="select-POC" name="Server_id" class="form-control">
+                  <option value="" disabled selected>-- Chọn POC --</option>
+                  {% for poc in list_poc %}
+                  <option value="{{poc}}" {% if poc == "Hello Các em" %}selected{% endif %}>{{ poc }}</option>
+                  {% endfor %}
+                </select>
               </div>
             </div>
+            <div class="col-md-6 mb-2 d-flex align-items-end justify-content-center">
+              <a class="btn mb-0 w-100" id="reverse_button" name="Server_id" style="background-color: #f97316; color: #fff; border: none; height: 38px; display: flex; align-items: center; justify-content: center;">Run Reverse Shell</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card mt-4" style="background-color: #000; color: #00ff00; font-family: 'Courier New', Courier, monospace; overflow: hidden;">
+        <div id="terminal">
+          <div id="output_terminal">
+            Các lệnh có thể dùng:
+            <br>- ls - Liệt kê các file và thư mục
+            <br>- pwd - Hiện thư mục hiện tại
+            <br>- cd [thư mục] - Di chuyển đến thư mục
+            <br>- cat [tên file] - Xem nội dung file
+            <br>- mkdir [tên thư mục] - Tạo thư mục mới
+            <br>- touch [tên file] - Tạo file mới
+            <br><br>$ 
+          </div>
+          <div class="input-line">
+            <span class="prompt">root@ctf:~$</span>
+            <input type="text" id="input_terminal" autofocus autocomplete="off"/>
           </div>
         </div>
       </div>
@@ -579,15 +506,9 @@
       <div class="card h-100 mb-4">
         <div class="card-header pb-0 px-3" style="margin-top: -10px !important">
           <div class="row">
-            <div class="col-6 text-end">
-              <a class="btn btn-outline-primary btn-sm mb-0" href="javascript:;"
-                >Report Target</a
-              >
-            </div>
-            <div class="col-6 text-end">
-              <a class="btn btn-outline-primary btn-sm mb-0" href="javascript:void(0);" onclick="show_edittarget_Modal()"> 
-                Edit Target
-              </a>
+            <div class="col-12 d-flex justify-content-end gap-2">
+              <a class="btn btn-sm mb-0" href="javascript:;" style="background-color: #f97316; color: #fff; border: none;">Report Target</a>
+              <a class="btn btn-primary btn-sm mb-0" href="javascript:void(0);" onclick="show_edittarget_Modal()">Edit Target</a>
             </div>
           </div>
         </div>
@@ -660,5 +581,8 @@
 
   
 </script>
+
+
+<!--recon target-->
 
 {% endblock content %}
