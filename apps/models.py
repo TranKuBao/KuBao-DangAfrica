@@ -196,8 +196,12 @@ class Incidents(db.Model):
 
 
 class Targets(db.Model):
+    """
+    Model for target servers/assets, including shell management fields for integration with pwncat.
+    """
     __tablename__ = 'targets'
-    
+
+    # Core identification fields
     server_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     hostname = db.Column(db.String(255), nullable=False)
     ip_address = db.Column(db.String(45), nullable=False)  # IPv6 support
@@ -211,13 +215,23 @@ class Targets(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
-    
-    # Quan hệ 1-n: 1 target có nhiều report
+
+    # --- Shell management fields (for pwncat integration) ---
+    shell_type = db.Column(db.String(50), nullable=True, comment="Type of shell: bind/reverse/other")
+    connect_time = db.Column(db.DateTime, nullable=True, comment="Shell connect time (UTC)")
+    disconnect_time = db.Column(db.DateTime, nullable=True, comment="Shell disconnect time (UTC)")
+    reconnect_count = db.Column(db.Integer, default=0, nullable=True, comment="Number of reconnect attempts")
+    last_status = db.Column(db.String(50), nullable=True, comment="Last known shell status")
+    user = db.Column(db.String(100), nullable=True, comment="User of the shell session")
+    url = db.Column(db.String(255), nullable=True, comment="Original URL/hostname if applicable")
+
+    # Relationships
     reports = db.relationship('Reports', backref='target', lazy=True)
-    
+
     def __init__(self, hostname, ip_address, server_type, os=None, location=None, 
                  status='active', privilege_escalation=None, exploitation_level=None, 
-                 incident_id=None, notes=None):
+                 incident_id=None, notes=None, shell_type=None, connect_time=None, disconnect_time=None, 
+                 reconnect_count=0, last_status=None, user=None, url=None):
         self.hostname = hostname
         self.ip_address = ip_address
         self.server_type = server_type
@@ -228,7 +242,14 @@ class Targets(db.Model):
         self.privilege_escalation = privilege_escalation
         self.incident_id = incident_id
         self.notes = notes
-    
+        self.shell_type = shell_type
+        self.connect_time = connect_time
+        self.disconnect_time = disconnect_time
+        self.reconnect_count = reconnect_count
+        self.last_status = last_status
+        self.user = user
+        self.url = url
+
     def __repr__(self):
         return f'<Target {self.server_id}: {self.hostname}>'
     
@@ -246,13 +267,22 @@ class Targets(db.Model):
             'incident_id': self.incident_id,
             'notes': self.notes,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            # Shell management fields
+            'shell_type': self.shell_type,
+            'connect_time': self.connect_time.isoformat() if self.connect_time else None,
+            'disconnect_time': self.disconnect_time.isoformat() if self.disconnect_time else None,
+            'reconnect_count': self.reconnect_count,
+            'last_status': self.last_status,
+            'user': self.user,
+            'url': self.url
         }
     
     @classmethod
     def create_target(cls, hostname, ip_address, server_type, os=None, location=None, 
                       status='active', privilege_escalation=None, exploitation_level=None, 
-                      incident_id=None, notes=None, report_data=None):
+                      incident_id=None, notes=None, report_data=None, shell_type=None, connect_time=None, disconnect_time=None, 
+                      reconnect_count=0, last_status=None, user=None, url=None):
         """Create a new target và đồng thời tạo report với server_id tương ứng"""
         from apps.models import Reports, db
         try:
@@ -266,7 +296,14 @@ class Targets(db.Model):
                 privilege_escalation=privilege_escalation,
                 exploitation_level=exploitation_level,
                 incident_id=incident_id,
-                notes=notes
+                notes=notes,
+                shell_type=shell_type,
+                connect_time=connect_time,
+                disconnect_time=disconnect_time,
+                reconnect_count=reconnect_count,
+                last_status=last_status,
+                user=user,
+                url=url
             )
             db.session.add(target)
             db.session.flush()  # Để lấy server_id vừa tạo
