@@ -1,0 +1,379 @@
+<!-- Modal xem các kết quả đã thu thập được cho target -->
+<div class="modal fade" id="reportTargetModal" tabindex="-1" aria-labelledby="reportTargetModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content shadow-lg" style="background-color: #f8f9fa; border-radius: 12px;">
+      <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center" style="background-color: #e9ecef !important;">
+        <h5 class="modal-title font-weight-bold" id="reportTargetModalLabel">📊 Report Collected Results</h5>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-hacker px-4" onclick="showExportOptionsReport()">
+            <i class="fas fa-save"></i> Save
+          </button>
+          <button type="button" class="btn btn-hacker-danger px-4" data-bs-dismiss="modal">
+            <i class="fas fa-times"></i> Close
+          </button>
+        </div>
+      </div>
+      <div class="modal-body p-4">
+        <ul class="nav nav-tabs mb-3" id="reportTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="dirsearch-tab" data-bs-toggle="tab" data-bs-target="#dirsearch" type="button" role="tab">Dirsearch</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="wappalyzer-tab" data-bs-toggle="tab" data-bs-target="#wappalyzer" type="button" role="tab">Wappalyzer</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="nmap-tab" data-bs-toggle="tab" data-bs-target="#nmap" type="button" role="tab">Nmap</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="wpscan-tab" data-bs-toggle="tab" data-bs-target="#wpscan" type="button" role="tab">WPScan</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pocs-tab" data-bs-toggle="tab" data-bs-target="#pocs" type="button" role="tab">POCs</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab">Collected Files</button>
+          </li>
+        </ul>
+        <div class="tab-content" id="reportTabContent">
+          <!-- Dirsearch -->
+          <div class="tab-pane fade show active" id="dirsearch" role="tabpanel">
+            <h6 class="mb-2">Dirsearch Result</h6>
+            <pre id="report-dirsearch" style="background:#222;color:#0f0;padding:1em;border-radius:6px;min-height:120px;">{{ report.dirsearch or 'No data.' }}</pre>
+          </div>
+          <!-- Wappalyzer -->
+          <div class="tab-pane fade" id="wappalyzer" role="tabpanel">
+            <h6 class="mb-2">Wappalyzer Result</h6>
+            <pre id="report-wappalyzer" style="background:#222;color:#0ff;padding:1em;border-radius:6px;min-height:120px;">{{ report.wappalyzer or 'No data.' }}</pre>
+          </div>
+          <!-- Nmap -->
+          <div class="tab-pane fade" id="nmap" role="tabpanel">
+            <h6 class="mb-2">Nmap Result</h6>
+            <pre id="report-nmap" style="background:#222;color:#ff0;padding:1em;border-radius:6px;min-height:120px;">{{ report.nmap or 'No data.' }}</pre>
+          </div>
+          <!-- WPScan -->
+          <div class="tab-pane fade" id="wpscan" role="tabpanel">
+            <h6 class="mb-2">WPScan Result</h6>
+            <pre id="report-wpscan" style="background:#222;color:#f73;padding:1em;border-radius:6px;min-height:120px;">{{ report.wpscan or 'No data.' }}</pre>
+          </div>
+          <!-- POCs -->
+          <div class="tab-pane fade" id="pocs" role="tabpanel">
+            <h6 class="mb-2">POCs Result</h6>
+            <div id="report-pocs-table-container">
+              <pre id="report-pocs" style="background:#222;color:#f93;padding:1em;border-radius:6px;min-height:120px;">{{ report.pocs or 'No data.' }}</pre>
+            </div>
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              var pre = document.getElementById('report-pocs');
+              var container = document.getElementById('report-pocs-table-container');
+              function renderObjectTable(obj) {
+                let table = document.createElement('table');
+                table.className = 'table table-bordered table-sm';
+                let tbody = document.createElement('tbody');
+                for (let k in obj) {
+                  let tr = document.createElement('tr');
+                  let th = document.createElement('th');
+                  th.innerText = k.charAt(0).toUpperCase() + k.slice(1);
+                  let td = document.createElement('td');
+                  let val = obj[k];
+                  // Nếu là object hoặc JSON string, hiển thị đẹp
+                  if (typeof val === 'object' && val !== null) {
+                    td.appendChild(renderObjectTable(val));
+                  } else if (typeof val === 'string' && (val.trim().startsWith('{') || val.trim().startsWith('['))) {
+                    try {
+                      let parsed = JSON.parse(val);
+                      if (typeof parsed === 'object') {
+                        td.appendChild(renderObjectTable(parsed));
+                      } else {
+                        td.innerText = val;
+                      }
+                    } catch(e) {
+                      td.innerText = val;
+                    }
+                  } else {
+                    td.innerText = val;
+                  }
+                  tr.appendChild(th);
+                  tr.appendChild(td);
+                  tbody.appendChild(tr);
+                }
+                table.appendChild(tbody);
+                return table;
+              }
+              if (pre && pre.textContent && pre.textContent.trim() && pre.textContent.trim() !== 'No data.') {
+                let data = pre.textContent.trim();
+                let parsed = null;
+                let parseError = false;
+                try {
+                  parsed = JSON.parse(data);
+                } catch(e1) {
+                  try {
+                    parsed = JSON.parse(JSON.parse(data));
+                  } catch(e2) {
+                    parseError = true;
+                  }
+                }
+                if (!parseError && parsed) {
+                  pre.style.display = 'none';
+                  if (Array.isArray(parsed)) {
+                    // Nếu là list các object
+                    if (parsed.length > 0 && typeof parsed[0] === 'object') {
+                      let table = document.createElement('table');
+                      table.className = 'table table-bordered table-sm';
+                      let thead = document.createElement('thead');
+                      let tr = document.createElement('tr');
+                      let keys = Object.keys(parsed[0]);
+                      keys.forEach(k => {
+                        let th = document.createElement('th');
+                        th.innerText = k.charAt(0).toUpperCase() + k.slice(1);
+                        tr.appendChild(th);
+                      });
+                      thead.appendChild(tr);
+                      table.appendChild(thead);
+                      let tbody = document.createElement('tbody');
+                      parsed.forEach(row => {
+                        let tr = document.createElement('tr');
+                        keys.forEach(k => {
+                          let td = document.createElement('td');
+                          let val = row[k];
+                          if (typeof val === 'object' && val !== null) {
+                            td.appendChild(renderObjectTable(val));
+                          } else if (typeof val === 'string' && (val.trim().startsWith('{') || val.trim().startsWith('['))) {
+                            try {
+                              let parsed2 = JSON.parse(val);
+                              if (typeof parsed2 === 'object') {
+                                td.appendChild(renderObjectTable(parsed2));
+                              } else {
+                                td.innerText = val;
+                              }
+                            } catch(e) {
+                              td.innerText = val;
+                            }
+                          } else {
+                            td.innerText = val;
+                          }
+                          tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                      });
+                      table.appendChild(tbody);
+                      container.appendChild(table);
+                    } else {
+                      // List nhưng không phải object, hiển thị pre
+                      pre.style.display = '';
+                    }
+                  } else if (typeof parsed === 'object') {
+                    // Nếu là object đơn lẻ
+                    container.appendChild(renderObjectTable(parsed));
+                  } else {
+                    pre.style.display = '';
+                  }
+                } else if (parseError) {
+                  pre.style.display = 'none';
+                  let errDiv = document.createElement('div');
+                  errDiv.className = 'alert alert-warning';
+                  errDiv.innerText = 'Không thể phân tích dữ liệu POCs (không đúng định dạng JSON).';
+                  container.appendChild(errDiv);
+                }
+              }
+            });
+            </script>
+          </div>
+          <!-- Collected Files -->
+          <div class="tab-pane fade" id="files" role="tabpanel">
+            <h6 class="mb-2">Collected Files</h6>
+            {% if report.collected_files and report.collected_files|length > 0 %}
+              <ul class="list-group" id="report-files-list">
+                {% for file in report.collected_files %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ file.filename }}</span>
+                    <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-sm btn-primary">Download</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="text-muted">No files collected.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Script để mở modal từ nút Report Target và export -->
+<script>
+  // Gán nút mở modal đúng modal mới
+  document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('btn-report-viewtarget');
+    if (btn) {
+      btn.addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('reportTargetModal'));
+        modal.show();
+      });
+    }
+  });
+
+  // Export options modal (CSV, JSON, PDF)
+  function showExportOptionsReport() {
+    const exportModal = `
+      <div class="modal fade" id="exportOptionsReportModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">💾 Export Report Results</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <i class="fas fa-file-csv fa-3x text-success mb-3"></i>
+                      <h6>Export to CSV</h6>
+                      <button class="btn btn-success" onclick="exportReportToCSV()">
+                        <i class="fas fa-download"></i> Export CSV
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <i class="fas fa-file-json fa-3x text-warning mb-3"></i>
+                      <h6>Export to JSON</h6>
+                      <button class="btn btn-warning" onclick="exportReportToJSON()">
+                        <i class="fas fa-download"></i> Export JSON
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                      <h6>Export to PDF</h6>
+                      <button class="btn btn-danger" onclick="exportReportToPDF()">
+                        <i class="fas fa-download"></i> Export PDF
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    // Xóa modal cũ nếu có
+    const existingModal = document.getElementById('exportOptionsReportModal');
+    if (existingModal) existingModal.remove();
+    document.body.insertAdjacentHTML('beforeend', exportModal);
+    const modal = new bootstrap.Modal(document.getElementById('exportOptionsReportModal'));
+    modal.show();
+  }
+
+  // Helper: lấy dữ liệu report từ DOM
+  function getReportData() {
+    return {
+      dirsearch: document.getElementById('report-dirsearch')?.innerText || '',
+      wappalyzer: document.getElementById('report-wappalyzer')?.innerText || '',
+      nmap: document.getElementById('report-nmap')?.innerText || '',
+      wpscan: document.getElementById('report-wpscan')?.innerText || '',
+      pocs: document.getElementById('report-pocs')?.innerText || '',
+      files: Array.from(document.querySelectorAll('#report-files-list li span')).map(e => e.innerText)
+    };
+  }
+
+  // Export CSV
+  function exportReportToCSV() {
+    const data = getReportData();
+    let csv = 'Tool,Result\n';
+    csv += `Dirsearch,"${data.dirsearch.replace(/"/g, '""')}"\n`;
+    csv += `Wappalyzer,"${data.wappalyzer.replace(/"/g, '""')}"\n`;
+    csv += `Nmap,"${data.nmap.replace(/"/g, '""')}"\n`;
+    csv += `WPScan,"${data.wpscan.replace(/"/g, '""')}"\n`;
+    csv += `POCs,"${data.pocs.replace(/"/g, '""')}"\n`;
+    csv += `Files,"${data.files.join('; ')}"\n`;
+    downloadFile(csv, 'report_results.csv', 'text/csv');
+    closeExportModalReport();
+  }
+
+  // Export JSON
+  function exportReportToJSON() {
+    const data = getReportData();
+    const json = JSON.stringify(data, null, 2);
+    downloadFile(json, 'report_results.json', 'application/json');
+    closeExportModalReport();
+  }
+
+  // Export PDF
+  function exportReportToPDF() {
+    const data = getReportData();
+    if (typeof jsPDF === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = () => generateReportPDF(data);
+      document.head.appendChild(script);
+    } else {
+      generateReportPDF(data);
+    }
+  }
+  
+  function generateReportPDF(data) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Report Collected Results', 20, 20);
+    doc.setFontSize(12);
+    let y = 35;
+    Object.keys(data).forEach(key => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.text(`${key.toUpperCase()}:`, 20, y);
+      y += 7;
+      let val = Array.isArray(data[key]) ? data[key].join(', ') : data[key];
+      const lines = doc.splitTextToSize(val, 170);
+      lines.forEach(line => {
+        if (y > 280) { doc.addPage(); y = 20; }
+        doc.text(line, 25, y);
+        y += 6;
+      });
+      y += 4;
+    });
+    doc.save('report_results.pdf');
+    closeExportModalReport();
+  }
+
+  // Helper download
+  function downloadFile(content, filename, contentType) {
+    const blob = new Blob([content], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+  // Đóng modal export
+  function closeExportModalReport() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('exportOptionsReportModal'));
+    if (modal) modal.hide();
+  }
+
+  // Cleanup export modal khỏi DOM khi đóng để tránh bị khóa màn hình
+  document.addEventListener('shown.bs.modal', function (event) {
+    if (event.target.id === 'exportOptionsReportModal') {
+      const exportModalEl = document.getElementById('exportOptionsReportModal');
+      exportModalEl.addEventListener('hidden.bs.modal', function () {
+        setTimeout(() => {
+          exportModalEl.remove();
+          // Xử lý backdrop nếu còn sót
+          const backdrops = document.querySelectorAll('.modal-backdrop');
+          backdrops.forEach(bd => bd.parentNode.removeChild(bd));
+          document.body.classList.remove('modal-open');
+        }, 200);
+      }, { once: true });
+    }
+  });
+</script>

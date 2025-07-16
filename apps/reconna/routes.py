@@ -1,6 +1,7 @@
 #Trần ku bảo đã viết cái này
 from unittest import result
 from flask import render_template, request, redirect, url_for, jsonify, session
+from urllib3 import response
 from apps.reconna import blueprint
 import datetime
 
@@ -11,7 +12,7 @@ from apps.reconna.Recon_Dirsearch._Dirseach_ import Recon_Directory, DirsearchMa
 from apps.reconna.Recon_Wpcan._WP_Scan_ import Recon_Wpscan
 
 #import các model để luwu dữ liệu
-from apps.models import Reports
+from apps.models import Reports, Targets
 #=================================NMAP======================================================
 @blueprint.route('/recon/nmap/scan',methods=['GET','POST'])
 def recon_nmap_scan():    
@@ -151,7 +152,7 @@ def get_wpscan_result():
         return jsonify({'status': -1, 'msg': 'No result available'})
 
 
-#================================= lưu sữ liệu ==========================================================   
+#================================= Lưu dữ liệu report ==========================================================   
 @blueprint.route('/api/save_report', methods=['POST'])
 def save_recon():
     try:
@@ -185,3 +186,17 @@ def save_recon():
         return jsonify({"status": -1, 'msg': str(e), 'error': str(e)})
 
 
+# @blueprint.route('/api/getreport', methods=['POST', 'GET'])
+# def get_report():
+#     #lấy dữ liệu
+#     data = request.get_json();
+#     ID_Server = data.get('server_id')
+#     if ID_Server is None:
+#         ID_Server = request.args.get('serverID')
+    
+#     #query target
+#     target = Targets.get_by_id(server_id=ID_Server)
+
+#     #lấy hết report và lưu
+#     report_Target = 
+#================================================================================================

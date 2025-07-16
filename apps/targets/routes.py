@@ -6,7 +6,7 @@ Copyright (c) 2019 - present AppSeed.us
 import datetime as dt
 from apps.targets import blueprint
 from apps import db
-from apps.models import Targets, Incidents, Credentials, VulInTarget, Collections, CollectedFiles, VerificationResults
+from apps.models import Targets, Reports
 from apps.authentication.models import Users
 from jinja2 import TemplateNotFound
 from flask_wtf import FlaskForm
@@ -49,6 +49,7 @@ def get_targets():
         'total_pages': total_pages
     })
 
+#kiểm target có còn được online ko
 @blueprint.route('/api/checkstatussite',methods=['POST'])
 def check_status_website():
     '''kiểm tra url theo status code trả về'''
@@ -81,7 +82,7 @@ def check_status_website():
             "status": "offline"
         }), 200
 
-
+#lấy toàn bọ target
 @blueprint.route('/api/getalltarget',methods=['GET'])
 def get_all_targets():
     try:
@@ -279,12 +280,12 @@ def view_target():
     # tạm thời không kiểm tra có tồn tại
     #lấy thông tin của CSDL
     target = Targets.get_by_id(idtarget)
-    
+    report = Reports.get_by_server_id(server_id=idtarget)
     #lấy thông tin CVE lấy được
     #lấy thông tin về trình sát
     
     list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
-    return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc, target = target)
+    return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc, target = target, report = report)
 
 
 
