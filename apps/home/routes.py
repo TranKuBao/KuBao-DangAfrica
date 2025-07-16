@@ -108,6 +108,7 @@ def normalize_vultype(vt):
     if vt is None:
         return ""
     return str(vt)
+
 #lấy dữ liệu để hiện thị list POCs
 @blueprint.route('/api/fetch-pocs', methods=['GET'])
 def fetch_pocs():

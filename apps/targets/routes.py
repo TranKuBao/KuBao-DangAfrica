@@ -14,7 +14,7 @@ from flask_login import login_required, current_user
 from flask import render_template, request, redirect, url_for, jsonify, session
 
 import requests
-
+import json
 from lib.server.server import Server
 from lib import database, const
 
@@ -281,11 +281,56 @@ def view_target():
     #lấy thông tin của CSDL
     target = Targets.get_by_id(idtarget)
     report = Reports.get_by_server_id(server_id=idtarget)
-    #lấy thông tin CVE lấy được
-    #lấy thông tin về trình sát
     
+    #xử lý và lấy dữ liệu thống kê
+     
+    exploitable = 0
+    unexploitable = 0
+    other = 0
+
+    pocs = []
+    if report and getattr(report, "pocs", None):
+        try:
+            pocs = json.loads(report.pocs)
+        except Exception:
+            pocs = []
+
+    for poc in pocs:
+        # Lấy message từ nhiều vị trí có thể
+        result = poc.get("result", {})
+        msg = (
+            str(result.get("Message", "")) +
+            str(result.get("Result", "")) +
+            str(result.get("status", "")) +
+            str(result.get("message", ""))
+        ).lower()
+        if "is vulnerable" in msg:
+            exploitable += 1
+        elif "is not vulnerable" in msg or "is not vulnerable or offline" in msg:
+            unexploitable += 1
+        else:
+            unexploitable += 1
+
+    # Đếm số file POC thực sự
+    poc_dir = os.path.join(os.path.dirname(__file__), '../../pocsuite3/pocs')
+    total_poc = len([
+        f for f in os.listdir(os.path.abspath(poc_dir))
+        if f.endswith('.py') and not f.startswith('__')
+    ]) 
+
+    other = total_poc - exploitable - unexploitable
+
     list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
-    return render_template('targets/view-target.html', segment='view_target',list_poc=list_poc, target = target, report = report)
+    return render_template(
+                            'targets/view-target.html', 
+                            segment='view_target',
+                            list_poc=list_poc, 
+                            target=target, 
+                            report=report,
+                            exploitable=exploitable,
+                            unexploitable=unexploitable,
+                            other=other
+                        )
 
 
 
