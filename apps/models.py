@@ -1066,3 +1066,283 @@ class DatabaseUtils:
             search_query = search_query.filter(CollectedFiles.collection_id == collection_id)
         
         return search_query.all()
+
+
+
+#==============================================================================================
+    #    _______
+    #  /        \\
+    # |  ()  ()  |  <-- Reverse Shell
+    # |    __    |     Console
+    #  \________/
+    #    / || \
+    #   /__||__\     pwncat >>
+    #  |   ||   |
+    #  |   ||   |     [CONNECTED]
+    #  |___||___|
+#phía dưới này là các DB liên quan đến quản lý Shell
+# gốm 1 bảng lưu các thông tin quản lý shell
+# và 1 bảng lưu các dữ liệu liên quan tói command shell
+class ShellStatus(Enum):
+    LISTENING = "listening"
+    CONNECTED = "connected"
+    DISCONNECTED = "disconnected"
+    RECONNECTING = "reconnecting"
+    ERROR = "error"
+    CLOSED = "closed"
+
+class ShellType(Enum):
+    REVERSE = "reverse"
+    BIND = "bind"
+    WEBSHELL = "webshell"
+    SSH = "ssh"
+
+class ShellConnection(db.Model):
+    """Model for managing reverse shell connections"""
+    __tablename__ = 'shell_connections'
+    
+    connection_id = db.Column(db.String(255), primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    shell_type = db.Column(db.Enum(ShellType), nullable=False)
+    status = db.Column(db.Enum(ShellStatus), nullable=False, default=ShellStatus.LISTENING)
+    
+    # Connection details
+    local_ip = db.Column(db.String(45), nullable=True)
+    local_port = db.Column(db.Integer, nullable=True)
+    remote_ip = db.Column(db.String(45), nullable=True)
+    remote_port = db.Column(db.Integer, nullable=True)
+    
+    # Target information
+    target_id = db.Column(db.Integer, db.ForeignKey('targets.server_id'), nullable=True)
+    hostname = db.Column(db.String(255), nullable=True)
+    url = db.Column(db.String(255), nullable=True)
+    
+    # Session information
+    user = db.Column(db.String(100), nullable=True)
+    os_info = db.Column(db.String(255), nullable=True)
+    privilege_level = db.Column(db.String(50), nullable=True)
+    
+    # Timing
+    connect_time = db.Column(db.DateTime, nullable=True)
+    disconnect_time = db.Column(db.DateTime, nullable=True)
+    last_active = db.Column(db.DateTime, nullable=True)
+    
+    # Statistics
+    reconnect_count = db.Column(db.Integer, default=0)
+    command_count = db.Column(db.Integer, default=0)
+    data_transferred = db.Column(db.BigInteger, default=0)  # bytes
+    
+    # Process management
+    process_id = db.Column(db.Integer, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Metadata
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+    
+    # Relationships
+    target = db.relationship(Targets, backref='shell_connections')
+    commands = db.relationship('ShellCommand', backref='connection', lazy=True, cascade='all, delete-orphan')   
+    def __init__(self, connection_id, name, shell_type, local_ip=None, local_port=None, 
+                 remote_ip=None, remote_port=None, target_id=None, hostname=None, url=None):
+        self.connection_id = connection_id
+        self.name = name
+        self.shell_type = shell_type
+        self.local_ip = local_ip
+        self.local_port = local_port
+        self.remote_ip = remote_ip
+        self.remote_port = remote_port
+        self.target_id = target_id
+        self.hostname = hostname
+        self.url = url
+        self.connect_time = dt.datetime.utcnow()
+        self.last_active = dt.datetime.utcnow()
+    
+    def __repr__(self):
+        return f'<ShellConnection {self.connection_id}: {self.name}>'
+    
+    def to_dict(self):
+        return {
+            'connection_id': self.connection_id,
+            'name': self.name,
+            'shell_type': self.shell_type.value if self.shell_type else None,
+            'status': self.status.value if self.status else None,
+            'local_ip': self.local_ip,
+            'local_port': self.local_port,
+            'remote_ip': self.remote_ip,
+            'remote_port': self.remote_port,
+            'target_id': self.target_id,
+            'hostname': self.hostname,
+            'url': self.url,
+            'user': self.user,
+            'os_info': self.os_info,
+            'privilege_level': self.privilege_level,
+            'connect_time': self.connect_time.isoformat() if self.connect_time else None,
+            'disconnect_time': self.disconnect_time.isoformat() if self.disconnect_time else None,
+            'last_active': self.last_active.isoformat() if self.last_active else None,
+            'reconnect_count': self.reconnect_count,
+            'command_count': self.command_count,
+            'data_transferred': self.data_transferred,
+            'process_id': self.process_id,
+            'is_active': self.is_active,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    @classmethod
+    def create_connection(cls, connection_id, name, shell_type, **kwargs):
+        """Create a new shell connection"""
+        try:
+            connection = cls(connection_id, name, shell_type, **kwargs)
+            db.session.add(connection)
+            db.session.commit()
+            return connection
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error creating shell connection: {str(e)}")
+    @classmethod
+    def get_by_id(cls, connection_id):
+        """Get connection by ID"""
+        return cls.query.filter_by(connection_id=connection_id).first()
+    
+    @classmethod
+    def get_active_connections(cls):
+        """active connections"""
+        return cls.query.filter_by(is_active=True).all()
+    
+    @classmethod
+    def get_by_status(cls, status):
+        """Get connections by status"""
+        return cls.query.filter_by(status=status).all()
+    
+    @classmethod
+    def get_by_target(cls, target_id):
+        """et connections for a specific target"""
+        return cls.query.filter_by(target_id=target_id).all()
+    
+    def update_status(self, status, **kwargs):
+        """Update connection status and other fields"""
+        try:
+            self.status = status
+            self.last_active = dt.datetime.utcnow()
+            
+            if status == ShellStatus.DISCONNECTED or status == ShellStatus.CLOSED:
+                self.disconnect_time = dt.datetime.utcnow()
+                self.is_active = False
+            elif status == ShellStatus.CONNECTED:
+                self.connect_time = dt.datetime.utcnow()
+                self.is_active = True      
+            for key, value in kwargs.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+            
+            db.session.commit()
+            return self
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error updating shell connection: {str(e)}")
+    
+    def increment_command_count(self):
+        """Increment command count"""
+        self.command_count += 1
+        self.last_active = dt.datetime.utcnow()
+        db.session.commit()
+    
+    def add_data_transferred(self, bytes_count):
+        """o data transferred count"""
+        self.data_transferred += bytes_count
+        self.last_active = dt.datetime.utcnow()
+        db.session.commit()
+    
+    def delete(self):
+        """Delete connection"""
+        try:
+            db.session.delete(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error deleting shell connection: {str(e)}")
+
+
+class ShellCommand(db.Model):
+    """Model for storing shell commands and their outputs"""
+    __tablename__ = 'shell_commands'
+    command_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    connection_id = db.Column(db.String(255), db.ForeignKey('shell_connections.connection_id'), nullable=False)
+    
+    # Command details
+    command = db.Column(db.Text, nullable=False)
+    output = db.Column(db.Text, nullable=True)
+    exit_code = db.Column(db.Integer, nullable=True)
+    
+    # Timing
+    executed_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    duration_ms = db.Column(db.Integer, nullable=True)  # milliseconds
+    
+    # Metadata
+    success = db.Column(db.Boolean, nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
+    
+    def __init__(self, connection_id, command, output=None, exit_code=None, 
+                 completed_at=None, duration_ms=None, success=None, error_message=None):
+        self.connection_id = connection_id
+        self.command = command
+        self.output = output
+        self.exit_code = exit_code
+        self.completed_at = completed_at
+        self.duration_ms = duration_ms
+        self.success = success
+        self.error_message = error_message
+    
+    def __repr__(self):
+        return f'<ShellCommand {self.command_id}: {self.command[:50]}...>'
+    
+    def to_dict(self):
+        return {
+            'command_id': self.command_id,
+            'connection_id': self.connection_id,
+            'command': self.command,
+            'output': self.output,
+            'exit_code': self.exit_code,
+            'executed_at': self.executed_at.isoformat() if self.executed_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'duration_ms': self.duration_ms,
+            'success': self.success,
+            'error_message': self.error_message
+        }
+    
+    @classmethod
+    def create_command(cls, connection_id, command, **kwargs):
+        """Create a new shell command record"""
+        try:
+            cmd = cls(connection_id, command, **kwargs)
+            db.session.add(cmd)
+            db.session.commit()
+            return cmd
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error creating shell command: {str(e)}")
+    @classmethod
+    def get_by_connection(cls, connection_id, limit=100):
+        """Get commands for a specific connection"""
+        return cls.query.filter_by(connection_id=connection_id).order_by(desc(cls.executed_at)).limit(limit).all()
+    
+    def complete(self, output=None, exit_code=None, success=None, error_message=None):
+        """mmand as completed"""
+        try:
+            self.output = output
+            self.exit_code = exit_code
+            self.success = success
+            self.error_message = error_message
+            self.completed_at = dt.datetime.utcnow()
+            
+            if self.executed_at and self.completed_at:
+                self.duration_ms = int((self.completed_at - self.executed_at).total_seconds() * 1000)
+            db.session.commit()
+            return self
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error completing shell command: {str(e)}")

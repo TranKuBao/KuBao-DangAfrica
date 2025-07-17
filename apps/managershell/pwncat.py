@@ -333,12 +333,12 @@ class PwncatManager:
             db.session.rollback()
             print(f"[!] Error saving shell info to DB: {e}")
 
-# Example usage:
-if __name__ == "__main__":
-    manager = PwncatManager()
-    shell1 = manager.start_listener(4444)
-    # shell2 = manager.connect_shell("example.com", 4444)
-    print(manager.get_all_shells_info())
-    # manager.send_command(shell1, "whoami")
-    # print(manager.read_output(shell1))
-    # manager.close_shell(shell1)
+# # Example usage:
+# if __name__ == "__main__":
+#     manager = PwncatManager()
+#     shell1 = manager.start_listener(4444)
+#     # shell2 = manager.connect_shell("example.com", 4444)
+#     print(manager.get_all_shells_info())
+#     # manager.send_command(shell1, "whoami")
+#     # print(manager.read_output(shell1))
+#     # manager.close_shell(shell1)
