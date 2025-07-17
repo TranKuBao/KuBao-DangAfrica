@@ -39,7 +39,7 @@ def get_targets():
     search_query = request.args.get('search', '', type=str).strip()
     sort_type = request.args.get('sort', '', type=str).strip()
     per_page = 7
-    print(f"[x] page: {page} & search_query={search_query} & sort_type={sort_type}")
+    print(f"[x]LIST-TARGET page: {page} & search_query={search_query} & sort_type={sort_type}")
     targets_paginated, total_pages = Targets.search(search_query, page, per_page, sort_type)
 
     html = render_template('targets/partial_list_targets.html', targets=targets_paginated, loader=0)
@@ -297,7 +297,16 @@ def view_target():
 
     for poc in pocs:
         # Lấy message từ nhiều vị trí có thể
-        result = poc.get("result", {})
+        if isinstance(poc, dict):
+            result = poc.get("result", {})
+        elif isinstance(poc, str):
+            try:
+                poc_dict = json.loads(poc)
+                result = poc_dict.get("result", {})
+            except Exception:
+                result = {}
+        else:
+            result = {}
         msg = (
             str(result.get("Message", "")) +
             str(result.get("Result", "")) +

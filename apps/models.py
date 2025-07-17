@@ -333,44 +333,43 @@ class Targets(db.Model):
     def search(cls, keyword, page=None, per_page=None, sort_type=None):
         """Tìm kiếm targets theo hostname, ip_address, server_type hoặc status"""
         print(f"[x] keyword: {keyword} & page={page} & per_page={per_page} & sort_type={sort_type}")
-        query = Targets.query
+        query = cls.query
         if keyword:
             search_term = f"%{keyword}%"
             query =  query.filter(
                 or_(
-                    Targets.hostname.ilike(search_term),
-                    Targets.ip_address.ilike(search_term),
-                    Targets.server_type.ilike(search_term),
-                    Targets.status.ilike(search_term),      
-                    Targets.location.ilike(search_term),
-                    Targets.os.ilike(search_term)
+                    getattr(cls, 'hostname').ilike(search_term),
+                    getattr(cls, 'ip_address').ilike(search_term),
+                    getattr(cls, 'server_type').ilike(search_term),
+                    getattr(cls, 'status').ilike(search_term),      
+                    getattr(cls, 'location').ilike(search_term),
+                    getattr(cls, 'os').ilike(search_term)
                 )
             )
-        
         # Apply sorting
         if sort_type:
             if sort_type == 'hostname':
-                query = query.order_by(asc(Targets.hostname))
+                query = query.order_by(asc(getattr(cls, 'hostname')))
             elif sort_type == 'updated_at_desc':
-                query = query.order_by(desc(Targets.updated_at))
+                query = query.order_by(desc(getattr(cls, 'updated_at')))
             elif sort_type == 'updated_at_asc':
-                query = query.order_by(asc(Targets.updated_at))
+                query = query.order_by(asc(getattr(cls, 'updated_at')))
             elif sort_type == 'created_at_desc':
-                query = query.order_by(desc(Targets.created_at))
+                query = query.order_by(desc(getattr(cls, 'created_at')))
             elif sort_type == 'created_at_asc':
-                query = query.order_by(asc(Targets.created_at))
+                query = query.order_by(asc(getattr(cls, 'created_at')))
             elif sort_type == 'status':
-                query = query.order_by(asc(Targets.status))
+                query = query.order_by(asc(getattr(cls, 'status')))
             elif sort_type == 'server_type':
-                query = query.order_by(asc(Targets.server_type))
+                query = query.order_by(asc(getattr(cls, 'server_type')))
             elif sort_type == 'ip_address':
-                query = query.order_by(asc(Targets.ip_address))
+                query = query.order_by(asc(getattr(cls, 'ip_address')))
             else:
                 # Default sorting by server_id desc (newest first)
-                query = query.order_by(desc(Targets.server_id))
+                query = query.order_by(desc(getattr(cls, 'server_id')))
         else:
             # Default sorting by server_id desc (newest first)
-            query = query.order_by(desc(Targets.server_id))
+            query = query.order_by(desc(getattr(cls, 'server_id')))
             
         print(f"QUERY: {query}")
         if page and per_page: # nếu có các giá trị của phân trang thì mình cho nó
@@ -1221,6 +1220,48 @@ class ShellConnection(db.Model):
     def get_by_target(cls, target_id):
         """et connections for a specific target"""
         return cls.query.filter_by(target_id=target_id).all()
+    
+    @classmethod
+    def search(cls, keyword=None, page=None, per_page=None, sort_type=None):
+        """Tìm kiếm shell connections theo name, hostname, IP, user, status, shell_type"""
+        query = cls.query
+        if keyword:
+            search_term = f"%{keyword}%"
+            query = query.filter(
+                or_(
+                    getattr(cls, 'name').ilike(search_term),
+                    getattr(cls, 'hostname').ilike(search_term),
+                    getattr(cls, 'local_ip').ilike(search_term),
+                    getattr(cls, 'remote_ip').ilike(search_term),
+                    getattr(cls, 'user').ilike(search_term),
+                    getattr(cls, 'status').ilike(search_term),
+                    getattr(cls, 'shell_type').ilike(search_term)
+                )
+            )
+        # Apply sorting
+        if sort_type:
+            if sort_type == 'name':
+                query = query.order_by(asc(getattr(cls, 'name')))
+            elif sort_type == 'created_at_desc':
+                query = query.order_by(desc(getattr(cls, 'created_at')))
+            elif sort_type == 'created_at_asc':
+                query = query.order_by(asc(getattr(cls, 'created_at')))
+            elif sort_type == 'updated_at_desc':
+                query = query.order_by(desc(getattr(cls, 'updated_at')))
+            elif sort_type == 'updated_at_asc':
+                query = query.order_by(asc(getattr(cls, 'updated_at')))
+            elif sort_type == 'status':
+                query = query.order_by(asc(getattr(cls, 'status')))
+            elif sort_type == 'shell_type':
+                query = query.order_by(asc(getattr(cls, 'shell_type')))
+            else:
+                query = query.order_by(desc(getattr(cls, 'created_at')))
+        else:
+            query = query.order_by(desc(getattr(cls, 'created_at')))
+        if page and per_page:
+            pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+            return pagination.items, pagination.pages
+        return query.all(), None
     
     def update_status(self, status, **kwargs):
         """Update connection status and other fields"""

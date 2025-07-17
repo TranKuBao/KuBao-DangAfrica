@@ -60,6 +60,7 @@ def list_shells():
     search_query = request.args.get('search', '', type=str).strip()
     sort_type = request.args.get('sort', '', type=str).strip()
     per_page = request.args.get('per_page', default=10, type=int) or 10
+    print(f"[x]LIST-SHELL page: {page} & search_query={search_query} & sort_type={sort_type}")
 
     # Xây dựng query
     query = ShellConnection.query
