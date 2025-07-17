@@ -1,0 +1,130 @@
+<div class="row" id="editshell-hidden" hidden>
+  <div class="col-12">
+    <div class="card mb-4">
+      <div class="card-header pb-0 p-3">
+        <h6 class="mb-0">Add New Shell</h6>
+      </div>
+      <div class="card-body p-3">
+        <form id="add-shell-form">
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label for="shell_type" class="form-label">Shell Type</label>
+              <select class="form-control" id="shell_type" name="shell_type" required>
+                <option value="reverse">Reverse Shell</option>
+                <option value="bind">Bind Shell</option>
+              </select>
+            </div>
+            <div class="col-md-3 mb-3" id="interface-group">
+              <label for="interface" class="form-label">Listen Interface</label>
+              <select class="form-control" id="interface" name="interface">
+                {% if interfaces %}
+                  {% for iface in interfaces %}
+                    <option value="{{ iface }}">{{ iface }}</option>
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+            <div class="col-md-3 mb-3" id="ip-group" style="display:none;">
+              <label for="ip" class="form-label">Target (Bind Shell)</label>
+              <input type="text" class="form-control" id="ip" name="ip" placeholder="192.168.1.100">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="port" class="form-label">Port</label>
+              <input type="number" class="form-control" id="port" name="port" min="1" max="65535" required>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="target_id" class="form-label">Target</label>
+              <input type="text" class="form-control mb-2" id="target-search" placeholder="Search target...">
+              <select class="form-control" id="target_id" name="target_id" size="6">
+                <option value="">-- None --</option>
+                {% for target in targets %}
+                  <option value="{{ target.server_id }}">{{ target.hostname }} ({{ target.ip_address }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="note" class="form-label">Note</label>
+              <input type="text" class="form-control" id="note" name="note" maxlength="255">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12 text-end">
+              <button type="submit" class="btn btn-primary">Add Shell</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// Ẩn/hiện trường IP và interface khi chọn loại shell
+$(document).ready(function() {
+  function updateShellTypeFields() {
+    if ($('#shell_type').val() === 'bind') {
+      $('#ip-group').show();
+      $('#ip').prop('required', true);
+      $('#interface-group').hide();
+      $('#interface').prop('required', false);
+    } else {
+      $('#ip-group').hide();
+      $('#ip').prop('required', false);
+      $('#interface-group').show();
+      $('#interface').prop('required', true);
+    }
+  }
+  $('#shell_type').on('change', updateShellTypeFields);
+  updateShellTypeFields();
+
+  // Search/filter target dropdown
+  $('#target-search').on('input', function() {
+    var search = $(this).val().toLowerCase();
+    $('#target_id option').each(function() {
+      if (!search) {
+        $(this).show();
+        return;
+      }
+      var text = $(this).text().toLowerCase();
+      if (text.indexOf(search) !== -1 || $(this).val() === "") {
+        $(this).show();
+      } else {
+        $(this).hide();
+      }
+    });
+  });
+
+  // Submit form
+  $('#add-shell-form').on('submit', function(e) {
+    e.preventDefault();
+    const data = {
+      shell_type: $('#shell_type').val(),
+      port: $('#port').val(),
+      ip: $('#ip').val(),
+      interface: $('#interface').val(),
+      target_id: $('#target_id').val(),
+      note: $('#note').val()
+    };
+    console.log(data);
+    $.ajax({
+      url: '/api/shells',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(data),
+      success: function(resp) {
+        if (resp.status === 'success') {
+          alert('Shell created successfully!');
+          
+          location.reload();
+        } else {
+          alert('Error: ' + (resp.msg || 'Failed to create shell'));
+        }
+      },
+      error: function(xhr) {
+        alert('Error: ' + (xhr.responseJSON && xhr.responseJSON.msg ? xhr.responseJSON.msg : 'Failed to create shell'));
+      }
+    });
+  });
+});
+</script>

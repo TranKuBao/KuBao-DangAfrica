@@ -326,9 +326,8 @@
   {% include "partials/header-statictical.html"%}
 
   <!-- thông tin các trường mình sẽ hiện ra ở đây ở đây-->
-  {% include "partials/add_target.html"%}
+  {% include "shells/add-shell.html"%}
   
-  <!-- script on off tag add target-->
 
   <!--table hiển thị list Mục tiêu ở đây-->
   <div class="row my-3">
@@ -337,14 +336,14 @@
         <div class="card-header pb-0 p-3">
           <div class="row">
             <div class="col-6 d-flex align-items-center">
-              <h6 class="mb-0" style="margin-left: 20px !important ;">List_Target</h6>
+              <h6 class="mb-0" style="margin-left: 20px !important ;">List_Shell</h6>
             </div>
 
             
 
             <div class="col-6 text-end" >
-              <a class="btn bg-gradient-dark mb-0" id="btn-addtargets" style="margin-right: 20px !important;"
-                ><i class="fas fa-plus"></i>&nbsp;&nbsp;Add Target</a
+              <a class="btn bg-gradient-dark mb-0" id="btn-addshells" style="margin-right: 20px !important;"
+                ><i class="fas fa-plus"></i>&nbsp;&nbsp;Add shell</a
               >
             </div>
           </div>
@@ -361,7 +360,7 @@
                   type="text"
                   class="form-control"
                   placeholder="Tìm kiếm ..."
-                  id="id_search_target"
+                  id="id_search_shell"
                 />
               </div>
               
@@ -372,7 +371,6 @@
                   <i class="fas fa-check-circle"></i>
                   <span class="tooltip">Verify Selected</span>
                 </button>
-                {% include "partials/verify_target.html" %}
 
 
                 <!-- Delete Button -->
@@ -389,7 +387,6 @@
                     <span class="tooltip">Thu thập thông tin</span>
                   </button>
                 </div>
-                {% include "partials/recon_target.html" %}
 
                 <!-- Sort Dropdown -->
                 <div class="custom-dropdown">
@@ -398,19 +395,19 @@
                     <span class="tooltip">Sắp xếp</span>
                   </button>
                   <div class="custom-dropdown-menu" id="sort-dropdown">
-                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('hostname')">
+                    <a class="custom-dropdown-item" href="#" onclick="sortshells('hostname')">
                       <i class="fas fa-globe me-2"></i>Hostname
                     </a>
-                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('updated_at_desc')">
+                    <a class="custom-dropdown-item" href="#" onclick="sortshells('updated_at_desc')">
                       <i class="fas fa-clock me-2"></i>Thời gian cập nhật mới nhất
                     </a>
-                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('updated_at_asc')">
+                    <a class="custom-dropdown-item" href="#" onclick="sortshells('updated_at_asc')">
                       <i class="fas fa-history me-2"></i>Thời gian cập nhật cũ nhất
                     </a>
-                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('created_at_desc')">
+                    <a class="custom-dropdown-item" href="#" onclick="sortshells('created_at_desc')">
                       <i class="fas fa-history me-2"></i>Thời gian tạo mới nhất
                     </a>
-                    <a class="custom-dropdown-item" href="#" onclick="sortTargets('created_at_asc')">
+                    <a class="custom-dropdown-item" href="#" onclick="sortshells('created_at_asc')">
                       <i class="fas fa-history me-2"></i>Thời gian tạo cũ nhất
                     </a>
                   </div>
@@ -446,30 +443,30 @@
                   <th
                     class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
                   >
-                    Type
+                    Status
                   </th>
                   <th
                     class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
                   >
-                    Status
+                    Shell Type
                   </th>
                   <th
                     class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
                   >
-                    Vulnarebility
+                    Uname 
                   </th>
                   <th
                     class="text-uppercase text-secondary text-xxs font-weight-bolder text-center opacity-7 ps-2"
                   >
-                    Completion
+                    Time-Connect
                   </th>
                   <th class="text-secondary opacity-7"></th>
                 </tr>
               </thead>
 
-              <tbody id="targetTableBody">
-                <!--Hiển thị list target ở đây-->
-                {% include "targets/partial_list_targets.html"%}
+              <tbody id="shellTableBody">
+                <!--Hiển thị list shell ở đây-->
+                {% include "shells/partial-list-shell.html"%}
               </tbody>
             </table>
           </div>
@@ -548,11 +545,11 @@
     updatePaginationDisplay();
     updateNavigationButtons();
     updatePageInfo();
-    showContent(currentPage, document.getElementById("id_search_target").value, currentSortType);
+    showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
   }
 
   function showContent(page, searchInput = "", sortType = "") {
-    let url = `/api/targets?page=${page}`;
+    let url = `/api/shells?page=${page}`;
     if (searchInput.trim()) {
       url += `&search=${encodeURIComponent(searchInput.trim())}`;
     }
@@ -560,7 +557,7 @@
       url += `&sort=${encodeURIComponent(sortType.trim())}`;
     }
 
-    document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>';
+    document.querySelector("#shellTableBody").innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>';
 
     fetch(url)
       .then((response) => {
@@ -571,25 +568,25 @@
         if (data.total_pages !== undefined) {
           totalPages = data.total_pages;
         }
-        document.querySelector("#targetTableBody").innerHTML = data.html;
+        document.querySelector("#shellTableBody").innerHTML = data.html;
         
         initStatusCheck(); // là check status code thôi
 
         updatePaginationDisplay();
         updateNavigationButtons();
         updatePageInfo();
-        restoreCheckedTargets();
+        restoreCheckedshells();
       })
       .catch((error) => {
-        console.error("Lỗi khi tải danh sách targets:", error);
-        document.querySelector("#targetTableBody").innerHTML = '<tr><td colspan="6">Lỗi tải dữ liệu</td></tr>';
+        console.error("Lỗi khi tải danh sách shells:", error);
+        document.querySelector("#shellTableBody").innerHTML = '<tr><td colspan="6">Lỗi tải dữ liệu</td></tr>';
       });
   }
 
   function goToPage(page) {
     if (!page || isNaN(page) || page < 1 || page > totalPages || page === currentPage) return;
 
-    const searchValue = document.getElementById("id_search_target").value;
+    const searchValue = document.getElementById("id_search_shell").value;
     currentPage = page;
     showContent(page, searchValue, currentSortType);
   }
@@ -669,7 +666,7 @@
   document.addEventListener("DOMContentLoaded", function () {
     initPagination();
 
-    const searchInput = document.getElementById("id_search_target");
+    const searchInput = document.getElementById("id_search_shell");
     searchInput.addEventListener("input", debounce(function () {
       currentPage = 1;
       showContent(currentPage, this.value, currentSortType);
@@ -689,23 +686,23 @@
   });
 </script>
 
-<!--Script button hiên thị thêm target và dropdow của các nút selection hệ thống-->
+<!--Script button hiên thị thêm shell và dropdow của các nút selection hệ thống-->
 <script>
-  function on_off_addtarget() {
-    if (document.getElementById("edittarget-hidden").hidden == true) {
-      document.getElementById("edittarget-hidden").hidden = false;
-      document.getElementById("btn-addtargets").innerHTML ='<i class="fas fa-minus"></i>&nbsp;&nbsp;Hide Form';
+  function on_off_addshell() {
+    if (document.getElementById("editshell-hidden").hidden == true) {
+      document.getElementById("editshell-hidden").hidden = false;
+      document.getElementById("btn-addshells").innerHTML ='<i class="fas fa-minus"></i>&nbsp;&nbsp;Hide Form';
     } else {
-      document.getElementById("edittarget-hidden").hidden = true;
-      document.getElementById("btn-addtargets").innerHTML ='<i class="fas fa-plus"></i>&nbsp;&nbsp;Add Target';
+      document.getElementById("editshell-hidden").hidden = true;
+      document.getElementById("btn-addshells").innerHTML ='<i class="fas fa-plus"></i>&nbsp;&nbsp;Add shell';
     }
   }
   document
-    .getElementById("btn-addtargets")
+    .getElementById("btn-addshells")
     .addEventListener("click", function (event) {
       event.preventDefault();
-      console.log("Nút thêm Target đã được nhấn");
-      on_off_addtarget();
+      console.log("Nút thêm shell đã được nhấn");
+      on_off_addshell();
     });
 
   // Custom Dropdown Functionality
@@ -728,7 +725,7 @@
   document.addEventListener('click', function(event) {
     const dropdowns = document.querySelectorAll('.custom-dropdown');
     dropdowns.forEach(dropdown => {
-      if (!dropdown.contains(event.target)) {
+      if (!dropdown.contains(event.shell)) {
         const menu = dropdown.querySelector('.custom-dropdown-menu');
         if (menu) {
           menu.classList.remove('show');
@@ -747,8 +744,8 @@
     }
   });
 
-  // Sort targets function
-  function sortTargets(sortType) {
+  // Sort shells function
+  function sortshells(sortType) {
     console.log('Sorting by:', sortType);
     
     // Close dropdown after selection
@@ -764,29 +761,29 @@
     currentPage = 1;
     
     // Load content with new sort
-    showContent(currentPage, document.getElementById("id_search_target").value, currentSortType);
+    showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
   }
 </script>
 
 <!--checkbox và các nut verify và ....-->
 <script>
-  window.checkedTargetIds = window.checkedTargetIds || [];
+  window.checkedshellIds = window.checkedshellIds || [];
 
 // Khi check/uncheck từng checkbox
-function onTargetCheckboxChange(checkbox) {
-  const id = checkbox.getAttribute('data-target-id');
+function onshellCheckboxChange(checkbox) {
+  const id = checkbox.getAttribute('data-shell-id');
   if (checkbox.checked) {
-    if (!window.checkedTargetIds.includes(id)) window.checkedTargetIds.push(id);
+    if (!window.checkedshellIds.includes(id)) window.checkedshellIds.push(id);
   } else {
-    window.checkedTargetIds = window.checkedTargetIds.filter(tid => tid !== id);
+    window.checkedshellIds = window.checkedshellIds.filter(tid => tid !== id);
   }
   
-  // Hiển thị số lượng target đã chọn
+  // Hiển thị số lượng shell đã chọn
   updateSelectAllCheckbox();
   
   // Cập nhật thông tin trong modal nếu đang mở
-  if (typeof refreshTargetInfo === 'function') {
-    refreshTargetInfo();
+  if (typeof refreshshellInfo === 'function') {
+    refreshshellInfo();
   }
 }
 
@@ -799,32 +796,32 @@ function toggleAllCheckboxes(source) {
     // Lần nhấn đầu tiên: Chọn tất cả trên trang hiện tại
     checkboxes.forEach(cb => {
       cb.checked = true;
-      onTargetCheckboxChange(cb);
+      onshellCheckboxChange(cb);
     });
   } else {
     // Lần nhấn thứ hai: Bỏ chọn tất cả trên trang hiện tại
     checkboxes.forEach(cb => {
       cb.checked = false;
-      onTargetCheckboxChange(cb);
+      onshellCheckboxChange(cb);
     });
   }
   
   // Cập nhật thông tin trong modal nếu đang mở
-  if (typeof refreshTargetInfo === 'function') {
-    refreshTargetInfo();
+  if (typeof refreshshellInfo === 'function') {
+    refreshshellInfo();
   }
 }
 
-// Lấy target IDs đã check
-function getCheckedTargetIds() {
-  return window.checkedTargetIds;
+// Lấy shell IDs đã check
+function getCheckedshellIds() {
+  return window.checkedshellIds;
 }
 
 // Khi render lại bảng, gọi hàm này để restore trạng thái checked
-function restoreCheckedTargets() {
+function restoreCheckedshells() {
   const checkboxes = document.querySelectorAll('.row-checkbox');
   checkboxes.forEach(cb => {
-    cb.checked = window.checkedTargetIds.includes(cb.getAttribute('data-target-id'));
+    cb.checked = window.checkedshellIds.includes(cb.getAttribute('data-shell-id'));
   });
   
   // Reset select-all về unchecked và không indeterminate khi làm mới list
@@ -867,33 +864,33 @@ function updateSelectAllCheckbox() {
 }
 
 
-//verify 1 POC với nhiểu target đã chọn
+//verify 1 POC với nhiểu shell đã chọn
 document.getElementById('btn-verify-selected').addEventListener("click",function(){
-  const data = getCheckedTargetIds();
+  const data = getCheckedshellIds();
     if( data.length ==0 ){
-      alert('Please check the target you want to Verify with POC.');
+      alert('Please check the shell you want to Verify with POC.');
       return ;
     }
     console.log(data); 
     // Lấy thông tin modes từ API
     
-    document.getElementById('selectedTargetCount').textContent = window.checkedTargetIds.length;
+    document.getElementById('selectedshellCount').textContent = window.checkedshellIds.length;
     
     // ... cập nhật các field khác
-    const modal = new bootstrap.Modal(document.getElementById('verifyPocWithTargetsModal'));
+    const modal = new bootstrap.Modal(document.getElementById('verifyPocWithshellsModal'));
     modal.show();
 });
 
 //Chức năng Recon
 document.getElementById('btn-Recon-function').addEventListener("click",function(){
-  const data = getCheckedTargetIds();
+  const data = getCheckedshellIds();
     if( data.length == 0 ){
-      alert('Please check the target you want to Reconnaissance.');
+      alert('Please check the shell you want to Reconnaissance.');
       return ;
     }    
     
     if(data.length >1) {
-      alert("Function only allowed with 1 target")
+      alert("Function only allowed with 1 shell")
       return;
     }
 
@@ -901,26 +898,26 @@ document.getElementById('btn-Recon-function').addEventListener("click",function(
     document.getElementById('reconScanResult').textContent += '\n[Data will be display in here]';
 
     // ... cập nhật các field khác
-    const modal = new bootstrap.Modal(document.getElementById('reconTargetsModal'));
+    const modal = new bootstrap.Modal(document.getElementById('reconshellsModal'));
     modal.show();
 });
 
-//Xóa target 
+//Xóa shell 
 document.getElementById("btn-delete-selected").addEventListener("click", function(){
   
-  if (confirm(`Are you sure you want to delete the selected targets?`)) {
-    //alert(getCheckedTargetIds()); 
-    const data = getCheckedTargetIds();
+  if (confirm(`Are you sure you want to delete the selected shells?`)) {
+    //alert(getCheckedshellIds()); 
+    const data = getCheckedshellIds();
     if( data.length ==0 ){
-      alert('Please check the target you want to delete.');
+      alert('Please check the shell you want to delete.');
       return ;
     }
     console.log(data);
 
     $.ajax({
-      url:'/api/delete_target',
+      url:'/api/delete_shell',
       type: 'POST',
-      data: JSON.stringify({target_ids: data}),
+      data: JSON.stringify({shell_ids: data}),
       contentType: 'application/json',
     })
     .done((resp) =>{
@@ -934,8 +931,8 @@ document.getElementById("btn-delete-selected").addEventListener("click", functio
 
     })
     .fail((error) =>{
-      console.error('Error deleting target:', error);
-      alert('Error deleting target:', error);
+      console.error('Error deleting shell:', error);
+      alert('Error deleting shell:', error);
     });
 
   }

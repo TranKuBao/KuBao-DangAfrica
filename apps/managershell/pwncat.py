@@ -44,9 +44,13 @@ class PwncatManager:
         except Exception:
             return None
 
-    def start_listener(self, port, name=None, url=None):
+    def start_listener(self, port, name=None, url=None, listen_ip='0.0.0.0'):
+        # Thêm listen_ip vào lệnh nếu được truyền vào
+        cmd = ["python", "-m", "pwncat", "-lp", str(port)]
+        if listen_ip:
+            cmd += ["-l", listen_ip]
         proc = subprocess.Popen(
-            ["python", "-m", "pwncat", "-lp", str(port)],
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             stdin=subprocess.PIPE,
@@ -59,7 +63,7 @@ class PwncatManager:
             "proc": proc,
             "type": "listener",
             "port": port,
-            "ip": None,
+            "ip": listen_ip,
             "hostname": None,
             "url": url,
             "connect_time": connect_time,
@@ -72,7 +76,7 @@ class PwncatManager:
         }
         with self.lock:
             self.shells[shell_id] = info
-        print(f"[+] Started pwncat listener on port {port} as '{shell_id}'")
+        print(f"[+] Started pwncat listener on {listen_ip}:{port} as '{shell_id}'")
         # Lưu vào DB
         self.save_shell_to_db(info)
         return shell_id

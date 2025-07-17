@@ -42,7 +42,7 @@ def get_targets():
     print(f"[x] page: {page} & search_query={search_query} & sort_type={sort_type}")
     targets_paginated, total_pages = Targets.search(search_query, page, per_page, sort_type)
 
-    html = render_template('partials/partial_list_targets.html', targets=targets_paginated, loader=0)
+    html = render_template('targets/partial_list_targets.html', targets=targets_paginated, loader=0)
 
     return jsonify({
         'html': html,

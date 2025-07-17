@@ -21,53 +21,109 @@ from flask_login import login_required
 from apps.models import ShellConnection, ShellCommand, ShellStatus, ShellType, Targets, db
 from apps.managershell.pwncat import PwncatManager
 import uuid
+from apps.models import Targets
+import psutil
 
-blueprint = Blueprint('managershell', __name__)
+
+
 shell_manager = PwncatManager()
+
+#bắt đầu code từ đây
+@blueprint.route('/shells')
+def shells():
+    """Hàm gửi request tới shell"""
+    def get_server_interfaces():
+        interfaces = set()
+        for iface, addrs in psutil.net_if_addrs().items():
+            for addr in addrs:
+                if getattr(addr, 'family', None) == 2:  # IPv4
+                    interfaces.add(addr.address)
+        interfaces.update(['0.0.0.0', '127.0.0.1'])
+        return sorted(interfaces)
+
+    targets = Targets.query.all()
+    interfaces = get_server_interfaces()
+    return render_template(
+        'shells/index-shell.html',
+        segment='index_shell',
+        targets=targets,
+        interfaces=interfaces
+    )
+
+
 
 # 1. Danh sách shell (có filter, search, sort)
 @blueprint.route('/api/shells', methods=['GET'])
-@login_required
 def list_shells():
+    """Danh sách shell với phân trang, tìm kiếm, sắp xếp"""
+    page = request.args.get('page', default=1, type=int) or 1
+    search_query = request.args.get('search', '', type=str).strip()
+    sort_type = request.args.get('sort', '', type=str).strip()
+    per_page = request.args.get('per_page', default=10, type=int) or 10
+
+    # Xây dựng query
     query = ShellConnection.query
-    # Filter
-    status = request.args.get('status')
-    shell_type = request.args.get('shell_type')
-    target_id = request.args.get('target_id')
-    search = request.args.get('search')
-    sort = request.args.get('sort', 'last_active')
-    order = request.args.get('order', 'desc')
-    if status:
-        query = query.filter_by(status=status)
-    if shell_type:
-        query = query.filter_by(shell_type=shell_type)
-    if target_id:
-        query = query.filter_by(target_id=target_id)
-    if search:
-        query = query.filter(ShellConnection.name.ilike(f'%{search}%'))
-    # Sort
-    if hasattr(ShellConnection, sort):
-        if order == 'desc':
-            query = query.order_by(getattr(ShellConnection, sort).desc())
-        else:
-            query = query.order_by(getattr(ShellConnection, sort).asc())
-    shells = query.all()
-    return jsonify({'status': 'success', 'data': [s.to_dict() for s in shells]})
+    if search_query:
+        query = query.filter(ShellConnection.name.ilike(f'%{search_query}%'))
+    if sort_type:
+        if hasattr(ShellConnection, sort_type):
+            query = query.order_by(getattr(ShellConnection, sort_type).desc())
+    else:
+        query = query.order_by(ShellConnection.created_at.desc())
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    shells_paginated = pagination.items
+    total_pages = pagination.pages
+
+    html = render_template('shells/partial-list-shell.html', shells=shells_paginated)
+
+    return jsonify({
+        'html': html,
+        'total_pages': total_pages
+    })
 
 # 2. Tạo mới shell (listener/bind)
 @blueprint.route('/api/shells', methods=['POST'])
-@login_required
 def create_shell():
-    data = request.json
+    data = request.get_json() or {}
     shell_type = data.get('shell_type')
+    if not shell_type:
+        return jsonify({'status': 'fail', 'msg': 'Missing shell_type'}), 400
     port = data.get('port')
+    if port is None:
+        return jsonify({'status': 'fail', 'msg': 'Missing port'}), 400
+    try:
+        port = int(port)
+    except (TypeError, ValueError):
+        return jsonify({'status': 'fail', 'msg': 'Invalid port'}), 400
+    interface = data.get('interface') or '0.0.0.0'
+    ip = data.get('ip')
     target_id = data.get('target_id')
     target = Targets.query.get(target_id) if target_id else None
     name = data.get('name') or f'{shell_type}_{uuid.uuid4().hex[:8]}'
     url = data.get('url')
+
+    # Kiểm tra trùng port/interface
+    if shell_type == 'reverse':
+        exists = ShellConnection.query.filter_by(
+            shell_type=ShellType.REVERSE,
+            local_ip=interface,
+            local_port=port
+        ).filter(
+            (ShellConnection.status == ShellStatus.LISTENING) | (ShellConnection.status == ShellStatus.CONNECTED)
+        ).first()
+        if exists:
+            return jsonify({'status': 'fail', 'msg': f'IP {interface}:{port} is already in use for a reverse shell!'}), 400
+    elif shell_type == 'bind':
+        exists = ShellConnection.query.filter_by(shell_type=ShellType.BIND, remote_ip=ip, remote_port=port).filter(
+            (ShellConnection.status == ShellStatus.LISTENING) | (ShellConnection.status == ShellStatus.CONNECTED)
+        ).first()
+        if exists:
+            return jsonify({'status': 'fail', 'msg': f'IP {ip}:{port} is already in use for a bind shell!'}), 400
+
     # Tạo shell
     if shell_type == 'reverse':
-        shell_id = shell_manager.start_listener(port, name=name, url=url)
+        shell_id = shell_manager.start_listener(port, name=name, url=url, listen_ip=str(interface))
     elif shell_type == 'bind':
         ip = data.get('ip') or (target.ip_address if target else None)
         shell_id = shell_manager.connect_shell(ip, port, name=name, url=url)
@@ -80,6 +136,7 @@ def create_shell():
         connection_id=shell_id,
         name=name,
         shell_type=ShellType.REVERSE if shell_type=='reverse' else ShellType.BIND,
+        local_ip=interface if shell_type=='reverse' else None,
         local_port=port if shell_type=='reverse' else None,
         remote_ip=ip if shell_type=='bind' else None,
         remote_port=port if shell_type=='bind' else None,
@@ -91,7 +148,6 @@ def create_shell():
 
 # 3. Xem chi tiết shell
 @blueprint.route('/api/shells/<shell_id>', methods=['GET'])
-@login_required
 def get_shell(shell_id):
     conn = ShellConnection.get_by_id(shell_id)
     if not conn:
@@ -100,9 +156,8 @@ def get_shell(shell_id):
 
 # 4. Gửi lệnh tới shell
 @blueprint.route('/api/shells/<shell_id>/command', methods=['POST'])
-@login_required
 def send_command(shell_id):
-    data = request.json
+    data = request.get_json() or {}
     command = data.get('command')
     if not command:
         return jsonify({'status': 'fail', 'msg': 'No command'}), 400
@@ -112,7 +167,6 @@ def send_command(shell_id):
 
 # 5. Lấy lịch sử lệnh
 @blueprint.route('/api/shells/<shell_id>/history', methods=['GET'])
-@login_required
 def shell_history(shell_id):
     limit = int(request.args.get('limit', 50))
     cmds = ShellCommand.get_by_connection(shell_id, limit=limit)
@@ -120,7 +174,6 @@ def shell_history(shell_id):
 
 # 6. Đóng shell
 @blueprint.route('/api/shells/<shell_id>/close', methods=['POST'])
-@login_required
 def close_shell(shell_id):
     ok = shell_manager.close_shell(shell_id)
     conn = ShellConnection.get_by_id(shell_id)
@@ -130,7 +183,6 @@ def close_shell(shell_id):
 
 # 7. Xóa shell
 @blueprint.route('/api/shells/<shell_id>', methods=['DELETE'])
-@login_required
 def delete_shell(shell_id):
     conn = ShellConnection.get_by_id(shell_id)
     if not conn:
@@ -141,9 +193,8 @@ def delete_shell(shell_id):
 
 # 8. Upload file
 @blueprint.route('/api/shells/<shell_id>/upload', methods=['POST'])
-@login_required
 def upload_file(shell_id):
-    data = request.json
+    data = request.get_json() or {}
     local_path = data.get('local_path')
     remote_path = data.get('remote_path')
     ok = shell_manager.upload_file(shell_id, local_path, remote_path)
@@ -151,9 +202,8 @@ def upload_file(shell_id):
 
 # 9. Download file
 @blueprint.route('/api/shells/<shell_id>/download', methods=['POST'])
-@login_required
 def download_file(shell_id):
-    data = request.json
+    data = request.get_json() or {}
     remote_path = data.get('remote_path')
     local_path = data.get('local_path')
     ok = shell_manager.download_file(shell_id, remote_path, local_path)
@@ -161,16 +211,14 @@ def download_file(shell_id):
 
 # 10. Privilege escalation
 @blueprint.route('/api/shells/<shell_id>/escalate', methods=['POST'])
-@login_required
 def escalate(shell_id):
-    data = request.json
+    data = request.get_json() or {}
     user = data.get('user')
     ok = shell_manager.escalate_privilege(shell_id, user)
     return jsonify({'status': 'success' if ok else 'fail'})
 
 # 11. Thống kê
 @blueprint.route('/api/shells/statistics', methods=['GET'])
-@login_required
 def shell_stats():
     total = ShellConnection.query.count()
     active = ShellConnection.query.filter_by(is_active=True).count()
@@ -179,9 +227,8 @@ def shell_stats():
 
 # 12. Ghi chú cho shell
 @blueprint.route('/api/shells/<shell_id>/note', methods=['POST'])
-@login_required
 def update_note(shell_id):
-    data = request.json
+    data = request.get_json() or {}
     note = data.get('note')
     conn = ShellConnection.get_by_id(shell_id)
     if not conn:
