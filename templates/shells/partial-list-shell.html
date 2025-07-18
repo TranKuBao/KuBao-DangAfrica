@@ -114,7 +114,7 @@ function HandleActionShell(connectionID, nowaction){
           if(resp.status == 'success'){
             //Làm 1 cái notic thông bác 
             alert("Enabled successful");
-            location.reload()
+            showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
           }
           else{
             alert(`${resp.msg}`);
@@ -138,7 +138,7 @@ function HandleActionShell(connectionID, nowaction){
             /// lam cai NOti o day
             
             alert('thanhf coong tawst');
-            location.reload()
+            showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
           }
           else{
             alert(`${resp.msg}`);
