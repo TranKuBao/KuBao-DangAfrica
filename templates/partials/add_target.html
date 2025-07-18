@@ -181,9 +181,11 @@
       if (response.ok) {
         alert(result.msg);
         // Xử lý thêm nếu cần
+        showContent(currentPage, document.getElementById("id_search_target").value, currentSortType);
       } else {
         alert('Lỗi: ' + (result.error || 'Không xác định'));
       }
+
     } catch (err) {
       alert('Lỗi kết nối server!');
     }
@@ -229,6 +231,7 @@
         alert(resp['msg'],' ',resp['count'],' targets.');
 
       }
+      showContent(currentPage, document.getElementById("id_search_target").value, currentSortType);
     })
     .fail((error)=>{
       console.log(error);

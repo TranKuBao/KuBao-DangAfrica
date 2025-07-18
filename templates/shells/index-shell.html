@@ -374,7 +374,7 @@
 
 
                 <!-- Delete Button -->
-                <button class="action-btn btn-delete" id="btn-delete-selected">
+                <button class="action-btn btn-delete" id="btn-delete-selected" title="Delete shel">
                   <i class="fas fa-trash-alt"></i>
                   <span class="tooltip">Delete Selected</span>
                 </button>
@@ -390,7 +390,7 @@
 
                 <!-- Sort Dropdown -->
                 <div class="custom-dropdown">
-                  <button class="action-btn btn-sort" onclick="toggleDropdown('sort-dropdown')">
+                  <button class="action-btn btn-sort" onclick="toggleDropdown('sort-dropdown')" title="Sort By">
                     <i class="fas fa-sort"></i>
                     <span class="tooltip">Sắp xếp</span>
                   </button>
@@ -731,17 +731,15 @@
     dropdown.classList.toggle('show');
   }
 
-  // Close dropdowns when clicking outside
+  // Close dropdowns when clicking outside (chỉ cho sort-dropdown)
   document.addEventListener('click', function(event) {
-    const dropdowns = document.querySelectorAll('.custom-dropdown');
-    dropdowns.forEach(dropdown => {
-      if (!dropdown.contains(event.shell)) {
-        const menu = dropdown.querySelector('.custom-dropdown-menu');
-        if (menu) {
-          menu.classList.remove('show');
-        }
-      }
-    });
+    const sortDropdown = document.getElementById('sort-dropdown');
+    const sortButton = document.querySelector('.btn-sort');
+    if (!sortDropdown || !sortButton) return;
+    // Nếu click không nằm trong dropdown menu hoặc nút sort thì đóng
+    if (!sortDropdown.contains(event.target) && !sortButton.contains(event.target)) {
+      sortDropdown.classList.remove('show');
+    }
   });
 
   // Close dropdowns when pressing Escape
@@ -914,39 +912,44 @@ document.getElementById('btn-Recon-function').addEventListener("click",function(
 
 //Xóa shell 
 document.getElementById("btn-delete-selected").addEventListener("click", function(){
-  
   if (confirm(`Are you sure you want to delete the selected shells?`)) {
     //alert(getCheckedshellIds()); 
-    const data = getCheckedshellIds();
-    if( data.length ==0 ){
+    const ids = window.checkedshellIds;
+    if (ids.length === 0) {
       alert('Please check the shell you want to delete.');
-      return ;
+      return;
     }
-    console.log(data);
 
-    $.ajax({
-      url:'/api/delete_shell',
-      type: 'POST',
-      data: JSON.stringify({shell_ids: data}),
-      contentType: 'application/json',
-    })
-    .done((resp) =>{
-      if(resp['status'] === 0){
-        alert(`${resp['msg']}${resp['failed_ids'] && resp['failed_ids'].length ? ' | Failed IDs: ' + resp['failed_ids'].join(', ') : ''}`);
-        location.reload();
-      }
-      else {
-          alert(`Error: ${resp['msg']}`);
-      }
-
-    })
-    .fail((error) =>{
-      console.error('Error deleting shell:', error);
-      alert('Error deleting shell:', error);
-    });
+    let completed = 0;
+    let failed = [];
+    ids.forEach(id => {
+      $.ajax({
+        url: `/api/shells/${id}`,
+        type: 'DELETE',
+      })
+      .done(resp => {
+        if (resp['status'] !== 'success') {
+          failed.push(id);
+        }
+      })
+      .fail(() => {
+        failed.push(id);
+      })
+      .always(() => {
+        completed++;
+        if (completed === ids.length) {
+          if (failed.length === 0) {
+            alert('All selected shells deleted successfully!');
+          } else {
+            alert(`Some shells could not be deleted: ${failed.join(', ')}`);
+          }
+          showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
+        }
+      });
+    });    
+    
 
   }
-  else{ return;}
 
 });
 

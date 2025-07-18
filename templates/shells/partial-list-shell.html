@@ -74,9 +74,13 @@
                     </p>
                   </td>
                   <td>
-                    <p class="text-xs font-weight-bold mb-0">User: {{shell.created_at}}</p> 
+                    <p class="text-xs font-weight-bold mb-0">
+                      <i class="fas fa-calendar-alt"></i> Created:
+                      {{ shell.created_at|replace('T', ' ')|truncate(19, True, '') if shell.created_at }}
+                    </p>
                     <p class="text-xs text-secondary mb-0">
-                      {{ shell.updated_at }}
+                      <i class="fas fa-clock"></i> Updated:
+                      {{ shell.updated_at|replace('T', ' ')|truncate(19, True, '') if shell.updated_at }}
                     </p>
                   </td>
                   <td class="align-middle">
@@ -153,4 +157,4 @@ function HandleActionShell(connectionID, nowaction){
 }
 </script>
 
-
+<!-- Xem 1 shell-->

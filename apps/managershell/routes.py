@@ -241,3 +241,17 @@ def update_note(shell_id):
     conn.notes = note
     db.session.commit()
     return jsonify({'status': 'success'})
+
+# 13. Xóa shell
+@blueprint.route('/api/shells/<shell_id>', methods=['DELETE'])
+def delete_shell(shell_id):
+    conn = ShellConnection.get_by_id(shell_id)
+    if not conn:
+        return jsonify({'status': 'fail', 'msg': 'Not found'}), 404
+    # Đảm bảo process shell bị kill nếu còn
+    shell_manager.close_shell(shell_id)
+    try:
+        conn.delete()
+        return jsonify({'status': 'success', 'msg': 'Shell deleted'})
+    except Exception as e:
+        return jsonify({'status': 'fail', 'msg': str(e)}), 500
