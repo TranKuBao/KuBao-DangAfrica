@@ -371,10 +371,10 @@ class Targets(db.Model):
             # Default sorting by server_id desc (newest first)
             query = query.order_by(desc(getattr(cls, 'server_id')))
             
-        print(f"QUERY: {query}")
+        #print(f"QUERY: {query}")
         if page and per_page: # nếu có các giá trị của phân trang thì mình cho nó
             pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-            print(f"[[x]]result: {pagination}")
+            #print(f"[[x]]result: {pagination}")
             return pagination.items, pagination.pages
         return query.all(), None # không thi đéo trả về hết
     
@@ -1232,7 +1232,9 @@ class ShellConnection(db.Model):
                     getattr(cls, 'name').ilike(search_term),
                     getattr(cls, 'hostname').ilike(search_term),
                     getattr(cls, 'local_ip').ilike(search_term),
+                    getattr(cls, 'local_port').ilike(search_term),
                     getattr(cls, 'remote_ip').ilike(search_term),
+                    getattr(cls, 'remote_port').ilike(search_term),
                     getattr(cls, 'user').ilike(search_term),
                     getattr(cls, 'status').ilike(search_term),
                     getattr(cls, 'shell_type').ilike(search_term)

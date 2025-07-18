@@ -25,7 +25,6 @@ from apps.models import Targets
 import psutil
 
 
-
 shell_manager = PwncatManager()
 
 #bắt đầu code từ đây
@@ -59,23 +58,12 @@ def list_shells():
     page = request.args.get('page', default=1, type=int) or 1
     search_query = request.args.get('search', '', type=str).strip()
     sort_type = request.args.get('sort', '', type=str).strip()
-    per_page = request.args.get('per_page', default=10, type=int) or 10
-    print(f"[x]LIST-SHELL page: {page} & search_query={search_query} & sort_type={sort_type}")
+    per_page = request.args.get('per_page', default=6, type=int) or 6
 
     # Xây dựng query
-    query = ShellConnection.query
-    if search_query:
-        query = query.filter(ShellConnection.name.ilike(f'%{search_query}%'))
-    if sort_type:
-        if hasattr(ShellConnection, sort_type):
-            query = query.order_by(getattr(ShellConnection, sort_type).desc())
-    else:
-        query = query.order_by(ShellConnection.created_at.desc())
-
-    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-    shells_paginated = pagination.items
-    total_pages = pagination.pages
-
+    print(f"[x]LIST-SHELL page: {page} & search_query={search_query} & sort_type={sort_type}")   
+    shells_paginated, total_pages = ShellConnection.search(keyword=search_query, page=page, per_page=per_page, sort_type=sort_type)
+    
     html = render_template('shells/partial-list-shell.html', shells=shells_paginated)
 
     return jsonify({
@@ -104,7 +92,7 @@ def create_shell():
     name = data.get('name') or f'{shell_type}_{uuid.uuid4().hex[:8]}'
     url = data.get('url')
 
-    # Kiểm tra trùng port/interface
+    # Kiểm tra shell đã tồn tại (LISTENING/CONNECTED)
     if shell_type == 'reverse':
         exists = ShellConnection.query.filter_by(
             shell_type=ShellType.REVERSE,
@@ -122,19 +110,9 @@ def create_shell():
         if exists:
             return jsonify({'status': 'fail', 'msg': f'IP {ip}:{port} is already in use for a bind shell!'}), 400
 
-    # Tạo shell
-    if shell_type == 'reverse':
-        shell_id = shell_manager.start_listener(port, name=name, url=url, listen_ip=str(interface))
-    elif shell_type == 'bind':
-        ip = data.get('ip') or (target.ip_address if target else None)
-        shell_id = shell_manager.connect_shell(ip, port, name=name, url=url)
-    else:
-        return jsonify({'status': 'fail', 'msg': 'Invalid shell_type'}), 400
-    if not shell_id:
-        return jsonify({'status': 'fail', 'msg': 'Failed to create shell'}), 500
-    # Lưu DB
-    conn = ShellConnection.create_connection(
-        connection_id=shell_id,
+    # Tạo shell mới trong DB, trạng thái CLOSED (chưa chạy)
+    conn = ShellConnection(
+        connection_id=str(uuid.uuid4()),
         name=name,
         shell_type=ShellType.REVERSE if shell_type=='reverse' else ShellType.BIND,
         local_ip=interface if shell_type=='reverse' else None,
@@ -145,6 +123,9 @@ def create_shell():
         hostname=target.hostname if target else None,
         url=url
     )
+    conn.status = ShellStatus.CLOSED
+    db.session.add(conn)
+    db.session.commit()
     return jsonify({'status': 'success', 'data': conn.to_dict()})
 
 # 3. Xem chi tiết shell
@@ -182,15 +163,38 @@ def close_shell(shell_id):
         conn.update_status(ShellStatus.CLOSED)
     return jsonify({'status': 'success' if ok else 'fail'})
 
-# 7. Xóa shell
-@blueprint.route('/api/shells/<shell_id>', methods=['DELETE'])
-def delete_shell(shell_id):
-    conn = ShellConnection.get_by_id(shell_id)
-    if not conn:
-        return jsonify({'status': 'fail', 'msg': 'Not found'}), 404
-    shell_manager.close_shell(shell_id)
-    conn.delete()
-    return jsonify({'status': 'success'})
+# 7. action shell:  thực hiện khởi động và đóng mấy con shell lại
+@blueprint.route('/api/shells/<shell_id>/start', methods=['POST'])
+def action_shell(shell_id):
+    try:
+        conn = ShellConnection.get_by_id(shell_id)
+        if not conn:
+            return jsonify({'status': 'fail', 'msg': 'Not found'}), 404
+
+        shell_type = conn.shell_type
+        port = conn.local_port if shell_type == ShellType.REVERSE else conn.remote_port
+        name = conn.name
+        url = conn.url
+        interface = conn.local_ip if shell_type == ShellType.REVERSE else None
+        ip = conn.remote_ip if shell_type == ShellType.BIND else None
+
+        # Khởi động shell
+        if shell_type == ShellType.REVERSE:
+            new_shell_id = shell_manager.start_listener(port, name=name, url=url, listen_ip=str(interface))
+        elif shell_type == ShellType.BIND:
+            new_shell_id = shell_manager.connect_shell(ip, port, name=name, url=url)
+        else:
+            return jsonify({'status': 'fail', 'msg': 'Invalid shell_type'}), 400
+
+        if not new_shell_id:
+            return jsonify({'status': 'fail', 'msg': 'Failed to start shell'}), 500
+
+        # Cập nhật trạng thái
+        conn.update_status(ShellStatus.LISTENING if shell_type == ShellType.REVERSE else ShellStatus.CONNECTED)
+        return jsonify({'status': 'success'})
+
+    except Exception as e:
+        return jsonify({'status': 'fail', 'msg': str(e)})
 
 # 8. Upload file
 @blueprint.route('/api/shells/<shell_id>/upload', methods=['POST'])
