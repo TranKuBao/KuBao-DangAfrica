@@ -1,0 +1,392 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Shell Interaction</h6>
+          <button class="btn btn-primary btn-sm" id="openShellModal">
+            <i class="fas fa-terminal me-2"></i>Tương tác Shell
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Shell Interaction Modal -->
+<div class="modal fade" id="shellModal" tabindex="-1" aria-labelledby="shellModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="shellModalLabel">
+          <i class="fas fa-terminal me-2"></i>
+          Interactive Shell
+          <span id="shellStatus" class="badge bg-secondary ms-2">Disconnected</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="shell-container">
+          <!-- Terminal Header -->
+          <div class="terminal-header">
+            <div class="terminal-controls">
+              <span class="control close"></span>
+              <span class="control minimize"></span>
+              <span class="control maximize"></span>
+            </div>
+            <div class="terminal-title">
+              <i class="fas fa-server me-2"></i>
+              <span id="targetInfo">Target: {{ shell_name or shell_id }}</span>
+            </div>
+          </div>
+          <!-- Terminal Body -->
+          <div class="terminal-body" id="terminalOutput">
+            <div class="terminal-line">
+              <span class="prompt">root@target:~$</span>
+              <span class="command" id="currentCommand"></span>
+              <span class="cursor" id="cursor">|</span>
+            </div>
+          </div>
+          <!-- Command Input -->
+          <div class="command-input-container">
+            <div class="input-group">
+              <span class="input-group-text bg-dark text-white">
+                <i class="fas fa-chevron-right"></i>
+              </span>
+              <input type="text" class="form-control" id="commandInput" placeholder="Enter command..." autocomplete="off" disabled>
+              <button class="btn btn-primary" type="button" id="sendCommand" disabled>
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="row w-100">
+          <div class="col-md-6">
+            <div class="btn-group" role="group">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="clearTerminal">
+                <i class="fas fa-trash me-1"></i>Clear
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="saveOutput">
+                <i class="fas fa-save me-1"></i>Save
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="fullscreen">
+                <i class="fas fa-expand me-1"></i>Fullscreen
+              </button>
+              <button type="button" class="btn btn-outline-info btn-sm" id="loadHistory">
+                <i class="fas fa-history me-1"></i>History
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6 text-end">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" id="disconnectShell" disabled>
+              <i class="fas fa-times me-1"></i>Disconnect
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.shell-container {
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+  height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+.terminal-header {
+  background: #2d2d2d;
+  padding: 8px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #404040;
+}
+.terminal-controls { display: flex; gap: 8px; }
+.control { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; }
+.control.close { background: #ff5f56; }
+.control.minimize { background: #ffbd2e; }
+.control.maximize { background: #27ca3f; }
+.terminal-title { color: #ffffff; font-size: 14px; font-weight: 500; }
+.terminal-body { flex: 1; padding: 15px; overflow-y: auto; background: #1e1e1e; color: #ffffff; font-size: 14px; line-height: 1.4; }
+.terminal-line { margin-bottom: 5px; display: flex; align-items: center; }
+.prompt { color: #4CAF50; font-weight: bold; margin-right: 10px; white-space: nowrap; }
+.command { color: #ffffff; flex: 1; }
+.cursor { color: #ffffff; animation: blink 1s infinite; margin-left: 2px; }
+@keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+.output-line { color: #cccccc; margin-bottom: 5px; word-wrap: break-word; }
+.error-line { color: #ff6b6b; }
+.success-line { color: #4CAF50; }
+.command-input-container { padding: 15px; background: #2d2d2d; border-top: 1px solid #404040; }
+.command-input-container .input-group-text { border: none; background: #404040; }
+.command-input-container .form-control { background: #1e1e1e; border: 1px solid #404040; color: #ffffff; font-family: 'Courier New', monospace; }
+.command-input-container .form-control:focus { background: #1e1e1e; border-color: #4CAF50; color: #ffffff; box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25); }
+.command-input-container .btn { border: 1px solid #404040; }
+.modal-xl { max-width: 90%; }
+.modal-content { border: none; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+.modal-header { border-bottom: 1px solid #404040; }
+.modal-footer { border-top: 1px solid #dee2e6; background: #f8f9fa; }
+@media (max-width: 768px) { .modal-xl { max-width: 95%; } .shell-container { height: 400px; } .terminal-body { font-size: 12px; } }
+.terminal-body::-webkit-scrollbar { width: 8px; }
+.terminal-body::-webkit-scrollbar-track { background: #2d2d2d; }
+.terminal-body::-webkit-scrollbar-thumb { background: #404040; border-radius: 4px; }
+.terminal-body::-webkit-scrollbar-thumb:hover { background: #555555; }
+.terminal-line { animation: slideIn 0.3s ease; }
+@keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+#shellStatus { animation: pulse 2s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+.shell-container.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; border-radius: 0; }
+</style>
+
+<script>
+$(document).ready(function() {
+  let commandHistory = [];
+  let historyIndex = -1;
+  let isConnected = false;
+  let currentShellId = '{{ shell_id }}';
+  let currentShellData = null;
+
+  // Open modal on button click
+  $('#openShellModal').click(function() {
+    $('#shellModal').modal('show');
+    if (!isConnected) {
+      connectToShell(currentShellId);
+    }
+  });
+
+  // Initialize terminal
+  function initTerminal() {
+    $('#terminalOutput').empty();
+    addOutputLine('Welcome to Interactive Shell', 'success');
+    addOutputLine('Type your command below.', 'output');
+    addOutputLine('', 'output');
+  }
+
+  // Add output line to terminal
+  function addOutputLine(text, type = 'output') {
+    const line = $('<div>').addClass('terminal-line');
+    const output = $('<span>').addClass(`${type}-line`).text(text);
+    line.append(output);
+    $('#terminalOutput').append(line);
+    const terminalBody = document.getElementById('terminalOutput');
+    terminalBody.scrollTop = terminalBody.scrollHeight;
+  }
+
+  // Add command line
+  function addCommandLine(command) {
+    const line = $('<div>').addClass('terminal-line');
+    const prompt = $('<span>').addClass('prompt').text('root@target:~$');
+    const cmd = $('<span>').addClass('command').text(command);
+    const cursor = $('<span>').addClass('cursor').text('|');
+    line.append(prompt, cmd, cursor);
+    $('#terminalOutput').append(line);
+    const terminalBody = document.getElementById('terminalOutput');
+    terminalBody.scrollTop = terminalBody.scrollHeight;
+  }
+
+  // Connect to shell
+  function connectToShell(shellId) {
+    if (!shellId) return;
+    $.ajax({
+      url: `/api/shells/${shellId}/start`,
+      type: 'POST',
+      success: function(response) {
+        if (response.status === 'success') {
+          isConnected = true;
+          $('#shellStatus').removeClass('bg-secondary bg-danger').addClass('bg-success').text('Connected');
+          $('#commandInput').prop('disabled', false);
+          $('#sendCommand').prop('disabled', false);
+          $('#disconnectShell').prop('disabled', false);
+          // Get shell info
+          $.ajax({
+            url: `/api/shells/${shellId}`,
+            type: 'GET',
+            success: function(shellResponse) {
+              if (shellResponse.status === 'success') {
+                currentShellData = shellResponse.data;
+                $('#targetInfo').text(`Target: ${currentShellData.hostname || currentShellData.name}`);
+                addOutputLine(`Connected to shell: ${currentShellData.name}`, 'success');
+                addOutputLine(`Type: ${currentShellData.shell_type}`, 'output');
+                addOutputLine(`Status: ${currentShellData.status}`, 'output');
+                addOutputLine('', 'output');
+              }
+            }
+          });
+          loadCommandHistory(shellId);
+        } else {
+          addOutputLine(`Failed to connect: ${response.msg}`, 'error');
+        }
+      },
+      error: function(xhr) {
+        addOutputLine(`Connection error: ${xhr.responseJSON?.msg || 'Unknown error'}`, 'error');
+      }
+    });
+  }
+
+  // Load command history
+  function loadCommandHistory(shellId) {
+    $.ajax({
+      url: `/api/shells/${shellId}/history`,
+      type: 'GET',
+      data: { limit: 50 },
+      success: function(response) {
+        if (response.status === 'success') {
+          commandHistory = response.data.map(cmd => cmd.command);
+          historyIndex = commandHistory.length;
+        }
+      }
+    });
+  }
+
+  // Send command to shell
+  function sendCommandToShell(command) {
+    if (!currentShellId || !isConnected) return;
+    addCommandLine(command);
+    $.ajax({
+      url: `/api/shells/${currentShellId}/command`,
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ command: command }),
+      success: function(response) {
+        if (response.status === 'success') {
+          const output = response.data.output;
+          if (output) {
+            addOutputLine(output, 'output');
+          }
+          addOutputLine('', 'output');
+        } else {
+          addOutputLine(`Command failed: ${response.msg}`, 'error');
+        }
+      },
+      error: function(xhr) {
+        addOutputLine(`Error executing command: ${xhr.responseJSON?.msg || 'Unknown error'}`, 'error');
+      }
+    });
+  }
+
+  // Disconnect shell
+  function disconnectShell() {
+    if (currentShellId) {
+      $.ajax({
+        url: `/api/shells/${currentShellId}/close`,
+        type: 'POST',
+        success: function(response) {
+          console.log('Shell closed:', response);
+        }
+      });
+    }
+    isConnected = false;
+    $('#shellStatus').removeClass('bg-success bg-danger').addClass('bg-secondary').text('Disconnected');
+    $('#commandInput').prop('disabled', true);
+    $('#sendCommand').prop('disabled', true);
+    $('#disconnectShell').prop('disabled', true);
+    $('#targetInfo').text('Target: {{ shell_name or shell_id }}');
+    addOutputLine('Shell disconnected', 'error');
+  }
+
+  // Event handlers
+  $('#sendCommand').click(function() {
+    const command = $('#commandInput').val().trim();
+    if (command && isConnected) {
+      sendCommandToShell(command);
+      $('#commandInput').val('');
+    }
+  });
+  $('#commandInput').keypress(function(e) {
+    if (e.which === 13 && isConnected) {
+      const command = $(this).val().trim();
+      if (command) {
+        sendCommandToShell(command);
+        $(this).val('');
+      }
+    }
+  });
+  $('#commandInput').keydown(function(e) {
+    if (e.which === 38) {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        historyIndex--;
+        $(this).val(commandHistory[historyIndex]);
+      }
+    } else if (e.which === 40) {
+      e.preventDefault();
+      if (historyIndex < commandHistory.length - 1) {
+        historyIndex++;
+        $(this).val(commandHistory[historyIndex]);
+      } else if (historyIndex === commandHistory.length - 1) {
+        historyIndex++;
+        $(this).val('');
+      }
+    }
+  });
+  $('#clearTerminal').click(function() {
+    initTerminal();
+  });
+  $('#saveOutput').click(function() {
+    const output = $('#terminalOutput').text();
+    const blob = new Blob([output], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shell_output_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+  $('#loadHistory').click(function() {
+    if (currentShellId) {
+      loadCommandHistory(currentShellId);
+      addOutputLine('Command history loaded', 'success');
+    }
+  });
+  $('#fullscreen').click(function() {
+    const container = $('.shell-container');
+    const icon = $(this).find('i');
+    if (container.hasClass('fullscreen')) {
+      container.removeClass('fullscreen');
+      icon.removeClass('fa-compress').addClass('fa-expand');
+    } else {
+      container.addClass('fullscreen');
+      icon.removeClass('fa-expand').addClass('fa-compress');
+    }
+  });
+  $('#disconnectShell').click(function() {
+    disconnectShell();
+  });
+  $('#shellModal').on('shown.bs.modal', function() {
+    initTerminal();
+    $('#commandInput').focus();
+  });
+  $('#shellModal').on('hidden.bs.modal', function() {
+    if (isConnected) {
+      disconnectShell();
+    }
+    $('#terminalOutput').empty();
+    $('#commandInput').val('');
+    commandHistory = [];
+    historyIndex = -1;
+  });
+  function resizeModal() {
+    const modal = $('#shellModal');
+    const windowHeight = $(window).height();
+    const modalHeight = modal.find('.modal-content').height();
+    if (modalHeight > windowHeight * 0.9) {
+      modal.find('.shell-container').css('height', windowHeight * 0.6);
+    }
+  }
+  $(window).resize(resizeModal);
+  $('#shellModal').on('shown.bs.modal', resizeModal);
+});
+</script>
+{% endblock content %}

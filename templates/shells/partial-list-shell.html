@@ -158,3 +158,10 @@ function HandleActionShell(connectionID, nowaction){
 </script>
 
 <!-- Xem 1 shell-->
+<script>
+function HandViewShell(connectionID) {
+  console.log('Opening shell view for:', connectionID);
+  // Redirect to view shell page
+  window.location.href = `/shells/${connectionID}`;
+}
+</script>
