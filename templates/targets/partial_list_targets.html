@@ -44,9 +44,15 @@
                     </p>
                   </td>
                   <td class="align-middle text-center text-sm">
-                    <span class="badge badge-sm " data-status-span="{{ target.server_id }}" data-url-status="{{ target.hostname }}">online</span>
-                    <p class="text-xs text-secondary mb-0" data-status-code="{{ target.server_id }}">
-                      <!--StatusCode: 400-->
+                    {% if target._online_status == 'online' %}
+                      <span class="badge badge-sm bg-gradient-success">Online</span>
+                    {% elif target._online_status == 'offline' %}
+                      <span class="badge badge-sm bg-gradient-danger">Offline</span>
+                    {% else %}
+                      <span class="badge badge-sm bg-gradient-warning">Unknown</span>
+                    {% endif %}
+                    <p class="text-xs text-secondary mb-0">
+                      {% if target._http_status %}Status-code: {{ target._http_status }}{% endif %}
                     </p>
                   </td>
                   <td>
@@ -138,59 +144,4 @@
 
 
 <!--check status code in website-->
-<script>
-//check live in website
-async function checkWebsite(URL, serverId){
-  const span = document.querySelector(`[data-status-span='${serverId}']`);
-  const p_status = document.querySelector(`[data-status-code='${serverId}']`);
-  span.classList.remove('bg-gradient-success', 'bg-gradient-warning', 'bg-gradient-danger');
-
-  $.ajax({
-    url: '/api/checkstatussite',
-    type: 'POST',
-    data: JSON.stringify({ url: URL }),
-    contentType: 'application/json',
-  })
-  .done((resp) =>{
-    if(resp['http_status']){
-      p_status.innerHTML="Status-code: " + resp['http_status'];
-
-      //Xanh lá: bg-gradient-success
-      //Vàng: bg-gradient-warning
-      //Đỏ: bg-gradient-danger
-      if(resp['status'] === 'online'){
-        span.innerHTML='Online';
-        span.classList.add('bg-gradient-success'); //xanh
-      }
-      else{
-        span.innerHTML='Offline';
-        span.classList.add('bg-gradient-warning'); //vàng
-      }
-    }
-    else{
-      span.innerHTML='Offline';
-      span.classList.add('bg-gradient-danger'); //đỏ
-    }
-  })
-  .fail((error) =>{
-    console.log(error);
-    span.innerHTML = 'Offline';
-    span.classList.remove('bg-gradient-success', 'bg-gradient-warning');
-    span.classList.add('bg-gradient-danger');
-  });
-}
-
-  //Gọi cho tất cả các dòng sau khi bảng render:
-  function initStatusCheck() {
-    document.querySelectorAll('[data-status-span]').forEach(function(span) {
-      const url = span.getAttribute('data-url-status');
-      const serverId = span.getAttribute('data-status-span');
-      checkWebsite(url, serverId);
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', function() {
-    initStatusCheck();
-  });
-
-</script>
+<!-- Đã bỏ script checkWebsite/initStatusCheck vì đã xử lý ở backend -->

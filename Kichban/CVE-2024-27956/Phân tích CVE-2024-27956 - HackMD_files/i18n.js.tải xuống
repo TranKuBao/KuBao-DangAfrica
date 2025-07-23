@@ -1,0 +1,26 @@
+window.locales = {"revision":{"download":"Download","revert":"Revert"},"common":{"or":"or","cancel":"Cancel","ok":"OK","got-it":"Got it"},"help":{"title":"Help","contact":{"title":"Contacts","messenger":"Talk to us","github":"Report an issue","email":"Send us email"},"documents":"Documents","yaml-meta":"YAML Metadata","slide":"Slide Example","cheatsheet":"Cheatsheet","example":"Example","syntax":{"h1":"Header","ul":"Unordered List","ol":"Ordered List","todo":"Todo List","blockquote":"Blockquote","b":"Bold font","i":"Italics font","strike":"Strikethrough","ins":"Inserted text","mark":"Marked text","anchor":"Link","img":"Image","code":"Code","embeded":"Externals","alert":"This is a alert area."}},"signin":{"via":"Sign in via {{text}}"},"refresh":{"title":"This page need refresh","incompatible":{"title":"You have an incompatible client version.","content":"Refresh to update."},"upgrade":{"title":"New version available!","note":"See releases notes here","content":"Refresh to enjoy new features."},"auth":{"title":"Your user state has changed.","content":"Refresh to load new user state."},"refresh":"Refresh"},"clipboard":{"title":"Import from clipboard","content":"Paste your markdown or webpage here..."},"locked":{"title":"This note is locked","content":"Sorry, only owner can edit this note."},"limit":{"title":"Reach the limit","content1":"Sorry, you've reached the max length this note can be.","content2":"Please reduce the content or divide it to more notes, thank you!"},"gist-import":{"title":"Import from Gist","content":"Paste your gist url here..."},"snippet-import":{"title":"Import from Snippet","project":{"placeholder":"Select From Available Projects"},"snippet":{"placeholder":"Select From Available Snippets"}},"snippet-export":{"title":"Export to Snippet","visibility":{"placeholder":"Select Visibility Level"},"export":"Export"},"delete":{"title":"Are you sure?","yes":"Yes, do it!"},"header":{"import":{"clipboard":"Clipboard"},"download":{"raw-html":"Raw HTML"},"modes":{"edit":"Edit","both":"Both","view":"View"},"help":"Help","menu":"Menu","intro":"Intro"},"footer":{"tos":"Terms of Service","releases":"Releases","terms":"Terms"},"site":{"meta":{"description":"Best way to write and share your knowledge in markdown.","og":{"title-suffix":"Collaborative Markdown Knowledge Base"}}}};
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    if (jQuery && $.fn.select2) {
+        (function(e){"use strict";e.fn.select2.locales.vi={formatNoMatches:function(){return"Kh\xF4ng t\xECm th\u1EA5y k\u1EBFt qu\u1EA3"},formatInputTooShort:function(n,o){var t=o-n.length;return"Vui l\xF2ng nh\u1EADp nhi\u1EC1u h\u01A1n "+t+" k\xFD t\u1EF1"+(t==1?"":"s")},formatInputTooLong:function(n,o){var t=n.length-o;return"Vui l\xF2ng nh\u1EADp \xEDt h\u01A1n "+t+" k\xFD t\u1EF1"+(t==1?"":"s")},formatSelectionTooBig:function(n){return"Ch\u1EC9 c\xF3 th\u1EC3 ch\u1ECDn \u0111\u01B0\u1EE3c "+n+" t\xF9y ch\u1ECDn"+(n==1?"":"s")},formatLoadMore:function(n){return"\u0110ang l\u1EA5y th\xEAm k\u1EBFt qu\u1EA3\u2026"},formatSearching:function(){return"\u0110ang t\xECm\u2026"}},e.extend(e.fn.select2.defaults,e.fn.select2.locales.vi)})(jQuery);
+
+        // overwrite format functions of already inited select2 instances
+        var st2s = $('.select2-container').toArray();
+        for (var i = 0, l = st2s.length; i < l; i++) {
+            var st2 = st2s[i];
+            var data = $(st2).data('select2');
+            if (!data || !data.opts) continue;
+            var opts = data.opts;
+            opts.formatNoMatches = $.fn.select2.defaults.formatNoMatches;
+            opts.formatInputTooShort = $.fn.select2.defaults.formatInputTooShort;
+            opts.formatInputTooLong = $.fn.select2.defaults.formatInputTooLong;
+            opts.formatSelectionTooBig = $.fn.select2.defaults.formatSelectionTooBig;
+            opts.formatLoadMore = $.fn.select2.defaults.formatLoadMore;
+            opts.formatSearching = $.fn.select2.defaults.formatSearching;
+        }
+    }
+});
+
+
+

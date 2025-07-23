@@ -4,70 +4,120 @@
 <div class="container-fluid py-4">
   <div class="row">
     <div class="col-12">
+      <!-- Header thông tin shell -->
       <div class="card mb-4">
-        <div class="card-header pb-0 d-flex justify-content-between align-items-center">
-          <h6 class="mb-0">Shell Interaction</h6>
-          <button class="btn btn-primary btn-sm" id="openShellModal">
-            <i class="fas fa-terminal me-2"></i>Tương tác Shell
-          </button>
+        <div class="card-header pb-0 d-flex flex-wrap justify-content-between align-items-center">
+          <div>
+            <h5 class="mb-1">Shell Detail</h5>
+            <div class="d-flex flex-wrap gap-3 align-items-center">
+              <span class="badge bg-dark">Session: {{ shell.connection_id }}</span>
+              <span class="badge bg-info">Type: {{ shell.shell_type.name }}</span>
+              <span class="badge bg-secondary">Status: {{ shell.status.name }}</span>
+              <span class="badge bg-success">User: {{ shell.user or 'N/A' }}</span>
+              <span class="badge bg-warning text-dark">Privilege: {{ shell.privilege_level or 'N/A' }}</span>
+            </div>
+          </div>
+          <div class="text-end">
+            <div class="mb-1">
+              <i class="fas fa-calendar-alt me-1"></i> Created: {{ shell.created_at|replace('T', ' ')|truncate(19, True, '') if shell.created_at }}
+            </div>
+            <div>
+              <i class="fas fa-clock me-1"></i> Updated: {{ shell.updated_at|replace('T', ' ')|truncate(19, True, '') if shell.updated_at }}
+            </div>
+          </div>
+        </div>
+        <div class="card-body py-2">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="border rounded p-3 h-100">
+                <h6 class="mb-2"><i class="fas fa-network-wired me-1"></i> Listen (Local)</h6>
+                <div><strong>IP:</strong> {{ shell.local_ip or 'N/A' }}</div>
+                <div><strong>Port:</strong> {{ shell.local_port or 'N/A' }}</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="border rounded p-3 h-100">
+                <h6 class="mb-2"><i class="fas fa-globe me-1"></i> Remote</h6>
+                <div><strong>IP:</strong> {{ shell.remote_ip or 'N/A' }}</div>
+                <div><strong>Port:</strong> {{ shell.remote_port or 'N/A' }}</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="border rounded p-3 h-100">
+                <h6 class="mb-2"><i class="fas fa-bullseye me-1"></i> Linked Target</h6>
+                <div id="linkedTargetInfo">
+                  {% if shell.target_id and shell.target_id|int > 0 %}
+                    <div><strong>Hostname:</strong> <span id="linkedTargetHostname">{{ shell.hostname or 'N/A' }}</span></div>
+                    <div><strong>Target ID:</strong> <a href="/targets/{{ shell.target_id }}" target="_blank" id="linkedTargetId">{{ shell.target_id }}</a></div>
+                  {% else %}
+                    <div class="text-muted">No target linked</div>
+                  {% endif %}
+                </div>
+                <!-- Khu vực cập nhật liên kết target -->
+                <div class="mt-2">
+                  <select id="targetSelect" class="form-select form-select-sm mb-1">
+                    <option value="">-- Chọn target để liên kết --</option>
+                    {% for t in targets %}
+                      <option value="{{ t.server_id }}" {% if shell.target_id==t.server_id %}selected{% endif %}>{{ t.hostname }} ({{ t.ip_address }})</option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-sm btn-outline-primary" id="updateTargetBtn">Cập nhật liên kết</button>
+                  <span id="updateTargetStatus" class="ms-2 text-success" style="display:none;"></span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- Shell Interaction Modal -->
-<div class="modal fade" id="shellModal" tabindex="-1" aria-labelledby="shellModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title" id="shellModalLabel">
-          <i class="fas fa-terminal me-2"></i>
-          Interactive Shell
+      <!-- Ghi chú cho shell -->
+      <div class="card mb-4">
+        <div class="card-header pb-0 d-flex align-items-center justify-content-between">
+          <h6 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Shell Notes</h6>
+          <button class="btn btn-sm btn-outline-primary" id="saveNoteBtn"><i class="fas fa-save me-1"></i>Save Note</button>
+        </div>
+        <div class="card-body">
+          <textarea id="shellNote" class="form-control" rows="3" >{{ shell.notes or '' }}</textarea>
+          <div id="noteStatus" class="mt-2 text-success" style="display:none;"></div>
+        </div>
+      </div>
+      <!-- Terminal tương tác trực tiếp -->
+      <div class="card mb-4">
+        <div class="card-header pb-0 d-flex align-items-center justify-content-between">
+          <h6 class="mb-0"><i class="fas fa-terminal me-2"></i>Interactive Shell</h6>
           <span id="shellStatus" class="badge bg-secondary ms-2">Disconnected</span>
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body p-0">
-        <div class="shell-container">
-          <!-- Terminal Header -->
-          <div class="terminal-header">
-            <div class="terminal-controls">
-              <span class="control close"></span>
-              <span class="control minimize"></span>
-              <span class="control maximize"></span>
-            </div>
-            <div class="terminal-title">
-              <i class="fas fa-server me-2"></i>
-              <span id="targetInfo">Target: {{ shell_name or shell_id }}</span>
-            </div>
-          </div>
-          <!-- Terminal Body -->
-          <div class="terminal-body" id="terminalOutput">
-            <div class="terminal-line">
-              <span class="prompt">root@target:~$</span>
-              <span class="command" id="currentCommand"></span>
-              <span class="cursor" id="cursor">|</span>
-            </div>
-          </div>
-          <!-- Command Input -->
-          <div class="command-input-container">
-            <div class="input-group">
-              <span class="input-group-text bg-dark text-white">
-                <i class="fas fa-chevron-right"></i>
-              </span>
-              <input type="text" class="form-control" id="commandInput" placeholder="Enter command..." autocomplete="off" disabled>
-              <button class="btn btn-primary" type="button" id="sendCommand" disabled>
-                <i class="fas fa-paper-plane"></i>
-              </button>
-            </div>
-          </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <div class="row w-100">
-          <div class="col-md-6">
-            <div class="btn-group" role="group">
+        <div class="card-body p-0">
+          <div class="shell-container">
+            <div class="terminal-header">
+              <div class="terminal-controls">
+                <span class="control close"></span>
+                <span class="control minimize"></span>
+                <span class="control maximize"></span>
+              </div>
+              <div class="terminal-title">
+                <i class="fas fa-server me-2"></i>
+                <span id="targetInfo">Target: {{ shell.hostname or shell_name or shell_id }}</span>
+              </div>
+            </div>
+            <div class="terminal-body" id="terminalOutput">
+              <div class="terminal-line">
+                <span class="prompt">root@target:~$</span>
+                <span class="command" id="currentCommand"></span>
+                <span class="cursor" id="cursor">|</span>
+              </div>
+            </div>
+            <div class="command-input-container">
+              <div class="input-group">
+                <span class="input-group-text bg-dark text-white">
+                  <i class="fas fa-chevron-right"></i>
+                </span>
+                <input type="text" class="form-control" id="commandInput" placeholder="Enter command..." autocomplete="off" disabled>
+                <button class="btn btn-primary" type="button" id="sendCommand" disabled>
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </div>
+            <div class="p-2 d-flex gap-2">
               <button type="button" class="btn btn-outline-secondary btn-sm" id="clearTerminal">
                 <i class="fas fa-trash me-1"></i>Clear
               </button>
@@ -80,13 +130,14 @@
               <button type="button" class="btn btn-outline-info btn-sm" id="loadHistory">
                 <i class="fas fa-history me-1"></i>History
               </button>
+              <!-- Nút bật/tắt shell -->
+              <button type="button" class="btn btn-outline-warning btn-sm" id="toggleShellBtn">
+                <i class="fas fa-power-off me-1"></i><span id="toggleShellBtnText">Tắt Shell</span>
+              </button>
+              <button type="button" class="btn btn-danger btn-sm ms-auto" id="disconnectShell" disabled>
+                <i class="fas fa-times me-1"></i>Disconnect
+              </button>
             </div>
-          </div>
-          <div class="col-md-6 text-end">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-danger" id="disconnectShell" disabled>
-              <i class="fas fa-times me-1"></i>Disconnect
-            </button>
           </div>
         </div>
       </div>
@@ -132,11 +183,6 @@
 .command-input-container .form-control { background: #1e1e1e; border: 1px solid #404040; color: #ffffff; font-family: 'Courier New', monospace; }
 .command-input-container .form-control:focus { background: #1e1e1e; border-color: #4CAF50; color: #ffffff; box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25); }
 .command-input-container .btn { border: 1px solid #404040; }
-.modal-xl { max-width: 90%; }
-.modal-content { border: none; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
-.modal-header { border-bottom: 1px solid #404040; }
-.modal-footer { border-top: 1px solid #dee2e6; background: #f8f9fa; }
-@media (max-width: 768px) { .modal-xl { max-width: 95%; } .shell-container { height: 400px; } .terminal-body { font-size: 12px; } }
 .terminal-body::-webkit-scrollbar { width: 8px; }
 .terminal-body::-webkit-scrollbar-track { background: #2d2d2d; }
 .terminal-body::-webkit-scrollbar-thumb { background: #404040; border-radius: 4px; }
@@ -149,22 +195,107 @@
 </style>
 
 <script>
+  function render_target_info(){
+    $.ajax({
+      url: `/api/getalltarget`,
+      type: 'GET',
+      success: function(resp){
+        // xóa hết mấy cái đang có
+        $('#targetSelect').find('option:not(:first)').remove();
+
+        $.each(resp.targets, function(index, item) {
+        $('#targetSelect').append(
+          $('<option>', {
+            value: item.server_id,
+            text: item.hostname
+          })
+        );
+        });
+      },
+      error: function(error){
+        console.log(error);
+      }
+
+    });
+  }
+
+
+  render_target_info();
+</script>
+
+
+<script>
+// AJAX lưu ghi chú shell
 $(document).ready(function() {
+  
+  $('#saveNoteBtn').click(function() {
+    const note = $('#shellNote').val();
+    const shellId = '{{ shell.connection_id }}';
+    $('#saveNoteBtn').prop('disabled', true);
+    $.ajax({
+      url: `/api/shells/${shellId}/notes`,
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ notes: note }),
+      success: function(resp) {
+        if (resp.status === 'success') {
+          $('#noteStatus').text('Note saved!').removeClass('text-danger').addClass('text-success').show();
+        } else {
+          $('#noteStatus').text('Failed to save note: ' + resp.msg).removeClass('text-success').addClass('text-danger').show();
+        }
+      },
+      error: function(xhr) {
+        $('#noteStatus').text('Error saving note!').removeClass('text-success').addClass('text-danger').show();
+      },
+      complete: function() {
+        $('#saveNoteBtn').prop('disabled', false);
+        setTimeout(function() { $('#noteStatus').fadeOut(); }, 2000);
+      }
+    });
+  });
+
+  // Cập nhật liên kết target
+  $('#updateTargetBtn').click(function() {
+    const shellId = '{{ shell.connection_id }}';
+    const targetId = $('#targetSelect').val();
+    if (!targetId) {
+      $('#updateTargetStatus').text('Vui lòng chọn target!').removeClass('text-success').addClass('text-danger').show();
+      return;
+    }
+    $('#updateTargetBtn').prop('disabled', true);
+    $.ajax({
+      url: `/api/shells/${shellId}/link_target`,
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ target_id: targetId }),
+      success: function(resp) {
+        if (resp.status === 'success') {
+          $('#updateTargetStatus').text('Đã cập nhật liên kết!').removeClass('text-danger').addClass('text-success').show();
+          // Cập nhật lại thông tin hiển thị
+          const selected = $('#targetSelect option:selected');
+          $('#linkedTargetHostname').text(selected.text());
+          $('#linkedTargetId').text(targetId).attr('href', '/targets/' + targetId);
+        } else {
+          $('#updateTargetStatus').text('Lỗi: ' + resp.msg).removeClass('text-success').addClass('text-danger').show();
+        }
+      },
+      error: function(xhr) {
+        $('#updateTargetStatus').text('Lỗi cập nhật!').removeClass('text-success').addClass('text-danger').show();
+      },
+      complete: function() {
+        $('#updateTargetBtn').prop('disabled', false);
+        setTimeout(function() { $('#updateTargetStatus').fadeOut(); }, 2000);
+      }
+    });
+  });
+
+  // Terminal tương tác trực tiếp
   let commandHistory = [];
   let historyIndex = -1;
   let isConnected = false;
-  let currentShellId = '{{ shell_id }}';
+  let currentShellId = '{{ shell.connection_id }}';
   let currentShellData = null;
 
-  // Open modal on button click
-  $('#openShellModal').click(function() {
-    $('#shellModal').modal('show');
-    if (!isConnected) {
-      connectToShell(currentShellId);
-    }
-  });
-
-  // Initialize terminal
   function initTerminal() {
     $('#terminalOutput').empty();
     addOutputLine('Welcome to Interactive Shell', 'success');
@@ -172,7 +303,6 @@ $(document).ready(function() {
     addOutputLine('', 'output');
   }
 
-  // Add output line to terminal
   function addOutputLine(text, type = 'output') {
     const line = $('<div>').addClass('terminal-line');
     const output = $('<span>').addClass(`${type}-line`).text(text);
@@ -182,7 +312,6 @@ $(document).ready(function() {
     terminalBody.scrollTop = terminalBody.scrollHeight;
   }
 
-  // Add command line
   function addCommandLine(command) {
     const line = $('<div>').addClass('terminal-line');
     const prompt = $('<span>').addClass('prompt').text('root@target:~$');
@@ -194,7 +323,6 @@ $(document).ready(function() {
     terminalBody.scrollTop = terminalBody.scrollHeight;
   }
 
-  // Connect to shell
   function connectToShell(shellId) {
     if (!shellId) return;
     $.ajax({
@@ -233,7 +361,6 @@ $(document).ready(function() {
     });
   }
 
-  // Load command history
   function loadCommandHistory(shellId) {
     $.ajax({
       url: `/api/shells/${shellId}/history`,
@@ -248,7 +375,6 @@ $(document).ready(function() {
     });
   }
 
-  // Send command to shell
   function sendCommandToShell(command) {
     if (!currentShellId || !isConnected) return;
     addCommandLine(command);
@@ -274,14 +400,13 @@ $(document).ready(function() {
     });
   }
 
-  // Disconnect shell
   function disconnectShell() {
     if (currentShellId) {
       $.ajax({
         url: `/api/shells/${currentShellId}/close`,
         type: 'POST',
         success: function(response) {
-          console.log('Shell closed:', response);
+          // ...
         }
       });
     }
@@ -290,11 +415,10 @@ $(document).ready(function() {
     $('#commandInput').prop('disabled', true);
     $('#sendCommand').prop('disabled', true);
     $('#disconnectShell').prop('disabled', true);
-    $('#targetInfo').text('Target: {{ shell_name or shell_id }}');
+    $('#targetInfo').text('Target: {{ shell.hostname or shell_name or shell_id }}');
     addOutputLine('Shell disconnected', 'error');
   }
 
-  // Event handlers
   $('#sendCommand').click(function() {
     const command = $('#commandInput').val().trim();
     if (command && isConnected) {
@@ -364,29 +488,97 @@ $(document).ready(function() {
   $('#disconnectShell').click(function() {
     disconnectShell();
   });
-  $('#shellModal').on('shown.bs.modal', function() {
-    initTerminal();
-    $('#commandInput').focus();
-  });
-  $('#shellModal').on('hidden.bs.modal', function() {
-    if (isConnected) {
-      disconnectShell();
-    }
-    $('#terminalOutput').empty();
-    $('#commandInput').val('');
-    commandHistory = [];
-    historyIndex = -1;
-  });
-  function resizeModal() {
-    const modal = $('#shellModal');
-    const windowHeight = $(window).height();
-    const modalHeight = modal.find('.modal-content').height();
-    if (modalHeight > windowHeight * 0.9) {
-      modal.find('.shell-container').css('height', windowHeight * 0.6);
+
+  // Tự động kết nối shell khi vào trang
+  initTerminal();
+  connectToShell(currentShellId);
+
+  // Nút bật/tắt shell
+  function updateToggleShellBtn(status) {
+    if (status === 'CLOSED' || status === 'closed') {
+      $('#toggleShellBtnText').text('Bật Shell');
+      $('#toggleShellBtn').removeClass('btn-outline-danger').addClass('btn-outline-success');
+    } else {
+      $('#toggleShellBtnText').text('Tắt Shell');
+      $('#toggleShellBtn').removeClass('btn-outline-success').addClass('btn-outline-danger');
     }
   }
-  $(window).resize(resizeModal);
-  $('#shellModal').on('shown.bs.modal', resizeModal);
+
+  // Gọi khi trạng thái shell thay đổi hoặc khi load trang
+  function refreshShellStatus() {
+    $.ajax({
+      url: `/api/shells/${currentShellId}`,
+      type: 'GET',
+      success: function(resp) {
+        if (resp.status === 'success') {
+          const status = resp.data.status;
+          updateToggleShellBtn(status);
+          // Cập nhật badge
+          if (status === 'CLOSED' || status === 'closed') {
+            $('#shellStatus').removeClass('bg-success').addClass('bg-secondary').text('Closed');
+            $('#commandInput').prop('disabled', true);
+            $('#sendCommand').prop('disabled', true);
+            $('#disconnectShell').prop('disabled', true);
+          } else if (status === 'CONNECTED' || status === 'LISTENING' || status === 'connected' || status === 'listening') {
+            $('#shellStatus').removeClass('bg-secondary').addClass('bg-success').text('Connected');
+            $('#commandInput').prop('disabled', false);
+            $('#sendCommand').prop('disabled', false);
+            $('#disconnectShell').prop('disabled', false);
+          }
+        }
+      }
+    });
+  }
+
+  // Sự kiện click nút bật/tắt shell
+  $('#toggleShellBtn').click(function() {
+    $.ajax({
+      url: `/api/shells/${currentShellId}`,
+      type: 'GET',
+      success: function(resp) {
+        if (resp.status === 'success') {
+          const status = resp.data.status;
+          if (status === 'CLOSED' || status === 'closed') {
+            // Bật shell
+            $.ajax({
+              url: `/api/shells/${currentShellId}/start`,
+              type: 'POST',
+              success: function(startResp) {
+                if (startResp.status === 'success') {
+                  alert('Shell đã được bật!');
+                  refreshShellStatus();
+                  connectToShell(currentShellId);
+                } else {
+                  alert('Không thể bật shell: ' + startResp.msg);
+                }
+              },
+              error: function() { alert('Lỗi bật shell!'); }
+            });
+          } else {
+            // Tắt shell
+            if (confirm('Bạn có chắc muốn tắt shell này?')) {
+              $.ajax({
+                url: `/api/shells/${currentShellId}/close`,
+                type: 'POST',
+                success: function(closeResp) {
+                  if (closeResp.status === 'success') {
+                    alert('Shell đã được tắt!');
+                    refreshShellStatus();
+                  } else {
+                    alert('Không thể tắt shell: ' + closeResp.msg);
+                  }
+                },
+                error: function() { alert('Lỗi tắt shell!'); }
+              });
+            }
+          }
+        }
+      }
+    });
+  });
+
+  // Khi load trang, cập nhật trạng thái nút bật/tắt shell
+  refreshShellStatus();
 });
 </script>
 {% endblock content %}

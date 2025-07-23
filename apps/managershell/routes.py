@@ -46,6 +46,7 @@ def get_server_interfaces():
 
 # Main routes
 @blueprint.route('/shells')
+# Trang chính quản lý shell, hiển thị danh sách target và interface mạng
 def shells():
     """Trang chính quản lý shell"""
     try:
@@ -62,6 +63,7 @@ def shells():
         return render_template('error/500.html'), 500
 
 @blueprint.route('/shells/<shell_id>')
+# Trang xem chi tiết shell và tương tác với shell cụ thể
 def view_shell(shell_id):
     """Trang xem chi tiết shell và tương tác"""
     try:
@@ -81,6 +83,7 @@ def view_shell(shell_id):
         return render_template('error/500.html'), 500
 
 @blueprint.route('/contact-shell')
+# Trang shell tương tác tổng quát (dạng contact)
 def contact_shell():
     """Trang shell tương tác tổng quát"""
     return render_template(
@@ -90,7 +93,7 @@ def contact_shell():
 
 # Demo routes
 @blueprint.route('/demo/create-sample-shells')
-@login_required
+# Tạo shell mẫu cho mục đích demo
 def create_sample_shells():
     """Tạo shell mẫu cho demo"""
     try:
@@ -168,6 +171,7 @@ def create_sample_shells():
 
 # 1. Danh sách shell (có filter, search, sort)
 @blueprint.route('/api/shells', methods=['GET'])
+# API: Lấy danh sách shell (có phân trang, tìm kiếm, sắp xếp)
 def list_shells():
     """Danh sách shell với phân trang, tìm kiếm, sắp xếp"""
     try:
@@ -196,6 +200,7 @@ def list_shells():
 
 # lấy Danh sách shell dưới dạng JSON cho modal tương tác
 @blueprint.route('/api/shells/list', methods=['GET'])
+# API: Lấy danh sách shell dưới dạng JSON (cho modal tương tác)
 def list_shells_json():
     """Danh sách shell dưới dạng JSON cho modal tương tác"""
     try:
@@ -235,6 +240,7 @@ def list_shells_json():
 
 # 2. Tạo mới shell (listener/bind)
 @blueprint.route('/api/shells', methods=['POST'])
+# API: Tạo mới shell (listener hoặc bind)
 def create_shell():
     """Tạo mới shell (listener/bind)"""
     try:
@@ -318,6 +324,7 @@ def create_shell():
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>', methods=['GET'])
+# API: Xem chi tiết một shell
 def get_shell(shell_id):
     """Xem chi tiết shell"""
     try:
@@ -330,6 +337,7 @@ def get_shell(shell_id):
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>/command', methods=['POST'])
+# API: Gửi lệnh tới shell
 def send_command(shell_id):
     """Gửi lệnh tới shell"""
     try:
@@ -362,6 +370,7 @@ def send_command(shell_id):
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>/history', methods=['GET'])
+# API: Lấy lịch sử lệnh đã gửi tới shell
 def shell_history(shell_id):
     """Lấy lịch sử lệnh"""
     try:
@@ -376,6 +385,7 @@ def shell_history(shell_id):
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>/start', methods=['POST'])
+# API: Khởi động shell (listener hoặc bind)
 def start_shell(shell_id):
     """Khởi động shell"""
     try:
@@ -416,6 +426,7 @@ def start_shell(shell_id):
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>/close', methods=['POST'])
+# API: Đóng shell (ngắt kết nối)
 def close_shell(shell_id):
     """Đóng shell"""
     try:
@@ -437,6 +448,7 @@ def close_shell(shell_id):
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>', methods=['DELETE'])
+# API: Xóa shell khỏi hệ thống
 def delete_shell(shell_id):
     """Xóa shell"""
     try:
@@ -461,6 +473,7 @@ def delete_shell(shell_id):
 
 # Additional API routes
 @blueprint.route('/api/shells/<shell_id>/upload', methods=['POST'])
+# API: Upload file lên shell
 def upload_file(shell_id):
     """Upload file to shell"""
     try:
@@ -481,6 +494,7 @@ def upload_file(shell_id):
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>/download', methods=['POST'])
+# API: Download file từ shell về server
 def download_file(shell_id):
     """Download file from shell"""
     try:
@@ -501,6 +515,7 @@ def download_file(shell_id):
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>/escalate', methods=['POST'])
+# API: Thực hiện leo thang đặc quyền trên shell
 def escalate_privilege(shell_id):
     """Privilege escalation"""
     try:
@@ -520,6 +535,7 @@ def escalate_privilege(shell_id):
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/statistics', methods=['GET'])
+# API: Thống kê tổng quan về shell (tổng số, trạng thái, loại shell)
 def shell_statistics():
     """Thống kê shell"""
     try:
@@ -552,6 +568,7 @@ def shell_statistics():
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>/note', methods=['POST'])
+# API: Cập nhật ghi chú cho shell
 def update_shell_note(shell_id):
     """Cập nhật ghi chú cho shell"""
     try:
@@ -573,6 +590,7 @@ def update_shell_note(shell_id):
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/header-stats', methods=['GET'])
+# API: Thống kê shell cho header (số lượng tổng, active, listening, connected)
 def shell_header_stats():
     """Thống kê shell cho header"""
     try:
@@ -592,4 +610,54 @@ def shell_header_stats():
         })
     except Exception as e:
         logger.error(f"Error getting shell header stats: {e}")
+        return jsonify({'status': 'fail', 'msg': str(e)}), 500
+
+
+## cái này mới thêm sau
+@blueprint.route('/api/shells/<shell_id>/link_target', methods=['POST'])
+# API: Liên kết shell với target
+def link_target(shell_id):
+    """Liên kết shell với target"""
+    try:
+        data = request.get_json() or {}
+        target_id = data.get('target_id')
+        
+        #tim target và shell
+        target = Targets.query.filter_by(server_id=target_id).first()
+        if not target:
+            return jsonify({'status': 'fail', 'msg': 'Target not found'}), 404
+
+        conn = ShellConnection.get_by_id(shell_id)
+        if not conn:
+            return jsonify({'status': 'fail', 'msg': 'Shell not found'}), 404
+        
+        #cập nhật target_id và host name
+        conn.target_id = target_id
+        conn.hostname = target.hostname
+        db.session.commit()
+
+        return jsonify({'status': 'success', 'msg': 'Target linked successfully'})
+    except Exception as e:
+        logger.error(f"Error linking target to shell {shell_id}: {e}")
+        return jsonify({'status': 'fail', 'msg': str(e)}), 500
+
+@blueprint.route('/api/shells/<shell_id>/notes', methods=['POST'])
+def update_shell_notes(shell_id):
+    """ Cập nhật ghi chú cho shell"""
+    try:
+        data = request.get_json() or {}
+        notes = data.get('notes','')
+
+        #tim shell
+        conn = ShellConnection.get_by_id(shell_id)
+        if not conn:
+            return jsonify({'status': 'fail', 'msg': 'Shell not found'}), 404
+        
+        #cap nhat notes
+        conn.notes = notes
+        db.session.commit()
+
+        return jsonify({'status': 'success', 'msg': 'Notes updated successfully'})
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
