@@ -649,6 +649,7 @@
 
   // Save verification results
   function saveVerificationResults() {
+    console.log('Save clicked', verifiedReports);
     if (!verifiedReports || verifiedReports.length === 0) {
       showError('No verification results to save. Please run verification first.');
       return;
