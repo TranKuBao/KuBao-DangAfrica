@@ -42,30 +42,8 @@ def get_targets():
     print(f"[x]LIST-TARGET page: {page} & search_query={search_query} & sort_type={sort_type}")
     targets_paginated, total_pages = Targets.search(search_query, page, per_page, sort_type)
 
-    # Check status for each target (online/offline)
-    def check_status(url):
-        import requests
-        if not url:
-            return 'offline', None
-        if not url.startswith(('http://', 'https://')):
-            url = 'http://' + url
-        try:
-            resp = requests.get(url, timeout=2, stream=True)
-            if resp.status_code < 400:
-                return 'online', resp.status_code
-            else:
-                return 'offline', resp.status_code
-        except Exception:
-            return 'offline', None
-
-    targets_with_status = []
-    for t in targets_paginated:
-        status, http_status = check_status(t.hostname)
-        t._online_status = status
-        t._http_status = http_status
-        targets_with_status.append(t)
-
-    html = render_template('targets/partial_list_targets.html', targets=targets_with_status, loader=0)
+    # KHÔNG check status từng target ở backend nữa
+    html = render_template('targets/partial_list_targets.html', targets=targets_paginated, loader=0)
 
     return jsonify({
         'html': html,

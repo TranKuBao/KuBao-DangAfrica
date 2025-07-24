@@ -44,16 +44,14 @@
                     </p>
                   </td>
                   <td class="align-middle text-center text-sm">
-                    {% if target._online_status == 'online' %}
-                      <span class="badge badge-sm bg-gradient-success">Online</span>
-                    {% elif target._online_status == 'offline' %}
-                      <span class="badge badge-sm bg-gradient-danger">Offline</span>
-                    {% else %}
-                      <span class="badge badge-sm bg-gradient-warning">Unknown</span>
-                    {% endif %}
-                    <p class="text-xs text-secondary mb-0">
-                      {% if target._http_status %}Status-code: {{ target._http_status }}{% endif %}
-                    </p>
+                    <span 
+                      data-status-span="{{ target.server_id }}" 
+                      data-url-status="{{ target.hostname }}" 
+                      class="badge badge-sm bg-gradient-warning"
+                    >
+                      Checking...
+                    </span>
+                    <p class="text-xs text-secondary mb-0" data-status-code="{{ target.server_id }}"></p>
                   </td>
                   <td>
                     <p class="text-xs font-weight-bold mb-0">Cross Site ScriptSS</p> <!-- Tên Vulnarebility -->
@@ -144,4 +142,62 @@
 
 
 <!--check status code in website-->
-<!-- Đã bỏ script checkWebsite/initStatusCheck vì đã xử lý ở backend -->
+<!--check status code in website-->
+<script>
+  //check live in website
+  function initStatusCheckSequential() {
+    const spans = Array.from(document.querySelectorAll('[data-status-span]'));
+    function checkNext(i) {
+      if (i >= spans.length) return;
+      const span = spans[i];
+      const url = span.getAttribute('data-url-status');
+      const serverId = span.getAttribute('data-status-span');
+      checkWebsite(url, serverId).then(() => {
+        checkNext(i + 1);
+      });
+    }
+    checkNext(0);
+  }
+
+  // Sửa lại checkWebsite trả về Promise
+  function checkWebsite(URL, serverId){
+    const span = document.querySelector(`[data-status-span='${serverId}']`);
+    const p_status = document.querySelector(`[data-status-code='${serverId}']`);
+    span.classList.remove('bg-gradient-success', 'bg-gradient-warning', 'bg-gradient-danger');
+
+    return $.ajax({
+      url: '/api/checkstatussite',
+      type: 'POST',
+      data: JSON.stringify({ url: URL }),
+      contentType: 'application/json',
+    })
+    .done((resp) =>{
+      if(resp['http_status']){
+        p_status.innerHTML="Status-code: " + resp['http_status'];
+        if(resp['status'] === 'online'){
+          span.innerHTML='Online';
+          span.classList.add('bg-gradient-success');
+        }
+        else{
+          span.innerHTML='Offline';
+          span.classList.add('bg-gradient-warning');
+        }
+      }
+      else{
+        span.innerHTML='Offline';
+        span.classList.add('bg-gradient-danger');
+      }
+    })
+    .fail((error) =>{
+      span.innerHTML = 'Offline';
+      span.classList.remove('bg-gradient-success', 'bg-gradient-warning');
+      span.classList.add('bg-gradient-danger');
+    });
+  }
+
+  // Gọi sau khi render bảng
+  document.addEventListener('DOMContentLoaded', function() {
+    initStatusCheckSequential();
+  });
+  
+  </script>

@@ -343,7 +343,7 @@
             
 
             <div class="col-6 text-end" >
-              <a class="btn bg-gradient-dark mb-0" id="btn-addtargets" style="margin-right: 20px !important;" title="Thêm target"
+              <a class="btn bg-gradient-dark mb-0" id="btn-addtargets" style="margin-right: 20px !important;"
                 ><i class="fas fa-plus"></i>&nbsp;&nbsp;Add Target</a
               >
             </div>
@@ -368,7 +368,7 @@
               <!-- Action Buttons Container -->
               <div class="action-buttons-container" style="margin-right: 20px !important;">
                 <!-- Verify Button -->
-                <button class="action-btn btn-verify" id="btn-verify-selected" title="Chức năng verify POC">
+                <button class="action-btn btn-verify" id="btn-verify-selected">
                   <i class="fas fa-check-circle"></i>
                   <span class="tooltip">Verify Selected</span>
                 </button>
@@ -376,7 +376,7 @@
 
 
                 <!-- Delete Button -->
-                <button class="action-btn btn-delete" id="btn-delete-selected" title="Chức năng xóa target">
+                <button class="action-btn btn-delete" id="btn-delete-selected">
                   <i class="fas fa-trash-alt"></i>
                   <span class="tooltip">Delete Selected</span>
                 </button>
@@ -384,16 +384,22 @@
                 <!-- Button Reconnassance with 4 Tools -->
                 <div class="custom-dropdown">
                   <!-- onclick="toggleDropdown('info-dropdown')" --> 
-                  <button class="action-btn btn-info"  id="btn-Recon-function" title="Chức năng Recon target">
+                  <button class="action-btn btn-info"  id="btn-Recon-function">
                     <i class="fas fa-binoculars"></i>
                     <span class="tooltip">Thu thập thông tin</span>
                   </button>
                 </div>
                 {% include "partials/recon_target.html" %}
 
+                 <!-- Thêm nút Check Status -->
+                 <button class="action-btn btn-sort" id="btn-check-status" title="Kiểm tra trạng thái website">
+                   <i class="fas fa-signal"></i>
+                   <span class="tooltip">Check Status</span>
+                 </button>
+
                 <!-- Sort Dropdown -->
                 <div class="custom-dropdown">
-                  <button class="action-btn btn-sort" onclick="toggleDropdown('sort-dropdown')" title="Sắp xếp">
+                  <button class="action-btn btn-sort" onclick="toggleDropdown('sort-dropdown')">
                     <i class="fas fa-sort"></i>
                     <span class="tooltip">Sắp xếp</span>
                   </button>
@@ -572,6 +578,7 @@
           totalPages = data.total_pages;
         }
         document.querySelector("#targetTableBody").innerHTML = data.html;
+        // KHÔNG tự động gọi initStatusCheckSequential(); nữa
         updatePaginationDisplay();
         updateNavigationButtons();
         updatePageInfo();
@@ -923,7 +930,7 @@ document.getElementById("btn-delete-selected").addEventListener("click", functio
     .done((resp) =>{
       if(resp['status'] === 0){
         alert(`${resp['msg']}${resp['failed_ids'] && resp['failed_ids'].length ? ' | Failed IDs: ' + resp['failed_ids'].join(', ') : ''}`);
-        showContent(currentPage, document.getElementById("id_search_target").value, currentSortType);
+        location.reload();
       }
       else {
           alert(`Error: ${resp['msg']}`);
@@ -951,5 +958,30 @@ document.getElementById("btn-delete-selected").addEventListener("click", functio
 
 
 <script src="{{ url_for('static', filename='assets/js/plugins/chartjs.min.js') }}"></script>
+
+<!-- Thêm script check status song song -->
+<script>
+function checkStatusAllVisible() {
+  const spans = Array.from(document.querySelectorAll('[data-status-span]'));
+  const promises = spans.map(span => {
+    const url = span.getAttribute('data-url-status');
+    const serverId = span.getAttribute('data-status-span');
+    return checkWebsite(url, serverId);
+  });
+  Promise.all(promises).then(() => {
+    // Có thể hiển thị thông báo "Đã kiểm tra xong" nếu muốn
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  // ... các event khác ...
+  var btnCheckStatus = document.getElementById('btn-check-status');
+  if (btnCheckStatus) {
+    btnCheckStatus.addEventListener('click', function() {
+      checkStatusAllVisible();
+    });
+  }
+});
+</script>
 
 {% endblock extra_js %}
