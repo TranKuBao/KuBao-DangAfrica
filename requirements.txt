@@ -46,6 +46,6 @@ colorama
 requests_toolbelt
 bcrypt
 
-#pwncat-cs 
+pwncat-cs 
 #quản lý shell
 psutil

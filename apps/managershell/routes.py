@@ -82,14 +82,6 @@ def view_shell(shell_id):
         logger.error(f"Error in view_shell route: {e}")
         return render_template('error/500.html'), 500
 
-@blueprint.route('/contact-shell')
-# Trang shell tương tác tổng quát (dạng contact)
-def contact_shell():
-    """Trang shell tương tác tổng quát"""
-    return render_template(
-        'shells/contact-shell.html',
-        segment='contact_shell'
-    )
 
 # Demo routes
 @blueprint.route('/demo/create-sample-shells')
@@ -405,9 +397,9 @@ def start_shell(shell_id):
 
         # Khởi động shell
         if shell_type == ShellType.REVERSE:
-            new_shell_id = shell_manager.start_listener(port, name=name, url=url, listen_ip=str(interface))
+            new_shell_id = shell_manager.start_listener(port, name=conn.connection_id, url=url, listen_ip=str(interface))
         elif shell_type == ShellType.BIND:
-            new_shell_id = shell_manager.connect_shell(ip, port, name=name, url=url)
+            new_shell_id = shell_manager.connect_shell(ip, port, name=conn.connection_id, url=url)
         else:
             return jsonify({'status': 'fail', 'msg': 'Invalid shell type'}), 400
 

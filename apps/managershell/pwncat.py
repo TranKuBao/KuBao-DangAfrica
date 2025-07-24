@@ -56,7 +56,7 @@ class PwncatManager:
             stdin=subprocess.PIPE,
             text=True
         )
-        shell_id = name or self._generate_shell_id("listener")
+        shell_id = name if name else self._generate_shell_id("listener")
         connect_time = datetime.utcnow().isoformat()
         info = {
             "id": shell_id,
@@ -93,7 +93,7 @@ class PwncatManager:
             stdin=subprocess.PIPE,
             text=True
         )
-        shell_id = name or self._generate_shell_id()
+        shell_id = name if name else self._generate_shell_id()
         connect_time = datetime.utcnow().isoformat()
         info = {
             "id": shell_id,

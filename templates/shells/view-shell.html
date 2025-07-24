@@ -491,7 +491,7 @@ $(document).ready(function() {
 
   // Tự động kết nối shell khi vào trang
   initTerminal();
-  connectToShell(currentShellId);
+  //connectToShell(currentShellId); // PHẢI tắt tự động kết nối shell khi vào trang
 
   // Nút bật/tắt shell
   function updateToggleShellBtn(status) {
@@ -507,7 +507,7 @@ $(document).ready(function() {
   // Gọi khi trạng thái shell thay đổi hoặc khi load trang
   function refreshShellStatus() {
     $.ajax({
-      url: `/api/shells/${currentShellId}`,
+      url: `/api/shells/${currentShellId}`, // lấy thông tin shell 
       type: 'GET',
       success: function(resp) {
         if (resp.status === 'success') {
