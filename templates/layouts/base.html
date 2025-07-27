@@ -4,7 +4,10 @@
 <head>
   {% include "includes/head.html" %}
   {% block extrastyle %}{% endblock extrastyle %}
+
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="{{ url_for('static', filename='assets/js/alertMess.js') }}"></script> <!-- Ccái này là để thông báo -->
+
 </head>
 
 <body class="g-sidenav-show  bg-gray-100">
@@ -25,6 +28,7 @@
   
   {% include "includes/scripts.html" %}
   {% block extra_js %}{% endblock extra_js %}
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-area"></div> <!-- Hỗ trợ hiển thị thông báo-->
 </body>
 
 </html>

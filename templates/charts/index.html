@@ -27,7 +27,8 @@
                     <h5>Pie Chart</h5>
                 </div>
                 <div class="card-body text-center">
-                    <div id="pie-chart"></div>
+                    <div id="pie-chart" style="cursor:pointer; color: green !important;"></div>
+                    
                 </div>
             </div>
         </div>
@@ -40,6 +41,16 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
+
+document.querySelector('#pie-chart').addEventListener('click', function() {
+    showAlertSuccess("Tạo dữ liệu thành công!");
+    showAlertWarning("Vui lòng nhập đầy đủ thông tin!");
+    showAlertError("Lỗi kết nối server!");
+});
+
+
+    // showAlertWarning("Vui lòng nhập đầy đủ thông tin!");
+    // showAlertError("Lỗi kết nối server!");
   document.addEventListener("DOMContentLoaded", function() {
     var products = JSON.parse('{{ products | tojson | safe }}');
     var names = products.map(p => p.name);

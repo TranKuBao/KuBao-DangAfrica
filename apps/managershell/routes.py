@@ -19,16 +19,20 @@ from lib import database, const
 from flask import Blueprint, request, jsonify
 from flask_login import login_required
 from apps.models import ShellConnection, ShellCommand, ShellStatus, ShellType, Targets, db
-from apps.managershell.pwncat import PwncatManager
+from apps.managershell.pwncat import shell_manager
 import uuid
 import psutil
 import logging
+
+from flask_socketio import SocketIO
+from apps import socketio
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-shell_manager = PwncatManager()
+# Thiết lập socketio cho shell_manager
+shell_manager.socketio = socketio
 
 def get_server_interfaces():
     """Lấy danh sách interface mạng của server"""
@@ -345,20 +349,30 @@ def send_command(shell_id):
         if conn.status == ShellStatus.CLOSED:
             return jsonify({'status': 'fail', 'msg': 'Shell is not connected'}), 400
         
-        output = shell_manager.send_command(shell_id, command)
-        cmd = ShellCommand.create_command(shell_id, command, output=output, success=output is not None)
+        # Gửi lệnh vào shell qua PTY (output sẽ được gửi qua socket tự động)
+        success = shell_manager.send_input_to_shell(shell_id, command + '\n')
         
-        logger.info(f"Command executed on shell {shell_id}: {command}")
+        # Lưu lệnh vào database
+        cmd = ShellCommand.create_command(shell_id, command, output="", success=success)
+
+        logger.info(f"Command sent to shell {shell_id}: {command}")
         return jsonify({
-            'status': 'success', 
+            'status': 'success' if success else 'fail', 
             'data': {
-                'output': output, 
                 'command_id': cmd.command_id,
-                'success': output is not None
+                'success': success,
+                'message': 'Command sent via PTY, output will be received via socket'
             }
         })
     except Exception as e:
         logger.error(f"Error sending command to shell {shell_id}: {e}")
+
+        # test socketio 
+        socketio.emit('shell_status_update', {
+            'shell_id': shell_id,
+            'status': 'ERROR'
+        }, room=shell_id)
+
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>/history', methods=['GET'])
@@ -376,6 +390,99 @@ def shell_history(shell_id):
         logger.error(f"Error getting shell history {shell_id}: {e}")
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
+@blueprint.route('/api/shells/create-sample', methods=['POST'])
+# API: Tạo shell mẫu để test
+def create_sample_shell():
+    """Tạo shell mẫu để test"""
+    try:
+        # Tạo shell reverse mẫu
+        shell_id = str(uuid.uuid4())
+        sample_shell = ShellConnection(
+            connection_id=shell_id,
+            name='Test Reverse Shell',
+            shell_type=ShellType.REVERSE,
+            local_ip='0.0.0.0',
+            local_port=4444,
+            status=ShellStatus.CLOSED
+        )
+        
+        db.session.add(sample_shell)
+        db.session.commit()
+        
+        logger.info(f"Created sample shell: {shell_id}")
+        return jsonify({
+            'status': 'success', 
+            'msg': 'Sample shell created',
+            'shell_id': shell_id
+        })
+    except Exception as e:
+        logger.error(f"Error creating sample shell: {e}")
+        db.session.rollback()
+        return jsonify({'status': 'fail', 'msg': str(e)}), 500
+
+@blueprint.route('/api/shells/list-all', methods=['GET'])
+# API: Liệt kê tất cả shell trong database
+def list_all_shells():
+    """Liệt kê tất cả shell trong database"""
+    try:
+        shells = ShellConnection.query.all()
+        shell_list = []
+        for shell in shells:
+            shell_list.append({
+                'connection_id': shell.connection_id,
+                'name': shell.name,
+                'shell_type': str(shell.shell_type),
+                'shell_type_value': shell.shell_type.value if hasattr(shell.shell_type, 'value') else None,
+                'status': str(shell.status),
+                'status_value': shell.status.value if hasattr(shell.status, 'value') else None,
+                'local_ip': shell.local_ip,
+                'local_port': shell.local_port,
+                'remote_ip': shell.remote_ip,
+                'remote_port': shell.remote_port,
+                'created_at': shell.created_at.isoformat() if shell.created_at else None
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(shell_list),
+            'shells': shell_list
+        })
+    except Exception as e:
+        logger.error(f"Error listing all shells: {e}")
+        return jsonify({'status': 'fail', 'msg': str(e)}), 500
+
+@blueprint.route('/api/shells/<shell_id>/debug', methods=['GET'])
+# API: Debug thông tin shell
+def debug_shell(shell_id):
+    """Debug thông tin shell"""
+    try:
+        conn = ShellConnection.get_by_id(shell_id)
+        if not conn:
+            return jsonify({'status': 'fail', 'msg': 'Shell not found'}), 404
+        
+        debug_info = {
+            'connection_id': conn.connection_id,
+            'name': conn.name,
+            'shell_type': str(conn.shell_type),
+            'shell_type_value': conn.shell_type.value if hasattr(conn.shell_type, 'value') else None,
+            'status': str(conn.status),
+            'status_value': conn.status.value if hasattr(conn.status, 'value') else None,
+            'local_ip': conn.local_ip,
+            'local_port': conn.local_port,
+            'remote_ip': conn.remote_ip,
+            'remote_port': conn.remote_port,
+            'target_id': conn.target_id,
+            'hostname': conn.hostname,
+            'url': conn.url,
+            'created_at': conn.created_at.isoformat() if conn.created_at else None,
+            'updated_at': conn.updated_at.isoformat() if conn.updated_at else None
+        }
+        
+        return jsonify({'status': 'success', 'data': debug_info})
+    except Exception as e:
+        logger.error(f"Error debugging shell {shell_id}: {e}")
+        return jsonify({'status': 'fail', 'msg': str(e)}), 500
+
 @blueprint.route('/api/shells/<shell_id>/start', methods=['POST'])
 # API: Khởi động shell (listener hoặc bind)
 def start_shell(shell_id):
@@ -383,38 +490,72 @@ def start_shell(shell_id):
     try:
         conn = ShellConnection.get_by_id(shell_id)
         if not conn:
+            logger.error(f"Shell {shell_id} not found in database")
             return jsonify({'status': 'fail', 'msg': 'Shell not found'}), 404
 
         if conn.status in [ShellStatus.LISTENING, ShellStatus.CONNECTED]:
+            logger.warning(f"Shell {shell_id} is already running with status {conn.status}")
             return jsonify({'status': 'fail', 'msg': 'Shell is already running'}), 400
 
-        shell_type = conn.shell_type
-        port = conn.local_port if shell_type == ShellType.REVERSE else conn.remote_port
+        # Debug: Log thông tin shell để kiểm tra
+        logger.info(f"Starting shell {shell_id}: type={conn.shell_type}, status={conn.status}")
+        
+        # Sửa: Lấy shell_type dạng string và so sánh chính xác
+        shell_type = conn.shell_type.value if hasattr(conn.shell_type, 'value') else str(conn.shell_type)
+        shell_type = shell_type.lower()
+        
+        logger.info(f"Shell type after processing: {shell_type}")
+        
+        # Kiểm tra shell_type hợp lệ
+        if shell_type not in ['reverse', 'bind']:
+            logger.error(f"Invalid shell type: {shell_type}")
+            return jsonify({'status': 'fail', 'msg': f'Invalid shell type: {shell_type}'}), 400
+        
+        port = conn.local_port if shell_type == 'reverse' else conn.remote_port
         name = conn.name
         url = conn.url
-        interface = conn.local_ip if shell_type == ShellType.REVERSE else None
-        ip = conn.remote_ip if shell_type == ShellType.BIND else None
+        # Sửa: interface luôn là '0.0.0.0' cho reverse, không cần chọn giao diện
+        interface = '0.0.0.0' if shell_type == 'reverse' else None
+        ip = conn.remote_ip if shell_type == 'bind' else None
 
-        # Khởi động shell
-        if shell_type == ShellType.REVERSE:
-            new_shell_id = shell_manager.start_listener(port, name=conn.connection_id, url=url, listen_ip=str(interface))
-        elif shell_type == ShellType.BIND:
+        logger.info(f"Starting {shell_type} shell: port={port}, ip={ip}, interface={interface}")
+
+        # Sửa: chỉ bật shell khi user thao tác, không tự động bật khi load trang
+        if shell_type == 'reverse':
+            new_shell_id = shell_manager.start_listener(port, name=conn.connection_id, url=url, listen_ip=interface)
+        elif shell_type == 'bind':
             new_shell_id = shell_manager.connect_shell(ip, port, name=conn.connection_id, url=url)
         else:
             return jsonify({'status': 'fail', 'msg': 'Invalid shell type'}), 400
 
         if not new_shell_id:
+            logger.error(f"Failed to start shell {shell_id} - shell_manager returned None")
             return jsonify({'status': 'fail', 'msg': 'Failed to start shell'}), 500
 
         # Cập nhật trạng thái
-        new_status = ShellStatus.LISTENING if shell_type == ShellType.REVERSE else ShellStatus.CONNECTED
+        new_status = ShellStatus.LISTENING if shell_type == 'reverse' else ShellStatus.CONNECTED
         conn.update_status(new_status)
+
+        # Gửi sự kiện Socket.IO
+        socketio.emit('shell_status_update', {
+            'shell_id': shell_id,
+            'status': new_status
+        }, room=shell_id)
         
-        #logger.info(f"Started shell {shell_id} with status {new_status}")
+        logger.info(f"Started shell {shell_id} with status {new_status}")
         return jsonify({'status': 'success', 'msg': f'Shell started successfully'})
 
     except Exception as e:
-        #logger.error(f"Error starting shell {shell_id}: {e}")
+        logger.error(f"Error starting shell {shell_id}: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+
+        # test socketio 
+        socketio.emit('shell_status_update', {
+            'shell_id': shell_id,
+            'status': 'ERROR'
+        }, room=shell_id)
+
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>/close', methods=['POST'])
@@ -430,6 +571,12 @@ def close_shell(shell_id):
         if conn:
             conn.update_status(ShellStatus.CLOSED)
         
+        # test socketio 
+        socketio.emit('shell_status_update', {
+            'shell_id': shell_id,
+            'status': 'CLOSED'
+        }, room=shell_id)
+
         logger.info(f"Closed shell {shell_id}")
         return jsonify({
             'status': 'success' if ok else 'fail',
@@ -437,6 +584,13 @@ def close_shell(shell_id):
         })
     except Exception as e:
         logger.error(f"Error closing shell {shell_id}: {e}")
+
+        # test socketio 
+        socketio.emit('shell_status_update', {
+            'shell_id': shell_id,
+            'status': 'CLOSED'
+        }, room=shell_id)
+
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
 @blueprint.route('/api/shells/<shell_id>', methods=['DELETE'])

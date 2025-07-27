@@ -9,7 +9,7 @@ from   flask_minify  import Minify
 from   sys import exit
 
 from apps.config import config_dict
-from apps import create_app, db
+from apps import create_app, db, socketio
 
 # WARNING: Don't run with debug turned on in production!
 DEBUG = (os.getenv('DEBUG', 'False') == 'True')
@@ -55,4 +55,5 @@ if DEBUG:
     app.logger.info('DBMS             = ' + app_config.SQLALCHEMY_DATABASE_URI)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    #app.run(host="0.0.0.0", port=5000)
+    socketio.run(app, host="0.0.0.0", port=5000)

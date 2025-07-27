@@ -99,22 +99,22 @@
                 <span id="targetInfo">Target: {{ shell.hostname or shell_name or shell_id }}</span>
               </div>
             </div>
+            <!-- Terminal output area -->
             <div class="terminal-body" id="terminalOutput">
-              <div class="terminal-line">
-                <span class="prompt">root@target:~$</span>
-                <span class="command" id="currentCommand"></span>
-                <span class="cursor" id="cursor">|</span>
+              <div class="terminal-content" id="terminalContent">
+                <div class="terminal-line">
+                  
+                  <span class="command" id="currentCommand"></span>
+                  <span class="cursor" id="cursor">|</span>
+                </div>
               </div>
             </div>
-            <div class="command-input-container">
-              <div class="input-group">
-                <span class="input-group-text bg-dark text-white">
-                  <i class="fas fa-chevron-right"></i>
-                </span>
-                <input type="text" class="form-control" id="commandInput" placeholder="Enter command..." autocomplete="off" disabled>
-                <button class="btn btn-primary" type="button" id="sendCommand" disabled>
-                  <i class="fas fa-paper-plane"></i>
-                </button>
+            <!-- Terminal input area -->
+            <div class="terminal-input-area" id="terminalInputArea">
+              <div class="terminal-line" id="currentInputLine">
+                <span class="prompt" id="currentPrompt">root@target:~$</span>
+                <span class="command-input" id="commandInput" contenteditable="true" spellcheck="false"></span>
+                <span class="cursor" id="cursor">|</span>
               </div>
             </div>
             <div class="p-2 d-flex gap-2">
@@ -169,7 +169,17 @@
 .control.minimize { background: #ffbd2e; }
 .control.maximize { background: #27ca3f; }
 .terminal-title { color: #ffffff; font-size: 14px; font-weight: 500; }
-.terminal-body { flex: 1; padding: 15px; overflow-y: auto; background: #1e1e1e; color: #ffffff; font-size: 14px; line-height: 1.4; }
+.terminal-body { 
+  flex: 1; 
+  padding: 15px; 
+  overflow-y: auto; 
+  background: #1e1e1e; 
+  color: #ffffff; 
+  font-size: 14px; 
+  line-height: 1.4; 
+  max-height: 300px;
+}
+.terminal-content { min-height: 100%; }
 .terminal-line { margin-bottom: 5px; display: flex; align-items: center; }
 .prompt { color: #4CAF50; font-weight: bold; margin-right: 10px; white-space: nowrap; }
 .command { color: #ffffff; flex: 1; }
@@ -178,11 +188,41 @@
 .output-line { color: #cccccc; margin-bottom: 5px; word-wrap: break-word; }
 .error-line { color: #ff6b6b; }
 .success-line { color: #4CAF50; }
-.command-input-container { padding: 15px; background: #2d2d2d; border-top: 1px solid #404040; }
-.command-input-container .input-group-text { border: none; background: #404040; }
-.command-input-container .form-control { background: #1e1e1e; border: 1px solid #404040; color: #ffffff; font-family: 'Courier New', monospace; }
-.command-input-container .form-control:focus { background: #1e1e1e; border-color: #4CAF50; color: #ffffff; box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25); }
-.command-input-container .btn { border: 1px solid #404040; }
+.terminal-input-area { 
+  padding: 15px; 
+  background: #2d2d2d; 
+  border-top: 1px solid #404040; 
+}
+.terminal-input-area .terminal-line {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.command-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  outline: none;
+  min-height: 20px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+.command-input:focus {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  box-shadow: none;
+}
+.command-input[contenteditable="true"]:empty:before {
+  content: '';
+}
 .terminal-body::-webkit-scrollbar { width: 8px; }
 .terminal-body::-webkit-scrollbar-track { background: #2d2d2d; }
 .terminal-body::-webkit-scrollbar-thumb { background: #404040; border-radius: 4px; }
@@ -192,393 +232,1177 @@
 #shellStatus { animation: pulse 2s infinite; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 .shell-container.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; border-radius: 0; }
+
+/* Terminal thật styling */
+.terminal-line {
+  position: relative;
+  min-height: 20px;
+  line-height: 1.4;
+}
+
+.command-input {
+  position: relative;
+  display: inline-block;
+  min-width: 1px;
+}
+
+.command-input:focus {
+  outline: none;
+}
+
+/* Cursor animation */
+.cursor {
+  animation: blink 1s infinite;
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Selection styling */
+.command-input::selection {
+  background: #4CAF50;
+  color: #ffffff;
+}
+
+.command-input::-moz-selection {
+  background: #4CAF50;
+  color: #ffffff;
+}
+
+/* Terminal font */
+.terminal-body, .command-input {
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Responsive terminal */
+@media (max-width: 768px) {
+  .terminal-body, .command-input {
+    font-size: 12px;
+  }
+  
+  .shell-container {
+    height: 400px;
+  }
+}
+
+/* Terminal colors */
+.prompt { color: #4CAF50; font-weight: bold; }
+.command { color: #ffffff; }
+.output-line { color: #cccccc; }
+.error-line { color: #ff6b6b; }
+.success-line { color: #4CAF50; }
+.warning-line { color: #ffa726; }
+.info-line { color: #42a5f5; }
 </style>
 
-<script>
-  function render_target_info(){
-    $.ajax({
-      url: `/api/getalltarget`,
-      type: 'GET',
-      success: function(resp){
-        // xóa hết mấy cái đang có
-        $('#targetSelect').find('option:not(:first)').remove();
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 
-        $.each(resp.targets, function(index, item) {
+<script>
+// ==========================
+// Quản lý target liên kết
+// ==========================
+function render_target_info() {
+  $.ajax({
+    url: `/api/getalltarget`,
+    type: 'GET',
+    success: function(resp) {
+      // Xóa các option cũ, chỉ giữ lại option đầu tiên
+      $('#targetSelect').find('option:not(:first)').remove();
+      // Thêm các target mới vào select
+      $.each(resp.targets, function(index, item) {
         $('#targetSelect').append(
           $('<option>', {
             value: item.server_id,
-            text: item.hostname
+            text: `${item.hostname} (${item.ip_address})`
           })
         );
-        });
-      },
-      error: function(error){
-        console.log(error);
-      }
-
-    });
-  }
-
-
-  render_target_info();
-</script>
-
-
-<script>
-// AJAX lưu ghi chú shell
-$(document).ready(function() {
-  
-  $('#saveNoteBtn').click(function() {
-    const note = $('#shellNote').val();
-    const shellId = '{{ shell.connection_id }}';
-    $('#saveNoteBtn').prop('disabled', true);
-    $.ajax({
-      url: `/api/shells/${shellId}/notes`,
-      type: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({ notes: note }),
-      success: function(resp) {
-        if (resp.status === 'success') {
-          $('#noteStatus').text('Note saved!').removeClass('text-danger').addClass('text-success').show();
-        } else {
-          $('#noteStatus').text('Failed to save note: ' + resp.msg).removeClass('text-success').addClass('text-danger').show();
-        }
-      },
-      error: function(xhr) {
-        $('#noteStatus').text('Error saving note!').removeClass('text-success').addClass('text-danger').show();
-      },
-      complete: function() {
-        $('#saveNoteBtn').prop('disabled', false);
-        setTimeout(function() { $('#noteStatus').fadeOut(); }, 2000);
-      }
-    });
+      });
+    },
+    error: function(error) {
+      console.error('Lỗi khi lấy danh sách target:', error);
+    }
   });
+}
 
-  // Cập nhật liên kết target
-  $('#updateTargetBtn').click(function() {
-    const shellId = '{{ shell.connection_id }}';
-    const targetId = $('#targetSelect').val();
-    if (!targetId) {
-      $('#updateTargetStatus').text('Vui lòng chọn target!').removeClass('text-success').addClass('text-danger').show();
+// ==========================
+// Terminal thật với Socket.IO
+// ==========================
+let isConnected = false; // Trạng thái kết nối shell
+let currentShellId = '{{ shell.connection_id }}';
+let currentShellData = null;
+let commandHistory = [];
+let historyIndex = -1;
+let shellReady = false; // Trạng thái shell đã sẵn sàng nhận lệnh
+let outputBuffer = ''; // Buffer để xử lý output bị chia nhỏ
+
+// Terminal state management
+let cursorPosition = 0; // Vị trí con trỏ
+let currentCommand = ''; // Lệnh hiện tại
+let isTyping = false; // Đang gõ
+let selectionStart = 0; // Vị trí bắt đầu selection
+let selectionEnd = 0; // Vị trí kết thúc selection
+
+// Khởi tạo terminal
+function initTerminal() {
+  $('#terminalContent').html(`
+    <div class="terminal-line">
+      
+      <span class="command" id="currentCommand"></span>
+      <span class="cursor" id="cursor">|</span>
+    </div>
+  `);
+  commandHistory = [];
+  historyIndex = -1;
+}
+
+// Loại bỏ ANSI escape sequences
+function removeAnsi(str) {
+  return str
+    // Xử lý tất cả ANSI escape sequences
+    .replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '') // ANSI color codes cơ bản
+    .replace(/\x1B\]8;[^;]*;[^;]*\x07/g, '') // OSC sequences (file links)
+    .replace(/\x1B\[[0-9]*[ABCDEFGJKST]/g, '') // Cursor movement
+    .replace(/\x1B\[[0-9]*[hl]/g, '') // Mode changes
+    .replace(/\x1B\[[0-9]*[JK]/g, '') // Erase operations
+    .replace(/\x1B\[[0-9]*[m]/g, '') // Color attributes
+    .replace(/\x1B\[[0-9]*[r]/g, '') // Scroll region
+    .replace(/\x1B\[[0-9]*[d]/g, '') // Line positioning
+    .replace(/\x1B\[[0-9]*[G]/g, '') // Cursor positioning
+    .replace(/\x1B\[[0-9]*[H]/g, '') // Cursor positioning
+    .replace(/\x1B\[[0-9]*[f]/g, '') // Cursor positioning
+    .replace(/\x1B\[[0-9]*[s]/g, '') // Save cursor
+    .replace(/\x1B\[[0-9]*[u]/g, '') // Restore cursor
+    .replace(/\x1B\[[0-9]*[n]/g, '') // Device status
+    .replace(/\x1B\[[0-9]*[c]/g, '') // Device attributes
+    .replace(/\x1B\[[0-9]*[y]/g, '') // Device attributes
+    .replace(/\x1B\[[0-9]*[q]/g, '') // Device attributes
+    .replace(/\x1B\[[0-9]*[p]/g, '') // Device attributes
+    .replace(/\x1B\[[0-9]*[g]/g, '') // Tab stops
+    .replace(/\x1B\[[0-9]*[i]/g, '') // Print
+    .replace(/\x1B\[[0-9]*[Z]/g, '') // Tab backward
+    .replace(/\x1B\[[0-9]*[@]/g, '') // Insert characters
+    .replace(/\x1B\[[0-9]*[P]/g, '') // Delete characters
+    .replace(/\x1B\[[0-9]*[X]/g, '') // Erase characters
+    .replace(/\x1B\[[0-9]*[L]/g, '') // Insert lines
+    .replace(/\x1B\[[0-9]*[M]/g, '') // Delete lines
+    .replace(/\x1B\[[0-9]*[T]/g, '') // Scroll down
+    .replace(/\x1B\[[0-9]*[S]/g, '') // Scroll up
+    .replace(/\x1B\[[0-9]*[b]/g, '') // Repeat character
+    .replace(/\x1B\[[0-9]*[a]/g, '') // Cursor up
+    .replace(/\x1B\[[0-9]*[e]/g, '') // Cursor down
+    .replace(/\x1B\[[0-9]*[C]/g, '') // Cursor forward
+    .replace(/\x1B\[[0-9]*[D]/g, '') // Cursor backward
+    // Xử lý các escape sequences phức tạp hơn
+    .replace(/\x1B\[[0-9;]*[ABCDEFGJKST]/g, '') // Cursor movement với parameters
+    .replace(/\x1B\[[0-9;]*[hl]/g, '') // Mode changes với parameters
+    .replace(/\x1B\[[0-9;]*[JK]/g, '') // Erase operations với parameters
+    .replace(/\x1B\[[0-9;]*[m]/g, '') // Color attributes với parameters
+    .replace(/\x1B\[[0-9;]*[r]/g, '') // Scroll region với parameters
+    .replace(/\x1B\[[0-9;]*[d]/g, '') // Line positioning với parameters
+    .replace(/\x1B\[[0-9;]*[G]/g, '') // Cursor positioning với parameters
+    .replace(/\x1B\[[0-9;]*[H]/g, '') // Cursor positioning với parameters
+    .replace(/\x1B\[[0-9;]*[f]/g, '') // Cursor positioning với parameters
+    .replace(/\x1B\[[0-9;]*[s]/g, '') // Save cursor với parameters
+    .replace(/\x1B\[[0-9;]*[u]/g, '') // Restore cursor với parameters
+    .replace(/\x1B\[[0-9;]*[n]/g, '') // Device status với parameters
+    .replace(/\x1B\[[0-9;]*[c]/g, '') // Device attributes với parameters
+    .replace(/\x1B\[[0-9;]*[y]/g, '') // Device attributes với parameters
+    .replace(/\x1B\[[0-9;]*[q]/g, '') // Device attributes với parameters
+    .replace(/\x1B\[[0-9;]*[p]/g, '') // Device attributes với parameters
+    .replace(/\x1B\[[0-9;]*[g]/g, '') // Tab stops với parameters
+    .replace(/\x1B\[[0-9;]*[i]/g, '') // Print với parameters
+    .replace(/\x1B\[[0-9;]*[Z]/g, '') // Tab backward với parameters
+    .replace(/\x1B\[[0-9;]*[@]/g, '') // Insert characters với parameters
+    .replace(/\x1B\[[0-9;]*[P]/g, '') // Delete characters với parameters
+    .replace(/\x1B\[[0-9;]*[X]/g, '') // Erase characters với parameters
+    .replace(/\x1B\[[0-9;]*[L]/g, '') // Insert lines với parameters
+    .replace(/\x1B\[[0-9;]*[M]/g, '') // Delete lines với parameters
+    .replace(/\x1B\[[0-9;]*[T]/g, '') // Scroll down với parameters
+    .replace(/\x1B\[[0-9;]*[S]/g, '') // Scroll up với parameters
+    .replace(/\x1B\[[0-9;]*[b]/g, '') // Repeat character với parameters
+    .replace(/\x1B\[[0-9;]*[a]/g, '') // Cursor up với parameters
+    .replace(/\x1B\[[0-9;]*[e]/g, '') // Cursor down với parameters
+    .replace(/\x1B\[[0-9;]*[C]/g, '') // Cursor forward với parameters
+    .replace(/\x1B\[[0-9;]*[D]/g, '') // Cursor backward với parameters
+    // Xử lý các escape sequences đặc biệt
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[hl]/g, '') // Private mode changes
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[JK]/g, '') // Private erase operations
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[m]/g, '') // Private color attributes
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[r]/g, '') // Private scroll region
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[d]/g, '') // Private line positioning
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[G]/g, '') // Private cursor positioning
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[H]/g, '') // Private cursor positioning
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[f]/g, '') // Private cursor positioning
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[s]/g, '') // Private save cursor
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[u]/g, '') // Private restore cursor
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[n]/g, '') // Private device status
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[c]/g, '') // Private device attributes
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[y]/g, '') // Private device attributes
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[q]/g, '') // Private device attributes
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[p]/g, '') // Private device attributes
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[g]/g, '') // Private tab stops
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[i]/g, '') // Private print
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[Z]/g, '') // Private tab backward
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[@]/g, '') // Private insert characters
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[P]/g, '') // Private delete characters
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[X]/g, '') // Private erase characters
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[L]/g, '') // Private insert lines
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[M]/g, '') // Private delete lines
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[T]/g, '') // Private scroll down
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[S]/g, '') // Private scroll up
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[b]/g, '') // Private repeat character
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[a]/g, '') // Private cursor up
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[e]/g, '') // Private cursor down
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[C]/g, '') // Private cursor forward
+    .replace(/\x1B\[[0-9;]*[?][0-9;]*[D]/g, '') // Private cursor backward
+    // Xử lý các escape sequences khác
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[hl]/g, '') // Secondary mode changes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[JK]/g, '') // Secondary erase operations
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[m]/g, '') // Secondary color attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[r]/g, '') // Secondary scroll region
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[d]/g, '') // Secondary line positioning
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[G]/g, '') // Secondary cursor positioning
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[H]/g, '') // Secondary cursor positioning
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[f]/g, '') // Secondary cursor positioning
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[s]/g, '') // Secondary save cursor
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[u]/g, '') // Secondary restore cursor
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[n]/g, '') // Secondary device status
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[c]/g, '') // Secondary device attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[y]/g, '') // Secondary device attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[q]/g, '') // Secondary device attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[p]/g, '') // Secondary device attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[g]/g, '') // Secondary tab stops
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[i]/g, '') // Secondary print
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[Z]/g, '') // Secondary tab backward
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[@]/g, '') // Secondary insert characters
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[P]/g, '') // Secondary delete characters
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[X]/g, '') // Secondary erase characters
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[L]/g, '') // Secondary insert lines
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[M]/g, '') // Secondary delete lines
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[T]/g, '') // Secondary scroll down
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[S]/g, '') // Secondary scroll up
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[b]/g, '') // Secondary repeat character
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[a]/g, '') // Secondary cursor up
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[e]/g, '') // Secondary cursor down
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[C]/g, '') // Secondary cursor forward
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[D]/g, '') // Secondary cursor backward
+    // Xử lý các escape sequences cuối cùng
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[hl]/g, '') // Tertiary mode changes
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[JK]/g, '') // Tertiary erase operations
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[m]/g, '') // Tertiary color attributes
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[r]/g, '') // Tertiary scroll region
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[d]/g, '') // Tertiary line positioning
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[G]/g, '') // Tertiary cursor positioning
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[H]/g, '') // Tertiary cursor positioning
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[f]/g, '') // Tertiary cursor positioning
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[s]/g, '') // Tertiary save cursor
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[u]/g, '') // Tertiary restore cursor
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[n]/g, '') // Tertiary device status
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[c]/g, '') // Tertiary device attributes
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[y]/g, '') // Tertiary device attributes
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[q]/g, '') // Tertiary device attributes
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[p]/g, '') // Tertiary device attributes
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[g]/g, '') // Tertiary tab stops
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[i]/g, '') // Tertiary print
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[Z]/g, '') // Tertiary tab backward
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[@]/g, '') // Tertiary insert characters
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[P]/g, '') // Tertiary delete characters
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[X]/g, '') // Tertiary erase characters
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[L]/g, '') // Tertiary insert lines
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[M]/g, '') // Tertiary delete lines
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[T]/g, '') // Tertiary scroll down
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[S]/g, '') // Tertiary scroll up
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[b]/g, '') // Tertiary repeat character
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[a]/g, '') // Tertiary cursor up
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[e]/g, '') // Tertiary cursor down
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[C]/g, '') // Tertiary cursor forward
+    .replace(/\x1B\[[0-9;]*[=][0-9;]*[D]/g, '') // Tertiary cursor backward
+    // Xử lý các escape sequences đặc biệt khác
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[hl]/g, '') // Special mode changes
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[JK]/g, '') // Special erase operations
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[m]/g, '') // Special color attributes
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[r]/g, '') // Special scroll region
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[d]/g, '') // Special line positioning
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[G]/g, '') // Special cursor positioning
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[H]/g, '') // Special cursor positioning
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[f]/g, '') // Special cursor positioning
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[s]/g, '') // Special save cursor
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[u]/g, '') // Special restore cursor
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[n]/g, '') // Special device status
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[c]/g, '') // Special device attributes
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[y]/g, '') // Special device attributes
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[q]/g, '') // Special device attributes
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[p]/g, '') // Special device attributes
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[g]/g, '') // Special tab stops
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[i]/g, '') // Special print
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[Z]/g, '') // Special tab backward
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[@]/g, '') // Special insert characters
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[P]/g, '') // Special delete characters
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[X]/g, '') // Special erase characters
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[L]/g, '') // Special insert lines
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[M]/g, '') // Special delete lines
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[T]/g, '') // Special scroll down
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[S]/g, '') // Special scroll up
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[b]/g, '') // Special repeat character
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[a]/g, '') // Special cursor up
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[e]/g, '') // Special cursor down
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[C]/g, '') // Special cursor forward
+    .replace(/\x1B\[[0-9;]*[!][0-9;]*[D]/g, '') // Special cursor backward
+    // Xử lý các escape sequences cuối cùng
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[hl]/g, '') // Complex mode changes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[JK]/g, '') // Complex erase operations
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[m]/g, '') // Complex color attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[r]/g, '') // Complex scroll region
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[d]/g, '') // Complex line positioning
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[G]/g, '') // Complex cursor positioning
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[H]/g, '') // Complex cursor positioning
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[f]/g, '') // Complex cursor positioning
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[s]/g, '') // Complex save cursor
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[u]/g, '') // Complex restore cursor
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[n]/g, '') // Complex device status
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[c]/g, '') // Complex device attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[y]/g, '') // Complex device attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[q]/g, '') // Complex device attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[p]/g, '') // Complex device attributes
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[g]/g, '') // Complex tab stops
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[i]/g, '') // Complex print
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[Z]/g, '') // Complex tab backward
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[@]/g, '') // Complex insert characters
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[P]/g, '') // Complex delete characters
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[X]/g, '') // Complex erase characters
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[L]/g, '') // Complex insert lines
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[M]/g, '') // Complex delete lines
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[T]/g, '') // Complex scroll down
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[S]/g, '') // Complex scroll up
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[b]/g, '') // Complex repeat character
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[a]/g, '') // Complex cursor up
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[e]/g, '') // Complex cursor down
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[C]/g, '') // Complex cursor forward
+    .replace(/\x1B\[[0-9;]*[>][0-9;]*[?][0-9;]*[D]/g, ''); // Complex cursor backward
+}
+
+// In output ra terminal
+function printOutput(output, type = 'normal') {
+  const terminalContent = $('#terminalContent');
+  
+  // Loại bỏ ANSI escape sequences để hiển thị text sạch
+  const cleanOutput = removeAnsi(output);
+  
+  // Sử dụng pre để giữ nguyên format và whitespace
+  const outputDiv = $('<div>', {
+    class: `output-line ${type === 'error' ? 'error-line' : type === 'success' ? 'success-line' : ''}`
+  }).html(`<pre style="margin: 0; font-family: inherit; white-space: pre-wrap;">${cleanOutput}</pre>`);
+  
+  terminalContent.append(outputDiv);
+  
+  // Scroll xuống cuối
+  const terminalBody = $('#terminalOutput');
+  terminalBody.scrollTop(terminalBody[0].scrollHeight);
+}
+
+// In prompt mới
+function printPrompt() {
+  const terminalContent = $('#terminalContent');
+  
+  // Kiểm tra xem đã có prompt ở cuối chưa
+  const lastChild = terminalContent.children().last();
+  if (lastChild.length && lastChild.hasClass('terminal-line')) {
+    // Đã có prompt, không cần tạo mới
+    return;
+  }
+  
+  const promptDiv = $('<div>', {
+    class: 'terminal-line'
+  }).html(`
+    <span class="prompt">root@target:~$</span>
+    <span class="command" id="currentCommand"></span>
+    <span class="cursor" id="cursor">|</span>
+  `);
+  terminalContent.append(promptDiv);
+  
+  // Scroll xuống cuối
+  const terminalBody = $('#terminalOutput');
+  terminalBody.scrollTop(terminalBody[0].scrollHeight);
+  
+  // Focus vào input
+  focusInput();
+}
+
+// Focus vào input terminal
+function focusInput() {
+  const input = $('#commandInput');
+  input.focus();
+  
+  // Đặt con trỏ ở cuối
+  const range = document.createRange();
+  const selection = window.getSelection();
+  range.selectNodeContents(input[0]);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  
+  cursorPosition = currentCommand.length;
+  updateCursor();
+}
+
+// Cập nhật vị trí con trỏ
+function updateCursor() {
+  const input = $('#commandInput');
+  const text = input.text();
+  
+  // Tạo range để đặt con trỏ
+  const range = document.createRange();
+  const selection = window.getSelection();
+  
+  if (cursorPosition <= text.length) {
+    let node = input[0].firstChild;
+    if (!node) {
+      node = document.createTextNode('');
+      input[0].appendChild(node);
+    }
+    
+    range.setStart(node, Math.min(cursorPosition, text.length));
+    range.setEnd(node, Math.min(cursorPosition, text.length));
+    
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+}
+
+// Xử lý phím tắt
+function handleKeyDown(e) {
+  const key = e.key;
+  const ctrl = e.ctrlKey;
+  const shift = e.shiftKey;
+  const alt = e.altKey;
+  
+  console.log('[DEBUG] Key pressed:', key, 'Ctrl:', ctrl, 'Shift:', shift, 'Alt:', alt);
+  
+  // Enter - Gửi lệnh
+  if (key === 'Enter') {
+    e.preventDefault();
+    const command = $('#commandInput').text().trim();
+    if (command) {
+      sendCommandToShell(command);
+      $('#commandInput').text('');
+      currentCommand = '';
+      cursorPosition = 0;
+    }
+    return;
+  }
+  
+  // Tab - Auto-completion hoặc indent
+  if (key === 'Tab') {
+    e.preventDefault();
+    if (shift) {
+      // Shift+Tab - Unindent
+      insertText('    ');
+    } else {
+      // Tab - Indent hoặc auto-completion
+      insertText('    ');
+    }
+    return;
+  }
+  
+  // Arrow keys
+  if (key === 'ArrowLeft') {
+    e.preventDefault();
+    if (ctrl) {
+      // Ctrl+Left - Word left
+      moveCursorWordLeft();
+    } else {
+      // Left - Character left
+      cursorPosition = Math.max(0, cursorPosition - 1);
+      updateCursor();
+    }
+    return;
+  }
+  
+  if (key === 'ArrowRight') {
+    e.preventDefault();
+    if (ctrl) {
+      // Ctrl+Right - Word right
+      moveCursorWordRight();
+    } else {
+      // Right - Character right
+      cursorPosition = Math.min(currentCommand.length, cursorPosition + 1);
+      updateCursor();
+    }
+    return;
+  }
+  
+  if (key === 'ArrowUp') {
+    e.preventDefault();
+    if (ctrl) {
+      // Ctrl+Up - Scroll up
+      scrollTerminalUp();
+    } else {
+      // Up - History up
+      navigateHistoryUp();
+    }
+    return;
+  }
+  
+  if (key === 'ArrowDown') {
+    e.preventDefault();
+    if (ctrl) {
+      // Ctrl+Down - Scroll down
+      scrollTerminalDown();
+    } else {
+      // Down - History down
+      navigateHistoryDown();
+    }
+    return;
+  }
+  
+  // Home/End
+  if (key === 'Home') {
+    e.preventDefault();
+    if (ctrl) {
+      // Ctrl+Home - Start of terminal
+      scrollTerminalToTop();
+    } else {
+      // Home - Start of line
+      cursorPosition = 0;
+      updateCursor();
+    }
+    return;
+  }
+  
+  if (key === 'End') {
+    e.preventDefault();
+    if (ctrl) {
+      // Ctrl+End - End of terminal
+      scrollTerminalToBottom();
+    } else {
+      // End - End of line
+      cursorPosition = currentCommand.length;
+      updateCursor();
+    }
+    return;
+  }
+  
+  // Ctrl+A - Select all
+  if (ctrl && key === 'a') {
+    e.preventDefault();
+    selectAll();
+    return;
+  }
+  
+  // Ctrl+C - Copy
+  if (ctrl && key === 'c') {
+    e.preventDefault();
+    copySelection();
+    return;
+  }
+  
+  // Ctrl+V - Paste
+  if (ctrl && key === 'v') {
+    e.preventDefault();
+    pasteFromClipboard();
+    return;
+  }
+  
+  // Ctrl+X - Cut
+  if (ctrl && key === 'x') {
+    e.preventDefault();
+    cutSelection();
+    return;
+  }
+  
+  // Ctrl+L - Clear screen
+  if (ctrl && key === 'l') {
+    e.preventDefault();
+    clearTerminal();
+    return;
+  }
+  
+  // Ctrl+U - Clear line before cursor
+  if (ctrl && key === 'u') {
+    e.preventDefault();
+    clearLineBeforeCursor();
+    return;
+  }
+  
+  // Ctrl+K - Clear line after cursor
+  if (ctrl && key === 'k') {
+    e.preventDefault();
+    clearLineAfterCursor();
+    return;
+  }
+  
+  // Ctrl+W - Delete word before cursor
+  if (ctrl && key === 'w') {
+    e.preventDefault();
+    deleteWordBeforeCursor();
+    return;
+  }
+  
+  // Backspace
+  if (key === 'Backspace') {
+    e.preventDefault();
+    if (cursorPosition > 0) {
+      currentCommand = currentCommand.slice(0, cursorPosition - 1) + currentCommand.slice(cursorPosition);
+      cursorPosition--;
+      $('#commandInput').text(currentCommand);
+      updateCursor();
+    }
+    return;
+  }
+  
+  // Delete
+  if (key === 'Delete') {
+    e.preventDefault();
+    if (cursorPosition < currentCommand.length) {
+      currentCommand = currentCommand.slice(0, cursorPosition) + currentCommand.slice(cursorPosition + 1);
+      $('#commandInput').text(currentCommand);
+      updateCursor();
+    }
+    return;
+  }
+  
+  // Escape - Clear current line
+  if (key === 'Escape') {
+    e.preventDefault();
+    currentCommand = '';
+    cursorPosition = 0;
+    $('#commandInput').text('');
+    updateCursor();
+    return;
+  }
+}
+
+// Các hàm hỗ trợ
+function insertText(text) {
+  currentCommand = currentCommand.slice(0, cursorPosition) + text + currentCommand.slice(cursorPosition);
+  cursorPosition += text.length;
+  $('#commandInput').text(currentCommand);
+  updateCursor();
+}
+
+function moveCursorWordLeft() {
+  const words = currentCommand.split(/\s+/);
+  let pos = 0;
+  for (let i = 0; i < words.length; i++) {
+    if (pos + words[i].length >= cursorPosition) {
+      cursorPosition = pos;
+      break;
+    }
+    pos += words[i].length + 1;
+  }
+  updateCursor();
+}
+
+function moveCursorWordRight() {
+  const words = currentCommand.split(/\s+/);
+  let pos = 0;
+  for (let i = 0; i < words.length; i++) {
+    pos += words[i].length + 1;
+    if (pos > cursorPosition) {
+      cursorPosition = pos - 1;
+      break;
+    }
+  }
+  updateCursor();
+}
+
+function navigateHistoryUp() {
+  if (historyIndex > 0) {
+    historyIndex--;
+    currentCommand = commandHistory[historyIndex];
+    cursorPosition = currentCommand.length;
+    $('#commandInput').text(currentCommand);
+    updateCursor();
+  }
+}
+
+function navigateHistoryDown() {
+  if (historyIndex < commandHistory.length - 1) {
+    historyIndex++;
+    currentCommand = commandHistory[historyIndex];
+    cursorPosition = currentCommand.length;
+    $('#commandInput').text(currentCommand);
+    updateCursor();
+  } else if (historyIndex === commandHistory.length - 1) {
+    historyIndex++;
+    currentCommand = '';
+    cursorPosition = 0;
+    $('#commandInput').text('');
+    updateCursor();
+  }
+}
+
+function scrollTerminalUp() {
+  const terminalBody = $('#terminalOutput');
+  terminalBody.scrollTop(terminalBody.scrollTop() - 50);
+}
+
+function scrollTerminalDown() {
+  const terminalBody = $('#terminalOutput');
+  terminalBody.scrollTop(terminalBody.scrollTop() + 50);
+}
+
+function scrollTerminalToTop() {
+  const terminalBody = $('#terminalOutput');
+  terminalBody.scrollTop(0);
+}
+
+function scrollTerminalToBottom() {
+  const terminalBody = $('#terminalOutput');
+  terminalBody.scrollTop(terminalBody[0].scrollHeight);
+}
+
+function selectAll() {
+  const input = $('#commandInput');
+  const range = document.createRange();
+  const selection = window.getSelection();
+  range.selectNodeContents(input[0]);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function copySelection() {
+  const selection = window.getSelection();
+  if (selection.toString()) {
+    navigator.clipboard.writeText(selection.toString());
+  }
+}
+
+function pasteFromClipboard() {
+  navigator.clipboard.readText().then(text => {
+    insertText(text);
+  });
+}
+
+function cutSelection() {
+  const selection = window.getSelection();
+  if (selection.toString()) {
+    navigator.clipboard.writeText(selection.toString());
+    // Xóa selection
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+  }
+}
+
+function clearTerminal() {
+  $('#terminalContent').empty();
+  if (isConnected) {
+    printPrompt();
+  } else {
+    printOutput('Đang chờ kết nối reverse shell...');
+  }
+}
+
+function clearLineBeforeCursor() {
+  currentCommand = currentCommand.slice(cursorPosition);
+  cursorPosition = 0;
+  $('#commandInput').text(currentCommand);
+  updateCursor();
+}
+
+function clearLineAfterCursor() {
+  currentCommand = currentCommand.slice(cursorPosition);
+  $('#commandInput').text(currentCommand);
+  updateCursor();
+}
+
+function deleteWordBeforeCursor() {
+  const beforeCursor = currentCommand.slice(0, cursorPosition);
+  const afterCursor = currentCommand.slice(cursorPosition);
+  const words = beforeCursor.split(/\s+/);
+  if (words.length > 1) {
+    words.pop();
+    const newBefore = words.join(' ');
+    currentCommand = newBefore + afterCursor;
+    cursorPosition = newBefore.length;
+    $('#commandInput').text(currentCommand);
+    updateCursor();
+  }
+}
+
+// ==========================
+// Tích hợp Socket.IO cho realtime shell
+// ==========================
+const socket = io.connect('http://' + document.domain + ':' + location.port);
+
+// Khi kết nối socket thành công
+socket.on('connect', function() {
+  printOutput('Đã kết nối tới server Socket.IO', 'success');
+  // Tham gia room shell hiện tại
+  socket.emit('join_shell', { shell_id: currentShellId });
+});
+
+// Nhận cập nhật trạng thái shell từ server (realtime)
+socket.on('shell_status_update', function(data) {
+  console.log('[DEBUG] Received shell_status_update:', data);
+  if (data.shell_id !== currentShellId) return;
+  updateToggleShellBtn(data.status);
+  $('#shellStatus').removeClass('bg-success bg-warning bg-secondary bg-danger');
+  if (data.status === 'CLOSED') {
+    $('#shellStatus').addClass('bg-secondary').text('Closed');
+    isConnected = false;
+    shellReady = false;
+    outputBuffer = '';
+    initTerminal();
+    printOutput('Shell đã đóng. Nhấn "Bật Shell" để kết nối lại.');
+  } else if (data.status === 'LISTENING') {
+    $('#shellStatus').addClass('bg-warning').text('Listening');
+    isConnected = false;
+    shellReady = false;
+    outputBuffer = '';
+    initTerminal();
+    printOutput('Đang chờ kết nối reverse shell...');
+  } else if (data.status === 'CONNECTED') {
+    console.log('[DEBUG] Shell connected, setting isConnected = true');
+    $('#shellStatus').addClass('bg-success').text('Connected');
+    isConnected = true;
+    // Không clear terminal khi kết nối thành công để giữ lại output đã nhận
+    if (!$('#terminalContent').children().length) {
+      // Chỉ init terminal nếu chưa có nội dung
+      initTerminal();
+      printOutput('Shell đã kết nối thành công!', 'success');
+    }
+    // Không in prompt ngay, đợi output từ pwncat
+    // Focus vào input khi kết nối thành công
+    $('#commandInput').focus();
+    
+    // Enable input khi shell đã kết nối
+    $('#commandInput').prop('disabled', false);
+    $('#sendCommand').prop('disabled', false);
+    
+    // Auto-set shellReady sau 3 giây nếu chưa được set
+    setTimeout(() => {
+      if (!shellReady && isConnected) {
+        console.log('[DEBUG] Auto-setting shellReady after timeout');
+        shellReady = true;
+      }
+    }, 3000);
+  } else if (data.status === 'ERROR') {
+    $('#shellStatus').addClass('bg-danger').text('Error');
+    isConnected = false;
+    shellReady = false;
+    outputBuffer = '';
+    printOutput(`Lỗi: ${data.error || 'Unknown error'}`, 'error');
+  }
+  // Enable/disable disconnect button theo trạng thái
+  $('#disconnectShell').prop('disabled', !isConnected);
+  $('#commandInput').prop('disabled', !isConnected);
+  $('#sendCommand').prop('disabled', !isConnected);
+});
+
+// Nhận output từ shell (realtime) - PTY mode
+socket.on('terminal_output', function(data) {
+  console.log('[DEBUG] Received terminal_output:', data);
+  if (data.shell_id !== currentShellId) return;
+  if (data.output) {
+    console.log('[DEBUG] Writing to terminal:', JSON.stringify(data.output));
+    
+    // Thêm output vào buffer
+    outputBuffer += data.output;
+    
+    // Kiểm tra xem buffer có chứa warning không
+    const cleanBuffer = removeAnsi(outputBuffer);
+    if (cleanBuffer.includes('WARNING: your terminal doesn\'t support cursor position requests (CPR).')) {
+      // Bỏ qua warning này, không hiển thị
+      outputBuffer = '';
       return;
     }
-    $('#updateTargetBtn').prop('disabled', true);
-    $.ajax({
-      url: `/api/shells/${shellId}/link_target`,
-      type: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({ target_id: targetId }),
-      success: function(resp) {
-        if (resp.status === 'success') {
-          $('#updateTargetStatus').text('Đã cập nhật liên kết!').removeClass('text-danger').addClass('text-success').show();
-          // Cập nhật lại thông tin hiển thị
-          const selected = $('#targetSelect option:selected');
-          $('#linkedTargetHostname').text(selected.text());
-          $('#linkedTargetId').text(targetId).attr('href', '/targets/' + targetId);
-        } else {
-          $('#updateTargetStatus').text('Lỗi: ' + resp.msg).removeClass('text-success').addClass('text-danger').show();
-        }
-      },
-      error: function(xhr) {
-        $('#updateTargetStatus').text('Lỗi cập nhật!').removeClass('text-success').addClass('text-danger').show();
-      },
-      complete: function() {
-        $('#updateTargetBtn').prop('disabled', false);
-        setTimeout(function() { $('#updateTargetStatus').fadeOut(); }, 2000);
+    
+    // Kiểm tra xem buffer có chứa prompt không (pwncat prompt)
+    if (cleanBuffer.includes('pwncat$') || cleanBuffer.includes('(local) pwncat$')) {
+      // Đã nhận prompt từ pwncat, shell đã sẵn sàng
+      shellReady = true;
+      console.log('[DEBUG] Shell ready detected from prompt');
+      
+      // In buffer và reset
+      if (outputBuffer.trim()) {
+        printOutput(outputBuffer);
       }
-    });
-  });
-
-  // Terminal tương tác trực tiếp
-  let commandHistory = [];
-  let historyIndex = -1;
-  let isConnected = false;
-  let currentShellId = '{{ shell.connection_id }}';
-  let currentShellData = null;
-
-  function initTerminal() {
-    $('#terminalOutput').empty();
-    addOutputLine('Welcome to Interactive Shell', 'success');
-    addOutputLine('Type your command below.', 'output');
-    addOutputLine('', 'output');
-  }
-
-  function addOutputLine(text, type = 'output') {
-    const line = $('<div>').addClass('terminal-line');
-    const output = $('<span>').addClass(`${type}-line`).text(text);
-    line.append(output);
-    $('#terminalOutput').append(line);
-    const terminalBody = document.getElementById('terminalOutput');
-    terminalBody.scrollTop = terminalBody.scrollHeight;
-  }
-
-  function addCommandLine(command) {
-    const line = $('<div>').addClass('terminal-line');
-    const prompt = $('<span>').addClass('prompt').text('root@target:~$');
-    const cmd = $('<span>').addClass('command').text(command);
-    const cursor = $('<span>').addClass('cursor').text('|');
-    line.append(prompt, cmd, cursor);
-    $('#terminalOutput').append(line);
-    const terminalBody = document.getElementById('terminalOutput');
-    terminalBody.scrollTop = terminalBody.scrollHeight;
-  }
-
-  function connectToShell(shellId) {
-    if (!shellId) return;
-    $.ajax({
-      url: `/api/shells/${shellId}/start`,
-      type: 'POST',
-      success: function(response) {
-        if (response.status === 'success') {
-          isConnected = true;
-          $('#shellStatus').removeClass('bg-secondary bg-danger').addClass('bg-success').text('Connected');
-          $('#commandInput').prop('disabled', false);
-          $('#sendCommand').prop('disabled', false);
-          $('#disconnectShell').prop('disabled', false);
-          // Get shell info
-          $.ajax({
-            url: `/api/shells/${shellId}`,
-            type: 'GET',
-            success: function(shellResponse) {
-              if (shellResponse.status === 'success') {
-                currentShellData = shellResponse.data;
-                $('#targetInfo').text(`Target: ${currentShellData.hostname || currentShellData.name}`);
-                addOutputLine(`Connected to shell: ${currentShellData.name}`, 'success');
-                addOutputLine(`Type: ${currentShellData.shell_type}`, 'output');
-                addOutputLine(`Status: ${currentShellData.status}`, 'output');
-                addOutputLine('', 'output');
-              }
-            }
-          });
-          loadCommandHistory(shellId);
-        } else {
-          addOutputLine(`Failed to connect: ${response.msg}`, 'error');
-        }
-      },
-      error: function(xhr) {
-        addOutputLine(`Connection error: ${xhr.responseJSON?.msg || 'Unknown error'}`, 'error');
+      outputBuffer = '';
+      
+      // Chỉ in prompt nếu chưa có prompt ở cuối
+      const terminalContent = $('#terminalContent');
+      const lastChild = terminalContent.children().last();
+      if (!lastChild.length || !lastChild.hasClass('terminal-line')) {
+        setTimeout(() => printPrompt(), 100);
       }
-    });
-  }
-
-  function loadCommandHistory(shellId) {
-    $.ajax({
-      url: `/api/shells/${shellId}/history`,
-      type: 'GET',
-      data: { limit: 50 },
-      success: function(response) {
-        if (response.status === 'success') {
-          commandHistory = response.data.map(cmd => cmd.command);
-          historyIndex = commandHistory.length;
-        }
-      }
-    });
-  }
-
-  function sendCommandToShell(command) {
-    if (!currentShellId || !isConnected) return;
-    addCommandLine(command);
-    $.ajax({
-      url: `/api/shells/${currentShellId}/command`,
-      type: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({ command: command }),
-      success: function(response) {
-        if (response.status === 'success') {
-          const output = response.data.output;
-          if (output) {
-            addOutputLine(output, 'output');
-          }
-          addOutputLine('', 'output');
-        } else {
-          addOutputLine(`Command failed: ${response.msg}`, 'error');
-        }
-      },
-      error: function(xhr) {
-        addOutputLine(`Error executing command: ${xhr.responseJSON?.msg || 'Unknown error'}`, 'error');
-      }
-    });
-  }
-
-  function disconnectShell() {
-    if (currentShellId) {
-      $.ajax({
-        url: `/api/shells/${currentShellId}/close`,
-        type: 'POST',
-        success: function(response) {
-          // ...
-        }
-      });
-    }
-    isConnected = false;
-    $('#shellStatus').removeClass('bg-success bg-danger').addClass('bg-secondary').text('Disconnected');
-    $('#commandInput').prop('disabled', true);
-    $('#sendCommand').prop('disabled', true);
-    $('#disconnectShell').prop('disabled', true);
-    $('#targetInfo').text('Target: {{ shell.hostname or shell_name or shell_id }}');
-    addOutputLine('Shell disconnected', 'error');
-  }
-
-  $('#sendCommand').click(function() {
-    const command = $('#commandInput').val().trim();
-    if (command && isConnected) {
-      sendCommandToShell(command);
-      $('#commandInput').val('');
-    }
-  });
-  $('#commandInput').keypress(function(e) {
-    if (e.which === 13 && isConnected) {
-      const command = $(this).val().trim();
-      if (command) {
-        sendCommandToShell(command);
-        $(this).val('');
-      }
-    }
-  });
-  $('#commandInput').keydown(function(e) {
-    if (e.which === 38) {
-      e.preventDefault();
-      if (historyIndex > 0) {
-        historyIndex--;
-        $(this).val(commandHistory[historyIndex]);
-      }
-    } else if (e.which === 40) {
-      e.preventDefault();
-      if (historyIndex < commandHistory.length - 1) {
-        historyIndex++;
-        $(this).val(commandHistory[historyIndex]);
-      } else if (historyIndex === commandHistory.length - 1) {
-        historyIndex++;
-        $(this).val('');
-      }
-    }
-  });
-  $('#clearTerminal').click(function() {
-    initTerminal();
-  });
-  $('#saveOutput').click(function() {
-    const output = $('#terminalOutput').text();
-    const blob = new Blob([output], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `shell_output_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
-  $('#loadHistory').click(function() {
-    if (currentShellId) {
-      loadCommandHistory(currentShellId);
-      addOutputLine('Command history loaded', 'success');
-    }
-  });
-  $('#fullscreen').click(function() {
-    const container = $('.shell-container');
-    const icon = $(this).find('i');
-    if (container.hasClass('fullscreen')) {
-      container.removeClass('fullscreen');
-      icon.removeClass('fa-compress').addClass('fa-expand');
+        } else if (cleanBuffer.includes('registered new host') && !shellReady) {
+      // Đã nhận thông báo host được đăng ký, shell gần như sẵn sàng
+      console.log('[DEBUG] Host registered detected, shell almost ready');
+      // Không set shellReady ngay, đợi prompt
     } else {
-      container.addClass('fullscreen');
-      icon.removeClass('fa-expand').addClass('fa-compress');
-    }
-  });
-  $('#disconnectShell').click(function() {
-    disconnectShell();
-  });
-
-  // Tự động kết nối shell khi vào trang
-  initTerminal();
-  //connectToShell(currentShellId); // PHẢI tắt tự động kết nối shell khi vào trang
-
-  // Nút bật/tắt shell
-  function updateToggleShellBtn(status) {
-    if (status === 'CLOSED' || status === 'closed') {
-      $('#toggleShellBtnText').text('Bật Shell');
-      $('#toggleShellBtn').removeClass('btn-outline-danger').addClass('btn-outline-success');
-    } else {
-      $('#toggleShellBtnText').text('Tắt Shell');
-      $('#toggleShellBtn').removeClass('btn-outline-success').addClass('btn-outline-danger');
+      // Kiểm tra xem có phải là output hoàn chỉnh không (có newline)
+      if (outputBuffer.includes('\n') || outputBuffer.includes('\r')) {
+        // In buffer và reset
+        if (outputBuffer.trim()) {
+          printOutput(outputBuffer);
+        }
+        outputBuffer = '';
+      }
     }
   }
-
-  // Gọi khi trạng thái shell thay đổi hoặc khi load trang
-  function refreshShellStatus() {
-    $.ajax({
-      url: `/api/shells/${currentShellId}`, // lấy thông tin shell 
-      type: 'GET',
-      success: function(resp) {
-        if (resp.status === 'success') {
-          const status = resp.data.status;
-          updateToggleShellBtn(status);
-          // Cập nhật badge
-          if (status === 'CLOSED' || status === 'closed') {
-            $('#shellStatus').removeClass('bg-success').addClass('bg-secondary').text('Closed');
-            $('#commandInput').prop('disabled', true);
-            $('#sendCommand').prop('disabled', true);
-            $('#disconnectShell').prop('disabled', true);
-          } else if (status === 'CONNECTED' || status === 'LISTENING' || status === 'connected' || status === 'listening') {
-            $('#shellStatus').removeClass('bg-secondary').addClass('bg-success').text('Connected');
-            $('#commandInput').prop('disabled', false);
-            $('#sendCommand').prop('disabled', false);
-            $('#disconnectShell').prop('disabled', false);
-          }
-        }
-      }
-    });
-  }
-
-  // Sự kiện click nút bật/tắt shell
-  $('#toggleShellBtn').click(function() {
-    $.ajax({
-      url: `/api/shells/${currentShellId}`,
-      type: 'GET',
-      success: function(resp) {
-        if (resp.status === 'success') {
-          const status = resp.data.status;
-          if (status === 'CLOSED' || status === 'closed') {
-            // Bật shell
-            $.ajax({
-              url: `/api/shells/${currentShellId}/start`,
-              type: 'POST',
-              success: function(startResp) {
-                if (startResp.status === 'success') {
-                  alert('Shell đã được bật!');
-                  refreshShellStatus();
-                  connectToShell(currentShellId);
-                } else {
-                  alert('Không thể bật shell: ' + startResp.msg);
-                }
-              },
-              error: function() { alert('Lỗi bật shell!'); }
-            });
-          } else {
-            // Tắt shell
-            if (confirm('Bạn có chắc muốn tắt shell này?')) {
-              $.ajax({
-                url: `/api/shells/${currentShellId}/close`,
-                type: 'POST',
-                success: function(closeResp) {
-                  if (closeResp.status === 'success') {
-                    alert('Shell đã được tắt!');
-                    refreshShellStatus();
-                  } else {
-                    alert('Không thể tắt shell: ' + closeResp.msg);
-                  }
-                },
-                error: function() { alert('Lỗi tắt shell!'); }
-              });
-            }
-          }
-        }
-      }
-    });
-  });
-
-  // Khi load trang, cập nhật trạng thái nút bật/tắt shell
-  refreshShellStatus();
 });
+
+// ==========================
+// Các hàm thao tác shell
+// ==========================
+
+// Gửi yêu cầu join shell (khi bật shell)
+function connectToShell(shellId) {
+  socket.emit('join_shell', { shell_id: shellId });
+  // Gửi request bật shell qua socket
+  socket.emit('shell_start', { shell_id: shellId });
+}
+
+// Gửi lệnh tới shell qua socket (PTY mode)
+function sendCommandToShell(command) {
+  if (!currentShellId || !isConnected) {
+    printOutput('Shell chưa kết nối!', 'error');
+    return;
+  }
+  
+  // Kiểm tra shellReady, nhưng nếu đã connected thì vẫn cho phép gửi lệnh
+  if (!shellReady && isConnected) {
+    console.log('[DEBUG] Shell connected but not ready, attempting to send command anyway');
+  }
+  
+  // Thêm lệnh vào history
+  if (command.trim()) {
+    commandHistory.push(command);
+    historyIndex = commandHistory.length;
+  }
+  
+  // In lệnh ra terminal
+  const terminalContent = $('#terminalContent');
+  const lastLine = terminalContent.children().last();
+  if (lastLine.length && lastLine.hasClass('terminal-line')) {
+    lastLine.find('.command').text(command);
+  }
+  
+  // Gửi lệnh + newline để thực thi
+  socket.emit('terminal_input', {
+    shell_id: currentShellId,
+    input: command + '\n'
+  });
+  
+  // Reset input
+  currentCommand = '';
+  cursorPosition = 0;
+  $('#commandInput').text('');
+  
+  // Không in prompt ngay, đợi output từ shell
+}
+
+// Ngắt kết nối shell
+function disconnectShell() {
+  if (currentShellId) {
+    socket.emit('shell_stop', { shell_id: currentShellId });
+  }
+  isConnected = false;
+  $('#shellStatus').removeClass('bg-success bg-warning').addClass('bg-secondary').text('Disconnected');
+  $('#disconnectShell').prop('disabled', true);
+  $('#commandInput').prop('disabled', true);
+  $('#sendCommand').prop('disabled', true);
+  printOutput('Đang chờ kết nối reverse shell...');
+}
+
+// ==========================
+// Xử lý input từ terminal thật
+// ==========================
+$('#commandInput').on('keydown', handleKeyDown);
+
+// Xử lý input text
+$('#commandInput').on('input', function() {
+  currentCommand = $(this).text();
+  cursorPosition = currentCommand.length;
+});
+
+// Xử lý click để focus
+$('#commandInput').on('click', function() {
+  focusInput();
+});
+
+// Xử lý paste
+$('#commandInput').on('paste', function(e) {
+  e.preventDefault();
+  const text = (e.originalEvent || e).clipboardData.getData('text/plain');
+  insertText(text);
+});
+
+// Xử lý copy
+$('#commandInput').on('copy', function(e) {
+  const selection = window.getSelection();
+  if (selection.toString()) {
+    e.originalEvent.clipboardData.setData('text/plain', selection.toString());
+  }
+});
+
+// Xử lý cut
+$('#commandInput').on('cut', function(e) {
+  const selection = window.getSelection();
+  if (selection.toString()) {
+    e.originalEvent.clipboardData.setData('text/plain', selection.toString());
+    // Xóa selection
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+  }
+});
+
+// ==========================
+// Xử lý các nút chức năng UI
+// ==========================
+$('#clearTerminal').click(function() {
+  clearTerminal();
+});
+
+// Thêm các phím tắt toàn cục
+$(document).on('keydown', function(e) {
+  // Ctrl+L - Clear terminal
+  if (e.ctrlKey && e.key === 'l') {
+    e.preventDefault();
+    clearTerminal();
+  }
+  
+  // Ctrl+Shift+C - Copy từ terminal
+  if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+    e.preventDefault();
+    const selection = window.getSelection();
+    if (selection.toString()) {
+      navigator.clipboard.writeText(selection.toString());
+    }
+  }
+  
+  // Ctrl+Shift+V - Paste vào terminal
+  if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+    e.preventDefault();
+    navigator.clipboard.readText().then(text => {
+      insertText(text);
+    });
+  }
+  
+  // Focus vào terminal khi nhấn Ctrl+`
+  if (e.ctrlKey && e.key === '`') {
+    e.preventDefault();
+    focusInput();
+  }
+});
+
+$('#fullscreen').click(function() {
+  $('.shell-container').toggleClass('fullscreen');
+});
+
+$('#disconnectShell').click(function() {
+  if (confirm('Bạn có chắc muốn ngắt kết nối shell này?')) {
+    disconnectShell();
+  }
+});
+
+$('#toggleShellBtn').click(function() {
+  $.ajax({
+    url: `/api/shells/${currentShellId}`,
+    type: 'GET',
+    success: function(resp) {
+      if (resp.status === 'success') {
+        const status = resp.data.status.toUpperCase();
+        if (status === 'CLOSED' || status === 'DISCONNECTED' || status === 'ERROR') {
+          connectToShell(currentShellId);
+        } else {
+          if (confirm('Bạn có chắc muốn tắt shell này?')) {
+            disconnectShell();
+          }
+        }
+      }
+    },
+    error: function(xhr) {
+      printOutput(`Lỗi kiểm tra trạng thái: ${xhr.responseJSON?.msg || 'Unknown error'}`, 'error');
+    }
+  });
+});
+
+// Cập nhật giao diện nút bật/tắt shell theo trạng thái
+function updateToggleShellBtn(status) {
+  status = status.toUpperCase();
+  if (status === 'CLOSED' || status === 'DISCONNECTED' || status === 'ERROR') {
+    $('#toggleShellBtnText').text('Bật Shell');
+    $('#toggleShellBtn').removeClass('btn-outline-danger').addClass('btn-outline-success');
+  } else {
+    $('#toggleShellBtnText').text('Tắt Shell');
+    $('#toggleShellBtn').removeClass('btn-outline-success').addClass('btn-outline-danger');
+  }
+}
+
+// Kiểm tra trạng thái shell khi load trang
+function refreshShellStatus() {
+  $.ajax({
+    url: `/api/shells/${currentShellId}`,
+    type: 'GET',
+    success: function(resp) {
+      if (resp.status === 'success') {
+        const status = resp.data.status.toUpperCase();
+        updateToggleShellBtn(status);
+        if (status === 'CONNECTED') {
+          connectToShell(currentShellId);
+        } else if (status === 'LISTENING') {
+          $('#shellStatus').removeClass('bg-success bg-secondary').addClass('bg-warning').text('Listening');
+          isConnected = false;
+          initTerminal();
+          printOutput('Đang chờ kết nối reverse shell...');
+        } else {
+          $('#shellStatus').removeClass('bg-success bg-warning').addClass('bg-secondary').text(status);
+          isConnected = false;
+          initTerminal();
+          printOutput('Đang chờ kết nối reverse shell...');
+        }
+      }
+    },
+    error: function(xhr) {
+      printOutput(`Lỗi kiểm tra trạng thái: ${xhr.responseJSON?.msg || 'Unknown error'}`, 'error');
+    }
+  });
+}
+
+// ==========================
+// Khởi tạo khi load trang
+// ==========================
+$(document).ready(function() {
+  initTerminal(); // Khởi tạo terminal
+  render_target_info(); // Lấy danh sách target
+  refreshShellStatus(); // Kiểm tra trạng thái shell ban đầu
+  
+  // Focus vào terminal khi load
+  setTimeout(() => {
+    focusInput();
+  }, 500);
+  
+  // Thêm tooltip cho phím tắt
+  $('[data-toggle="tooltip"]').tooltip();
+  
+  // Thêm context menu cho terminal
+  $('#terminalOutput').on('contextmenu', function(e) {
+    e.preventDefault();
+    // Có thể thêm context menu ở đây
+  });
+  
+  // Auto-resize terminal khi window resize
+  $(window).on('resize', function() {
+    const terminalBody = $('#terminalOutput');
+    const containerHeight = $('.shell-container').height();
+    const headerHeight = $('.terminal-header').outerHeight();
+    const inputHeight = $('.terminal-input-area').outerHeight();
+    const buttonHeight = $('.p-2').outerHeight();
+    
+    const newHeight = containerHeight - headerHeight - inputHeight - buttonHeight - 30;
+    terminalBody.css('max-height', newHeight + 'px');
+  });
+  
+  // Trigger resize event
+  $(window).trigger('resize');
+});
+
 </script>
 {% endblock content %}

@@ -47,5 +47,6 @@ requests_toolbelt
 bcrypt
 
 pwncat-cs 
+flask-socketio
 #quản lý shell
 psutil

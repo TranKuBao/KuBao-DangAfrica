@@ -9,6 +9,10 @@ from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from importlib import import_module
 
+from flask_socketio import SocketIO # thêm để tương tác reverseShell
+socketio = SocketIO(cors_allowed_origins="*")  # Cho phép mọi origin, có thể chỉnh lại cho bảo mật
+
+
 db = SQLAlchemy()
 login_manager = LoginManager()
 
@@ -56,4 +60,20 @@ def create_app(config):
     register_blueprints(app)
     app.register_blueprint(github_blueprint, url_prefix="/login")    
     app.register_blueprint(google_blueprint, url_prefix="/login")    
+
+
+    # Khởi tạo socketio với app
+    socketio.init_app(app, cors_allowed_origins="*")
+    
+    # Đảm bảo shell_manager được khởi tạo trước
+    from apps.managershell.pwncat import shell_manager
+    shell_manager.socketio = socketio
+    
+    # Đăng ký các event cho terminal shell
+    from apps.managershell.socketio_events import register_terminal_events
+    register_terminal_events(socketio)
+
+
     return app
+
+__all__ = ['db', 'login_manager', 'create_app', 'socketio']

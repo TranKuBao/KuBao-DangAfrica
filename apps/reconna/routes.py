@@ -13,6 +13,8 @@ from apps.reconna.Recon_Wpcan._WP_Scan_ import Recon_Wpscan
 
 #import các model để luwu dữ liệu
 from apps.models import Reports, Targets
+from apps import db  # Đảm bảo đã import db
+
 #=================================NMAP======================================================
 @blueprint.route('/recon/nmap/scan',methods=['GET','POST'])
 def recon_nmap_scan():    
@@ -157,33 +159,45 @@ def get_wpscan_result():
 def save_recon():
     try:
         data = request.get_json()
-        Server_ID = data.get('server_id')
+        server_id = data.get('server_id')
         tool = data.get('tool')
         data_scan = data.get('data_scan')
-        #print(f"[+] Debug data_save {data}")   
-        #print(f"[+] Debug data_save_scan: {data_scan}")      
-        # tìm server id đã
-        report = Reports.query.filter_by(server_id=Server_ID).first()
+
+        if not server_id or not tool or data_scan is None:
+            return jsonify({'status': -1, 'msg': 'Thiếu tham số'}), 400
+
+        report = Reports.query.filter_by(server_id=server_id).first()
         if not report:
-            return jsonify({'status':-1, 'msg':'No information found server_ID'})
+            return jsonify({'status': -1, 'msg': 'No information found server_ID'})
 
-        #phân tích request để tìm tool
-        now_time = datetime.datetime.now()
+        now_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        update_fields = {}
+
         if tool == 'nmap':
-            report.update(nmap=data_scan,update_nmap=str(now_time))
+            update_fields = {'nmap': data_scan, 'update_nmap': now_time}
         elif tool == 'dirsearch':
-            report.update(dirsearch=data_scan,update_dirsearch=str(now_time))    
+            update_fields = {'dirsearch': data_scan, 'update_dirsearch': now_time}
         elif tool == 'wappalyzer':
-            report.update(wappalyzer=data_scan,update_wappalyzer=str(now_time))    
+            update_fields = {'wappalyzer': data_scan, 'update_wappalyzer': now_time}
         elif tool == 'wpscan':
-            report.update(wpscan=data_scan,update_wpscan=str(now_time))    
+            update_fields = {'wpscan': data_scan, 'update_wpscan': now_time}
         elif tool == 'pocs':
-            report.update(pocs=data_scan, update_pocs=str(now_time))
+            update_fields = {'pocs': data_scan, 'update_pocs': now_time}
+        else:
+            return jsonify({'status': -1, 'msg': 'Tool không hợp lệ'}), 400
 
-        return jsonify({'status':0, 'msg': "Saving successfully"})
+        try:
+            report.update(**update_fields)
+        except Exception as e:
+            db.session.rollback()
+            print(f'Lỗi commit DB: {e}')
+            return jsonify({'status': -1, 'msg': f'Lỗi commit DB: {e}'})
+
+        return jsonify({'status': 0, 'msg': 'Saving successfully'})
     except Exception as e:
-        print(f"Lỗi ở hàm lưu dữ liệu recon... {e}")
-        return jsonify({"status": -1, 'msg': str(e), 'error': str(e)})
+        db.session.rollback()
+        print(f'Lỗi ở hàm lưu dữ liệu lưu... {e}')
+        return jsonify({'status': -1, 'msg': str(e), 'error': str(e)})
 
 
 # @blueprint.route('/api/getreport', methods=['POST', 'GET'])

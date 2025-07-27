@@ -119,13 +119,16 @@ function HandleActionShell(connectionID, nowaction){
             //Làm 1 cái notic thông bác 
             alert("Enabled successful");
             showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
+            showAlertSuccess('Shell is turned on');
           }
           else{
             alert(`${resp.msg}`);
+            showAlertError(`${resp.msg}`);
           }
         },
         error: function(error){
           alert(`${error.msg}`);
+          showAlertError(`${error.msg}`);
         }
       });
     }
@@ -141,15 +144,18 @@ function HandleActionShell(connectionID, nowaction){
           if(resp.status== 'success'){
             /// lam cai NOti o day
             
-            alert('thanhf coong tawst');
+            alert('Success Turn Off');
             showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
+            showAlertSuccess('Shell is turned off');
           }
           else{
             alert(`${resp.msg}`);
+            showAlertError(`${resp.msg}`);
           }
         },
         error: function(error){
-          alert(`${error.msg}`)
+          alert(`${error.msg}`);
+          showAlertError(`${error.msg}`);
         }
       });
     };
@@ -162,6 +168,8 @@ function HandleActionShell(connectionID, nowaction){
 function HandViewShell(connectionID) {
   console.log('Opening shell view for:', connectionID);
   // Redirect to view shell page
-  window.location.href = `/shells/${connectionID}`;
+  //window.location.href = `/shells/${connectionID}`;
+  // mở bằng tab mới
+  window.open(`/shells/${connectionID}`, '_blank');
 }
 </script>
