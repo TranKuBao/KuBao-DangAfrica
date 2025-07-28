@@ -114,3 +114,9 @@ if __name__ == "__main__":
     
     # Chạy pwncat listener
     handle_pwncat_interactive(port=9397)
+
+
+
+# Đang có lỗi đáng tiếc xảy ra, khi tương tác với terminal trên FE 
+# vậy nếu tôi nhấn ctrl+d thì sao,  có 1 vần đề là chúng ta phải đưa nó về đúng y chang terminal thật, vì trong pwncat có 1 tổ hợp phím ctrl+d rất quan trọng và thêm vào đó là trên web GUI thì làm sao khi để tương tác terminal trên đó thì chúng ta tránh được tương với phía website bên ngoài terminal 
+# bạn có toàn quyền check và sửa tất cả để tương tác CMD như thật...
