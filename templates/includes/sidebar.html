@@ -1,51 +1,67 @@
-<aside class="sidenav navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-3 " id="sidenav-main">
+<!-- Mobile Overlay -->
+<div class="mobile-overlay" id="mobileOverlay"></div>
+
+<aside class="sidenav navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-3" id="sidenav-main">
     <div class="sidenav-header">
-      <i class="fas fa-times p-3 cursor-pointer text-secondary opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
+      <!-- Toggle Button -->
+      <button class="toggle-btn" id="toggleBtn" type="button">
+        <i class="fas fa-bars"></i>
+      </button>
+      
       <a class="navbar-brand m-0" href="{{ url_for('home_blueprint.index') }}">
         <img src="{{ url_for('static', filename='assets/img/cyber-security.png') }}" class="navbar-brand-img h-100" alt="main_logo">
-        <span class="ms-1 font-weight-bold">
+        <span class="ms-1 font-weight-bold brand-text">
           HT Hỗ Trợ Tác Chiến
         </span>
       </a>
+
+      <!-- Close button for mobile -->
+      <i class="fas fa-times p-3 cursor-pointer text-secondary opacity-5 position-absolute end-0 top-0 d-xl-none mobile-close" 
+         aria-hidden="true" id="iconSidenav"></i>
     </div>
+    
     <hr class="horizontal dark mt-0">
-    <div class="collapse navbar-collapse  w-auto " id="sidenav-collapse-main" style="height: 480px !important;">
+    
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main" style="height: 480px !important;">
       <ul class="navbar-nav">
 
         <li class="nav-item mt-3">
-          <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Apps</h6>
+          <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6 nav-section-title">Apps</h6>
         </li>
 
         <li class="nav-item">
           <a class="nav-link {% if segment == 'index_targets' %}active{% endif %}" href="{{ url_for('targets_blueprint.targets') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
-                  style="width: 32px;   height: 32px;   overflow: hidden; ">
-              <img src="{{ url_for('static', filename='assets/img/target.png') }}" style="max-width: 100%;   height: auto;   display: block;   object-fit: contain;  ">
-              
+                  style="width: 32px; height: 32px; overflow: hidden;">
+              <img src="{{ url_for('static', filename='assets/img/target.png') }}" 
+                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
             </div>
-            <span class="nav-link-text ms-1">Targets</span> <!--Chỉnh tên ở đây-->
+            <span class="nav-link-text ms-1">Targets</span>
+            <div class="nav-tooltip">Targets</div>
           </a>
         </li>
 
         <li class="nav-item">
           <a class="nav-link {% if segment == 'index-pocs' %}active{% endif %}" href="{{ url_for('home_blueprint.pocs') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
-                  style="width: 32px;   height: 32px;   overflow: hidden; ">
-              <img src="{{ url_for('static', filename='assets/img/pocs.png') }}" style="max-width: 100%;   height: auto;   display: block;   object-fit: contain;  ">
-              
+                  style="width: 32px; height: 32px; overflow: hidden;">
+              <img src="{{ url_for('static', filename='assets/img/pocs.png') }}" 
+                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
             </div>
-            <span class="nav-link-text ms-1">POCs</span> <!--Chỉnh tên ở đây-->
+            <span class="nav-link-text ms-1">POCs</span>
+            <div class="nav-tooltip">POCs</div>
           </a>
         </li>
 
         <li class="nav-item">
           <a class="nav-link {% if segment == 'index-shell' %}active{% endif %}" href="{{ url_for('managershell_blueprint.shells') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
-                  style="width: 32px;   height: 32px;   overflow: hidden; ">
-              <img src="{{ url_for('static', filename='assets/img/shells.png') }}" style="max-width: 100%;   height: auto;   display: block;   object-fit: contain;  ">
-              
+                  style="width: 32px; height: 32px; overflow: hidden;">
+              <img src="{{ url_for('static', filename='assets/img/shells.png') }}" 
+                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
             </div>
-            <span class="nav-link-text ms-1">Shells</span> <!--Chỉnh tên ở đây-->
+            <span class="nav-link-text ms-1">Shells</span>
+            <div class="nav-tooltip">Shells</div>
           </a>
         </li>
 
@@ -53,7 +69,7 @@
           <a class="nav-link {% if segment == 'dashboard' %}active{% endif %}" href="{{ url_for('home_blueprint.index') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
               <svg width="12px" height="12px" viewBox="0 0 45 40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>shop </title>
+                <title>shop</title>
                 <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
                   <g transform="translate(-1716.000000, -439.000000)" fill="#FFFFFF" fill-rule="nonzero">
                     <g transform="translate(1716.000000, 291.000000)">
@@ -67,6 +83,7 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Dashboard</span>
+            <div class="nav-tooltip">Dashboard</div>
           </a>
         </li>
 
@@ -88,13 +105,15 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Dynamic Tables</span>
+            <div class="nav-tooltip">Dynamic Tables</div>
           </a>
         </li>
+
         <li class="nav-item">
           <a class="nav-link {% if segment == 'charts' %}active{% endif %}" href="{{ url_for('charts_blueprint.charts') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
               <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>office</title>
+                <title>chart</title>
                 <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
                   <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
                     <g transform="translate(1716.000000, 291.000000)">
@@ -108,17 +127,19 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Charts</span>
+            <div class="nav-tooltip">Charts</div>
           </a>
         </li>
 
         <li class="nav-item mt-3">
-          <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">UI Components</h6>
+          <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6 nav-section-title">UI Components</h6>
         </li>
+
         <li class="nav-item">
           <a class="nav-link {% if segment == 'tables' %}active{% endif %}" href="{{ url_for('home_blueprint.tables') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
               <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>office</title>
+                <title>table</title>
                 <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
                   <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
                     <g transform="translate(1716.000000, 291.000000)">
@@ -132,8 +153,10 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Tables</span>
+            <div class="nav-tooltip">Tables</div>
           </a>
         </li>
+
         <li class="nav-item">
           <a class="nav-link {% if segment == 'billing' %}active{% endif %}" href="{{ url_for('home_blueprint.billing') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
@@ -152,8 +175,10 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Billing</span>
+            <div class="nav-tooltip">Billing</div>
           </a>
         </li>
+
         <li class="nav-item">
           <a class="nav-link {% if segment == 'virtual_reality' %}active{% endif %}" href="{{ url_for('home_blueprint.virtual_reality') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
@@ -173,14 +198,14 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Virtual Reality</span>
+            <div class="nav-tooltip">Virtual Reality</div>
           </a>
         </li>
-        
-        
 
         <li class="nav-item mt-3">
-          <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Account pages</h6>
+          <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6 nav-section-title">Account Pages</h6>
         </li>
+
         {% if current_user.is_authenticated %}
         <li class="nav-item">
           <a class="nav-link {% if segment == 'profile' %}active{% endif %}" href="{{ url_for('home_blueprint.profile') }}">
@@ -201,10 +226,12 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Profile</span>
+            <div class="nav-tooltip">Profile</div>
           </a>
         </li>
+
         <li class="nav-item">
-          <a class="nav-link  " href="{{ url_for('authentication_blueprint.logout') }}">
+          <a class="nav-link" href="{{ url_for('authentication_blueprint.logout') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
               <svg width="12px" height="20px" viewBox="0 0 40 40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                 <title>spaceship</title>
@@ -223,11 +250,14 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Logout</span>
+            <div class="nav-tooltip">Logout</div>
           </a>
         </li>
+
         {% else %}
+
         <li class="nav-item">
-          <a class="nav-link  " href="{{ url_for('authentication_blueprint.login') }}">
+          <a class="nav-link" href="{{ url_for('authentication_blueprint.login') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
               <svg width="12px" height="12px" viewBox="0 0 40 44" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                 <title>document</title>
@@ -244,10 +274,12 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Sign In</span>
+            <div class="nav-tooltip">Sign In</div>
           </a>
         </li>
+
         <li class="nav-item">
-          <a class="nav-link  " href="{{ url_for('authentication_blueprint.register') }}">
+          <a class="nav-link" href="{{ url_for('authentication_blueprint.register') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
               <svg width="12px" height="20px" viewBox="0 0 40 40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                 <title>spaceship</title>
@@ -266,27 +298,428 @@
               </svg>
             </div>
             <span class="nav-link-text ms-1">Sign Up</span>
+            <div class="nav-tooltip">Sign Up</div>
           </a>
         </li>
-        {% endif %} 
+
+        {% endif %}
       </ul>
     </div>
-    <!--
-    <div class="sidenav-footer mx-3 ">
-      <div class="card card-background shadow-none card-background-mask-secondary" id="sidenavCard">
-        <div class="full-background" style="background-image: url('{{ url_for('static', filename='assets/img/curved-images/white-curved.jpg') }}')"></div>
-        <div class="card-body text-start p-3 w-100">
-          <div class="icon icon-shape icon-sm bg-white shadow text-center mb-3 d-flex align-items-center justify-content-center border-radius-md">
-            <i class="ni ni-diamond text-dark text-gradient text-lg top-0" aria-hidden="true" id="sidenavCardIcon"></i>
-          </div>
-          <div class="docs-info">
-            <h6 class="text-white up mb-0">Need help?</h6>
-            <p class="text-xs font-weight-bold">Please check our docs</p>
-            <a href="https://app-generator.dev/docs/products/flask/soft-ui-dashboard/index.html" 
-               target="_blank" class="btn btn-white btn-sm w-100 mb-0">Documentation</a>
-          </div>
-        </div>
-      </div>
-      <a class="btn btn-primary mt-3 w-100" href="https://app-generator.dev/product/soft-ui-dashboard-pro/flask/">Upgrade to PRO</a>
-    </div> -->
 </aside>
+
+<style>
+/* Sidebar Toggle Styles */
+.toggle-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: black;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    z-index: 1002;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.toggle-btn:hover {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.4);
+    transform: scale(1.05);
+}
+
+.toggle-btn i {
+    transition: transform 0.3s ease;
+    font-size: 12px;
+}
+
+/* Sidebar collapsed state - TOÀN BỘ ĐEN */
+.sidenav.collapsed {
+    width: 70px !important;
+    background: #1a1a1a !important;
+}
+
+.sidenav.collapsed .sidenav-header {
+    background: #1a1a1a !important;
+    padding: 15px 5px !important;
+    text-align: center;
+}
+
+.sidenav.collapsed .navbar-collapse {
+    background: #1a1a1a !important;
+}
+
+.sidenav.collapsed .toggle-btn {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    border: 1px solid rgba(255,255,255,0.2);
+    right: 50%;
+    top: 12px;
+    transform: translateX(50%);
+    width: 32px;
+    height: 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.sidenav.collapsed .toggle-btn:hover {
+    background: linear-gradient(135deg, #ee5a52 0%, #ff6b6b 100%);
+    transform: translateX(50%) scale(1.05);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.sidenav.collapsed .toggle-btn i {
+    transform: rotate(180deg);
+    font-size: 14px;
+}
+
+.sidenav.collapsed .toggle-btn i {
+    transform: rotate(180deg);
+}
+
+.sidenav.collapsed .nav-link {
+    background: transparent !important;
+}
+
+.sidenav.collapsed .nav-link:hover {
+    background: rgba(255,255,255,0.1) !important;
+}
+
+.sidenav.collapsed .nav-link.active {
+    background: rgba(255,255,255,0.15) !important;
+}
+
+.sidenav.collapsed .icon {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidenav.collapsed hr {
+    border-color: #333 !important;
+}
+
+/* Đảm bảo nút toggle luôn đẹp khi expanded */
+.sidenav:not(.collapsed) .sidenav-header {
+    position: relative;
+    padding: 20px;
+}
+
+.sidenav:not(.collapsed) .toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+}
+
+/* Logo và brand text alignment */
+.sidenav .navbar-brand {
+    display: flex;
+    align-items: center;
+}
+
+.sidenav.collapsed .navbar-brand {
+    justify-content: center;
+}
+
+.sidenav.collapsed .navbar-brand-img {
+    margin: 0 !important;
+}
+
+.sidenav.collapsed .brand-text {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidenav.collapsed .nav-section-title {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidenav.collapsed .nav-link-text {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidenav.collapsed .nav-link {
+    padding: 12px !important;
+    justify-content: center;
+}
+
+.sidenav.collapsed .icon {
+    margin-right: 0 !important;
+}
+
+.sidenav.collapsed .sidenav-header {
+    justify-content: center;
+    padding: 20px 10px;
+}
+
+.sidenav.collapsed .navbar-brand {
+    justify-content: center;
+}
+
+.sidenav.collapsed .toggle-btn i {
+    transform: rotate(180deg);
+}
+
+/* Main content adjustment */
+.main-content {
+    transition: margin-left 0.3s ease;
+}
+
+.main-content.expanded {
+    margin-left: 70px !important;
+}
+
+/* Tooltip for collapsed state */
+.nav-tooltip {
+    position: absolute;
+    left: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1001;
+}
+
+.nav-tooltip::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: #333;
+}
+
+.sidenav.collapsed .nav-item:hover .nav-tooltip {
+    opacity: 1;
+}
+
+/* Mobile overlay */
+.mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    display: none;
+}
+
+.mobile-overlay.show {
+    display: block;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .sidenav {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        width: 280px !important;
+    }
+    
+    .sidenav.show {
+        transform: translateX(0);
+    }
+    
+    .sidenav.collapsed {
+        width: 280px !important;
+    }
+    
+    .sidenav.collapsed .brand-text,
+    .sidenav.collapsed .nav-section-title,
+    .sidenav.collapsed .nav-link-text {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    
+    .sidenav.collapsed .nav-link {
+        padding: 12px 20px !important;
+        justify-content: flex-start;
+    }
+    
+    .sidenav.collapsed .icon {
+        margin-right: 12px !important;
+    }
+    
+    .nav-tooltip {
+        display: none;
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
+    }
+    
+    .mobile-close {
+        display: block !important;
+    }
+}
+
+/* Smooth transitions */
+.sidenav,
+.sidenav .brand-text,
+.sidenav .nav-section-title,
+.sidenav .nav-link-text,
+.sidenav .nav-link,
+.main-content {
+    transition: all 0.3s ease;
+}
+</style>
+
+<script>
+// Sidebar Toggle Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggleBtn');
+    const sidebar = document.getElementById('sidenav-main');
+    const mainContent = document.querySelector('.main-content') || document.querySelector('main') || document.body;
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    const mobileClose = document.getElementById('iconSidenav');
+
+    // Check if elements exist
+    if (!toggleBtn || !sidebar) {
+        console.warn('Sidebar toggle elements not found');
+        return;
+    }
+
+    // Check if mobile
+    function isMobile() {
+        return window.innerWidth <= 768;
+    }
+
+    // Toggle sidebar
+    function toggleSidebar() {
+        if (isMobile()) {
+            // Mobile behavior
+            sidebar.classList.toggle('show');
+            if (mobileOverlay) {
+                mobileOverlay.classList.toggle('show');
+            }
+        } else {
+            // Desktop behavior
+            sidebar.classList.toggle('collapsed');
+            if (mainContent) {
+                mainContent.classList.toggle('expanded');
+            }
+            
+            // Save state to localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+            
+            // Dispatch custom event for other components
+            window.dispatchEvent(new CustomEvent('sidebarToggle', {
+                detail: { collapsed: isCollapsed }
+            }));
+        }
+    }
+
+    // Close mobile sidebar
+    function closeMobileSidebar() {
+        if (isMobile()) {
+            sidebar.classList.remove('show');
+            if (mobileOverlay) {
+                mobileOverlay.classList.remove('show');
+            }
+        }
+    }
+
+    // Event listeners
+    toggleBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleSidebar();
+    });
+    
+    // Mobile overlay click
+    if (mobileOverlay) {
+        mobileOverlay.addEventListener('click', closeMobileSidebar);
+    }
+
+    // Mobile close button
+    if (mobileClose) {
+        mobileClose.addEventListener('click', closeMobileSidebar);
+    }
+
+    // Load saved state on desktop
+    window.addEventListener('load', function() {
+        if (!isMobile()) {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+                if (mainContent) {
+                    mainContent.classList.add('expanded');
+                }
+            }
+        }
+    });
+
+    // Handle window resize
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            if (!isMobile()) {
+                // Desktop mode
+                sidebar.classList.remove('show');
+                if (mobileOverlay) {
+                    mobileOverlay.classList.remove('show');
+                }
+                
+                // Restore collapsed state from localStorage
+                const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    if (mainContent) {
+                        mainContent.classList.add('expanded');
+                    }
+                }
+            } else {
+                // Mobile mode
+                sidebar.classList.remove('collapsed');
+                if (mainContent) {
+                    mainContent.classList.remove('expanded');
+                }
+            }
+        }, 250);
+    });
+
+    // Keyboard shortcut (Ctrl + B or Cmd + B)
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+            e.preventDefault();
+            toggleSidebar();
+        }
+    });
+
+    // ESC key to close mobile sidebar
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeMobileSidebar();
+        }
+    });
+
+    // Close mobile sidebar when clicking navigation links
+    const navLinks = sidebar.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (isMobile() && sidebar.classList.contains('show')) {
+                setTimeout(closeMobileSidebar, 150);
+            }
+        });
+    });
+
+    console.log('Sidebar toggle initialized');
+});
+</script>

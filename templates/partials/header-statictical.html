@@ -1,295 +1,1232 @@
-<div class="row">
-    <div class="col-lg-6 col-12">
-      <div class="row">
-        <!--Thống kê 1-->
-        <div class="col-lg-6 col-md-6 col-12">
-          <div class="card">
-            <span class="mask bg-primary opacity-10 border-radius-lg"></span>
-            <div class="card-body p-3 position-relative">
-              <div class="row">
-                <div class="col-8 text-start">
-                  <div
-                    class="icon icon-shape bg-white shadow text-center border-radius-2xl"
-                  >
-                    <img
-                      src="{{ url_for('static', filename='assets/img/searchingbug.png') }}"
-                      style="
-                        max-width: 100%;
-                        height: auto;
-                        display: block;
-                        object-fit: contain;
-                      "
-                    />
-                  </div>
-                  <h5 class="text-white font-weight-bolder mb-0 mt-3">9999</h5>
-                  <span class="text-white text-sm">POCs</span>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400&family=Orbitron:wght@400;700;900&display=swap');
+
+/* Hacker Dashboard Cards - Optimized for White Background */
+.hacker-card {
+    position: relative;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 180px;
+    transition: all 0.4s ease;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.hacker-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 
+        0 16px 48px rgba(0, 0, 0, 0.4),
+        0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.hacker-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20%, rgba(0, 255, 65, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80%, rgba(0, 255, 65, 0.1) 0%, transparent 50%);
+    opacity: 0.6;
+}
+
+.glitch-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 65, 0.03) 2px,
+        rgba(0, 255, 65, 0.03) 4px
+    );
+    animation: glitch-scan 3s linear infinite;
+}
+
+@keyframes glitch-scan {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(2px); }
+}
+
+.hacker-content {
+    position: relative;
+    z-index: 2;
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hacker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.hacker-icon {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 255, 65, 0.1);
+    border: 1px solid rgba(0, 255, 65, 0.3);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.hacker-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(85%) sepia(99%) saturate(5037%) hue-rotate(90deg) brightness(114%) contrast(101%);
+    z-index: 2;
+    position: relative;
+}
+
+.icon-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, rgba(0, 255, 65, 0.3) 0%, transparent 70%);
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.8; }
+}
+
+.hacker-menu-btn {
+    background: rgba(0, 255, 65, 0.1);
+    border: 1px solid rgba(0, 255, 65, 0.3);
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.hacker-menu-btn span {
+    width: 12px;
+    height: 1px;
+    background: #00ff41;
+    transition: all 0.3s ease;
+}
+
+.hacker-menu-btn:hover {
+    background: rgba(0, 255, 65, 0.2);
+    border-color: #00ff41;
+    transform: scale(1.1);
+}
+
+.hacker-menu-btn:hover span {
+    background: #00ff88;
+}
+
+.hacker-stats {
+    flex: 1;
+}
+
+.hacker-number {
+    font-family: 'Orbitron', monospace;
+    font-size: 36px;
+    font-weight: 900;
+    color: #00ff41;
+    margin: 0 0 8px 0;
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400&family=Orbitron:wght@400;700;900&display=swap');
+
+/* Hacker Dashboard Cards */
+.hacker-card {
+    position: relative;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    border: 1px solid #00ff41;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 180px;
+    transition: all 0.4s ease;
+    cursor: pointer;
+    box-shadow: 
+        0 0 20px rgba(0, 255, 65, 0.2),
+        inset 0 0 20px rgba(0, 255, 65, 0.05);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.hacker-card:hover {
+    transform: translateY(-5px);
+    border-color: #00ff88;
+    box-shadow: 
+        0 0 30px rgba(0, 255, 65, 0.4),
+        0 10px 40px rgba(0, 0, 0, 0.3),
+        inset 0 0 30px rgba(0, 255, 65, 0.1);
+}
+
+.hacker-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20%, rgba(0, 255, 65, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80%, rgba(0, 255, 65, 0.1) 0%, transparent 50%);
+    opacity: 0.6;
+}
+
+.glitch-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 65, 0.03) 2px,
+        rgba(0, 255, 65, 0.03) 4px
+    );
+    animation: glitch-scan 3s linear infinite;
+}
+
+@keyframes glitch-scan {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(2px); }
+}
+
+.hacker-content {
+    position: relative;
+    z-index: 2;
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hacker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.hacker-icon {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 255, 65, 0.1);
+    border: 1px solid rgba(0, 255, 65, 0.3);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.hacker-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(85%) sepia(99%) saturate(5037%) hue-rotate(90deg) brightness(114%) contrast(101%);
+    z-index: 2;
+    position: relative;
+}
+
+.icon-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, rgba(0, 255, 65, 0.3) 0%, transparent 70%);
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.8; }
+}
+
+.hacker-menu-btn {
+    background: rgba(0, 255, 65, 0.1);
+    border: 1px solid rgba(0, 255, 65, 0.3);
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.hacker-menu-btn span {
+    width: 12px;
+    height: 1px;
+    background: #00ff41;
+    transition: all 0.3s ease;
+}
+
+.hacker-menu-btn:hover {
+    background: rgba(0, 255, 65, 0.2);
+    border-color: #00ff41;
+    transform: scale(1.1);
+}
+
+.hacker-menu-btn:hover span {
+    background: #00ff88;
+}
+
+.hacker-stats {
+    flex: 1;
+}
+
+.hacker-number {
+    font-family: 'Orbitron', monospace;
+    font-size: 36px;
+    font-weight: 900;
+    color: #00ff41;
+    margin: 0 0 8px 0;
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+    letter-spacing: 2px;
+}
+
+.hacker-label {
+    font-size: 11px !important;
+    color: #000000 !important;
+    margin: 0 0 12px 0;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Share Tech Mono', monospace !important;
+    text-shadow: none !important;
+}
+
+/* Override cho tất cả card variations */
+.pocs-card .hacker-label,
+.targets-card .hacker-label,
+.data-card .hacker-label,
+.connection-card .hacker-label {
+    color: #000000 !important;
+    font-weight: 900 !important;
+    text-shadow: none !important;
+}
+
+.hacker-progress {
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 255, 65, 0.2);
+    border-radius: 2px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff41, #00ff88);
+    border-radius: 2px;
+    transition: width 2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: progress-shine 2s infinite;
+}
+
+@keyframes progress-shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.hacker-trend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.hacker-trend.positive {
+    color: #00ff41;
+}
+
+.hacker-trend.neutral {
+    color: #ffaa00;
+}
+
+.hacker-trend.negative {
+    color: #ff4444;
+}
+
+.trend-symbol {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.trend-value {
+    color: inherit;
+}
+
+.trend-status {
+    background: rgba(0, 255, 65, 0.2);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+/* Card Variations */
+.pocs-card {
+    border-color: #ff4444;
+    box-shadow: 
+        0 0 20px rgba(255, 68, 68, 0.2),
+        inset 0 0 20px rgba(255, 68, 68, 0.05);
+}
+
+.pocs-card:hover {
+    border-color: #ff6666;
+    box-shadow: 
+        0 0 30px rgba(255, 68, 68, 0.4),
+        0 10px 40px rgba(0, 0, 0, 0.3),
+        inset 0 0 30px rgba(255, 68, 68, 0.1);
+}
+
+.pocs-card .hacker-number { color: #ff4444; text-shadow: 0 0 10px rgba(255, 68, 68, 0.8); }
+.pocs-card .hacker-label { color: rgba(255, 68, 68, 0.7); }
+.pocs-card .hacker-icon { background: rgba(255, 68, 68, 0.1); border-color: rgba(255, 68, 68, 0.3); }
+.pocs-card .hacker-icon img { filter: brightness(0) saturate(100%) invert(44%) sepia(94%) saturate(6542%) hue-rotate(348deg) brightness(100%) contrast(95%); }
+.pocs-card .progress-bar { background: linear-gradient(90deg, #ff4444, #ff6666); }
+.pocs-card .hacker-trend.positive { color: #ff4444; }
+
+.targets-card {
+    border-color: #00aaff;
+    box-shadow: 
+        0 0 20px rgba(0, 170, 255, 0.2),
+        inset 0 0 20px rgba(0, 170, 255, 0.05);
+}
+
+.targets-card:hover {
+    border-color: #33bbff;
+    box-shadow: 
+        0 0 30px rgba(0, 170, 255, 0.4),
+        0 10px 40px rgba(0, 0, 0, 0.3),
+        inset 0 0 30px rgba(0, 170, 255, 0.1);
+}
+
+.targets-card .hacker-number { color: #00aaff; text-shadow: 0 0 10px rgba(0, 170, 255, 0.8); }
+.targets-card .hacker-label { color: rgba(0, 170, 255, 0.7); }
+.targets-card .hacker-icon { background: rgba(0, 170, 255, 0.1); border-color: rgba(0, 170, 255, 0.3); }
+.targets-card .hacker-icon img { filter: brightness(0) saturate(100%) invert(58%) sepia(99%) saturate(2962%) hue-rotate(190deg) brightness(104%) contrast(101%); }
+.targets-card .progress-bar { background: linear-gradient(90deg, #00aaff, #33bbff); }
+.targets-card .hacker-trend.positive { color: #00aaff; }
+
+.data-card {
+    border-color: #ffaa00;
+    box-shadow: 
+        0 0 20px rgba(255, 170, 0, 0.2),
+        inset 0 0 20px rgba(255, 170, 0, 0.05);
+}
+
+.data-card:hover {
+    border-color: #ffcc33;
+    box-shadow: 
+        0 0 30px rgba(255, 170, 0, 0.4),
+        0 10px 40px rgba(0, 0, 0, 0.3),
+        inset 0 0 30px rgba(255, 170, 0, 0.1);
+}
+
+.data-card .hacker-number { color: #ffaa00; text-shadow: 0 0 10px rgba(255, 170, 0, 0.8); }
+.data-card .hacker-label { color: rgba(255, 170, 0, 0.7); }
+.data-card .hacker-icon { background: rgba(255, 170, 0, 0.1); border-color: rgba(255, 170, 0, 0.3); }
+.data-card .hacker-icon img { filter: brightness(0) saturate(100%) invert(75%) sepia(100%) saturate(2000%) hue-rotate(15deg) brightness(100%) contrast(101%); }
+.data-card .progress-bar { background: linear-gradient(90deg, #ffaa00, #ffcc33); }
+.data-card .hacker-trend.positive { color: #ffaa00; }
+
+.connection-card .hacker-trend.neutral { color: #ffaa00; }
+.connection-card .trend-status { 
+    background: rgba(255, 170, 0, 0.2); 
+    border-color: rgba(255, 170, 0, 0.3); 
+}
+
+/* Dropdown Menu Styling */
+.hacker-dropdown {
+    background: rgba(10, 10, 10, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 65, 0.3) !important;
+    border-radius: 4px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+    padding: 8px !important;
+}
+
+.hacker-dropdown .dropdown-item {
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    font-size: 11px !important;
+    color: #00ff41 !important;
+    transition: all 0.2s ease !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hacker-dropdown .dropdown-item:hover {
+    background: rgba(0, 255, 65, 0.1) !important;
+    color: #00ff88 !important;
+}
+
+.hacker-dropdown .dropdown-item i {
+    margin-right: 8px;
+    width: 12px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hacker-card {
+        height: 160px;
+    }
+    
+    .hacker-content {
+        padding: 16px;
+    }
+    
+    .hacker-number {
+        font-size: 28px;
+    }
+    
+    .hacker-icon {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .hacker-icon img {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+/* Matrix rain effect */
+@keyframes matrix-rain {
+    0% { transform: translateY(-100%); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(100vh); opacity: 0; }
+}
+
+.hacker-card::before {
+    content: '01001001';
+    position: absolute;
+    top: -20px;
+    left: 10%;
+    color: rgba(0, 255, 65, 0.1);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    animation: matrix-rain 8s linear infinite;
+    z-index: 1;
+}
+
+/* Glitch effect on hover */
+.hacker-card:hover .hacker-number {
+    animation: glitch-number 0.3s ease-in-out;
+}
+
+@keyframes glitch-number {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-2px); }
+    40% { transform: translateX(2px); }
+    60% { transform: translateX(-1px); }
+    80% { transform: translateX(1px); }
+}
+
+/* Terminal cursor effect */
+.hacker-label::after {
+    content: '█';
+    color: inherit;
+    animation: terminal-cursor 1s infinite;
+    margin-left: 2px;
+}
+
+@keyframes terminal-cursor {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* Scan line effect */
+.hacker-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.8), transparent);
+    animation: scan-line 3s linear infinite;
+    z-index: 3;
+}
+
+@keyframes scan-line {
+    0% { transform: translateY(-2px); opacity: 0; }
+    5% { opacity: 1; }
+    95% { opacity: 1; }
+    100% { transform: translateY(180px); opacity: 0; }
+}
+</style>
+
+<script>
+// Hacker-style number animation with glitch effect
+document.addEventListener('DOMContentLoaded', function() {
+    const hackerNumbers = document.querySelectorAll('.hacker-number');
+    
+    hackerNumbers.forEach(number => {
+        const target = parseInt(number.getAttribute('data-target'));
+        const duration = 3000; // 3 seconds
+        const increment = target / (duration / 50); // Update every 50ms
+        let currentValue = 0;
+        
+        // Random glitch characters
+        const glitchChars = ['█', '▓', '▒', '░', '┌', '┐', '└', '┘', '├', '┤', '┬', '┴', '┼'];
+        
+        const timer = setInterval(() => {
+            currentValue += increment;
+            
+            if (currentValue >= target) {
+                number.textContent = target.toString().padStart(4, '0');
+                clearInterval(timer);
+            } else {
+                // Add glitch effect randomly
+                if (Math.random() < 0.1) {
+                    let glitched = Math.floor(currentValue).toString().padStart(4, '0');
+                    let randomChar = glitchChars[Math.floor(Math.random() * glitchChars.length)];
+                    let randomPos = Math.floor(Math.random() * 4);
+                    glitched = glitched.substring(0, randomPos) + randomChar + glitched.substring(randomPos + 1);
+                    number.textContent = glitched;
+                    
+                    // Reset after brief moment
+                    setTimeout(() => {
+                        number.textContent = Math.floor(currentValue).toString().padStart(4, '0');
+                    }, 50);
+                } else {
+                    number.textContent = Math.floor(currentValue).toString().padStart(4, '0');
+                }
+            }
+        }, 50);
+    });
+    
+    // Progress bar animation
+    setTimeout(() => {
+        document.querySelectorAll('.progress-bar').forEach(bar => {
+            const width = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = width;
+            }, 500);
+        });
+    }, 1000);
+});
+
+// Hacker typing effect for labels
+function hackerType(element, text, speed = 100) {
+    element.textContent = '';
+    let i = 0;
+    
+    const timer = setInterval(() => {
+        if (i < text.length) {
+            element.textContent += text.charAt(i);
+            i++;
+        } else {
+            clearInterval(timer);
+        }
+    }, speed);
+}
+
+// Initialize typing effect
+setTimeout(() => {
+    document.querySelectorAll('.hacker-label').forEach((label, index) => {
+        const originalText = label.textContent;
+        setTimeout(() => {
+            hackerType(label, originalText, 50);
+        }, index * 200);
+    });
+}, 2000);
+
+// Matrix digital rain effect
+function createMatrixRain() {
+    const cards = document.querySelectorAll('.hacker-card');
+    const chars = '0123456789ABCDEF';
+    
+    cards.forEach(card => {
+        if (Math.random() < 0.3) { // 30% chance
+            const rain = document.createElement('span');
+            rain.style.position = 'absolute';
+            rain.style.top = '-20px';
+            rain.style.left = Math.random() * 100 + '%';
+            rain.style.color = 'rgba(0, 255, 65, 0.3)';
+            rain.style.fontSize = '10px';
+            rain.style.fontFamily = 'Share Tech Mono, monospace';
+            rain.style.zIndex = '1';
+            rain.style.pointerEvents = 'none';
+            rain.textContent = chars.charAt(Math.floor(Math.random() * chars.length));
+            
+            card.appendChild(rain);
+            
+            let pos = -20;
+            const fall = setInterval(() => {
+                pos += 2;
+                rain.style.top = pos + 'px';
+                
+                if (pos > 200) {
+                    clearInterval(fall);
+                    rain.remove();
+                }
+            }, 50);
+        }
+    });
+}
+
+// Start matrix rain effect
+setInterval(createMatrixRain, 1000);
+
+// Enhanced hover effects
+document.querySelectorAll('.hacker-card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        // Glitch effect on hover
+        const number = this.querySelector('.hacker-number');
+        const originalText = number.textContent;
+        
+        // Brief glitch animation
+        let glitchCount = 0;
+        const glitchInterval = setInterval(() => {
+            if (glitchCount < 3) {
+                number.textContent = Math.random().toString(36).substring(2, 6).toUpperCase();
+                setTimeout(() => {
+                    number.textContent = originalText;
+                }, 50);
+                glitchCount++;
+            } else {
+                clearInterval(glitchInterval);
+            }
+        }, 100);
+        
+        // Audio effect (optional - requires user interaction)
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.01, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.1);
+        } catch (e) {
+            // Audio context might not be available
+        }
+    });
+});
+
+// Terminal-style status updates
+const statusMessages = [
+    'SCANNING_NETWORK...',
+    'EXPLOITING_VULNERABILITY...',
+    'BYPASSING_FIREWALL...',
+    'EXTRACTING_DATA...',
+    'ESTABLISHING_BACKDOOR...',
+    'MAINTAINING_PERSISTENCE...'
+];
+
+function updateStatus() {
+    const trends = document.querySelectorAll('.trend-status');
+    trends.forEach((status, index) => {
+        if (status.textContent !== 'OFFLINE' && Math.random() < 0.2) {
+            const originalText = status.textContent;
+            status.textContent = statusMessages[Math.floor(Math.random() * statusMessages.length)];
+            setTimeout(() => {
+                status.textContent = originalText;
+            }, 2000);
+        }
+    });
+}
+
+// Update status messages periodically
+setInterval(updateStatus, 10000);
+
+console.log('🔴 HACKER DASHBOARD INITIALIZED');
+console.log('⚡ SYSTEMS ONLINE');
+console.log('🎯 TARGETS ACQUIRED');
+console.log('💀 READY FOR CYBER WARFARE');
+</script><div class="row g-4">
+    <!-- POCs Card -->
+    <div class="col-lg-3 col-md-6 col-12">
+        <div class="hacker-card pocs-card">
+            <div class="hacker-overlay"></div>
+            <div class="glitch-lines"></div>
+            <div class="hacker-content">
+                <div class="hacker-header">
+                    <div class="hacker-icon">
+                        <img src="{{ url_for('static', filename='assets/img/searchingbug.png') }}" alt="POCs">
+                        <div class="icon-glow"></div>
+                    </div>
+                    <div class="hacker-actions">
+                        <div class="dropdown">
+                            <button class="hacker-menu-btn" data-bs-toggle="dropdown">
+                                <span></span><span></span><span></span>
+                            </button>
+                            <ul class="dropdown-menu hacker-dropdown">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-eye"></i> SCAN</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-download"></i> EXTRACT</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> CONFIG</a></li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-4">
-                  <div class="dropdown text-end mb-6">
-                    <a
-                      href="javascript:;"
-                      class="cursor-pointer"
-                      id="dropdownUsers1"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      <i class="fa fa-ellipsis-h text-white"></i>
-                    </a>
-                    <ul
-                      class="dropdown-menu px-2 py-3"
-                      aria-labelledby="dropdownUsers1"
-                    >
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Action</a
-                        >
-                      </li>
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Another action</a
-                        >
-                      </li>
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Something else here</a
-                        >
-                      </li>
-                    </ul>
-                  </div>
-                  <p
-                    class="text-white text-sm text-end font-weight-bolder mt-auto mb-0"
-                  >
-                    +55%
-                  </p>
+                <div class="hacker-stats">
+                    <h3 class="hacker-number" data-target="9999">0000</h3>
+                    <p class="hacker-label">[POCs_LOADED]</p>
+                    <div class="hacker-progress">
+                        <div class="progress-bar" style="width: 85%"></div>
+                    </div>
+                    <div class="hacker-trend positive">
+                        <span class="trend-symbol">↗</span>
+                        <span class="trend-value">+55%</span>
+                        <span class="trend-status">ACTIVE</span>
+                    </div>
                 </div>
-              </div>
             </div>
-          </div>
         </div>
-        <!--Thống kê 2-->
-        <div class="col-lg-6 col-md-6 col-12 mt-4 mt-md-0">
-          <div class="card">
-            <span class="mask bg-dark opacity-10 border-radius-lg"></span>
-            <div class="card-body p-3 position-relative">
-              <div class="row">
-                <div class="col-8 text-start">
-                  <div
-                    class="icon icon-shape bg-white shadow text-center border-radius-2xl"
-                  >
-                    <img
-                      src="{{ url_for('static', filename='assets/img/victims.png') }}"
-                      style="
-                        max-width: 100%;
-                        height: auto;
-                        display: block;
-                        object-fit: contain;
-                      "
-                    />
-                  </div>
-                  <h5 class="text-white font-weight-bolder mb-0 mt-3">1337</h5>
-                  <span class="text-white text-sm">Targets</span>
-                </div>
-                <div class="col-4">
-                  <div class="dropstart text-end mb-6">
-                    <a
-                      href="javascript:;"
-                      class="cursor-pointer"
-                      id="dropdownUsers2"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      <i class="fa fa-ellipsis-h text-white"></i>
-                    </a>
-                    <ul
-                      class="dropdown-menu px-2 py-3"
-                      aria-labelledby="dropdownUsers2"
-                    >
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Action</a
-                        >
-                      </li>
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Another action</a
-                        >
-                      </li>
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Something else here</a
-                        >
-                      </li>
-                    </ul>
-                  </div>
-                  <p
-                    class="text-white text-sm text-end font-weight-bolder mt-auto mb-0"
-                  >
-                    +124%
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <div class="col-lg-6 col-12">
-      <div class="row">
-        <!--Thống kê 3-->
-        <div class="col-lg-6 col-md-6 col-12">
-          <div class="card">
-            <span class="mask bg-primary opacity-10 border-radius-lg"></span>
-            <div class="card-body p-3 position-relative">
-              <div class="row">
-                <div class="col-8 text-start">
-                  <div
-                    class="icon icon-shape bg-white shadow text-center border-radius-2xl"
-                  >
-                    <img
-                      src="{{ url_for('static', filename='assets/img/datathief.png') }}"
-                      style="
-                        max-width: 100%;
-                        height: auto;
-                        display: block;
-                        object-fit: contain;
-                      "
-                    />
-                  </div>
-                  <h5 class="text-white font-weight-bolder mb-0 mt-3">1600</h5>
-                  <span class="text-white text-sm">Stolen Data</span>
+    <!-- Targets Card -->
+    <div class="col-lg-3 col-md-6 col-12">
+        <div class="hacker-card targets-card">
+            <div class="hacker-overlay"></div>
+            <div class="glitch-lines"></div>
+            <div class="hacker-content">
+                <div class="hacker-header">
+                    <div class="hacker-icon">
+                        <img src="{{ url_for('static', filename='assets/img/victims.png') }}" alt="Targets">
+                        <div class="icon-glow"></div>
+                    </div>
+                    <div class="hacker-actions">
+                        <div class="dropdown">
+                            <button class="hacker-menu-btn" data-bs-toggle="dropdown">
+                                <span></span><span></span><span></span>
+                            </button>
+                            <ul class="dropdown-menu hacker-dropdown">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-crosshairs"></i> TARGET</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-search"></i> RECON</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-shield-alt"></i> EXPLOIT</a></li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-4">
-                  <div class="dropdown text-end mb-6">
-                    <a
-                      href="javascript:;"
-                      class="cursor-pointer"
-                      id="dropdownUsers1"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      <i class="fa fa-ellipsis-h text-white"></i>
-                    </a>
-                    <ul
-                      class="dropdown-menu px-2 py-3"
-                      aria-labelledby="dropdownUsers1"
-                    >
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Action</a
-                        >
-                      </li>
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Another action</a
-                        >
-                      </li>
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Something else here</a
-                        >
-                      </li>
-                    </ul>
-                  </div>
-                  <p
-                    class="text-white text-sm text-end font-weight-bolder mt-auto mb-0"
-                  >
-                    +55%
-                  </p>
+                <div class="hacker-stats">
+                    <h3 class="hacker-number" data-target="1337">0000</h3>
+                    <p class="hacker-label">[TARGETS_ACQUIRED]</p>
+                    <div class="hacker-progress">
+                        <div class="progress-bar" style="width: 92%"></div>
+                    </div>
+                    <div class="hacker-trend positive">
+                        <span class="trend-symbol">↗</span>
+                        <span class="trend-value">+124%</span>
+                        <span class="trend-status">HUNTING</span>
+                    </div>
                 </div>
-              </div>
             </div>
-          </div>
         </div>
-        <!--Thống kê 4-->
-        <div class="col-lg-6 col-md-6 col-12 mt-4 mt-md-0">
-          <div class="card">
-            <span class="mask bg-dark opacity-10 border-radius-lg"></span>
-            <div class="card-body p-3 position-relative">
-              <div class="row">
-                <div class="col-8 text-start">
-                  <div
-                    class="icon icon-shape bg-white shadow text-center border-radius-2xl"
-                  >
-                    <img
-                      src="{{ url_for('static', filename='assets/img/remote-access.png') }}"
-                      style="
-                        max-width: 100%;
-                        height: auto;
-                        display: block;
-                        object-fit: contain;
-                      "
-                    />
-                  </div>
-                  <h5 class="text-white font-weight-bolder mb-0 mt-3">0000</h5>
-                  <span class="text-white text-sm">Connection</span>
-                </div>
-                <div class="col-4">
-                  <div class="dropstart text-end mb-6">
-                    <a
-                      href="javascript:;"
-                      class="cursor-pointer"
-                      id="dropdownUsers2"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      <i class="fa fa-ellipsis-h text-white"></i>
-                    </a>
-                    <ul
-                      class="dropdown-menu px-2 py-3"
-                      aria-labelledby="dropdownUsers2"
-                    >
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Action</a
-                        >
-                      </li>
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Another action</a
-                        >
-                      </li>
-                      <li>
-                        <a
-                          class="dropdown-item border-radius-md"
-                          href="javascript:;"
-                          >Something else here</a
-                        >
-                      </li>
-                    </ul>
-                  </div>
-                  <p
-                    class="text-white text-sm text-end font-weight-bolder mt-auto mb-0"
-                  >
-                    0%
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Stolen Data Card -->
+    <div class="col-lg-3 col-md-6 col-12">
+        <div class="hacker-card data-card">
+            <div class="hacker-overlay"></div>
+            <div class="glitch-lines"></div>
+            <div class="hacker-content">
+                <div class="hacker-header">
+                    <div class="hacker-icon">
+                        <img src="{{ url_for('static', filename='assets/img/datathief.png') }}" alt="Stolen Data">
+                        <div class="icon-glow"></div>
+                    </div>
+                    <div class="hacker-actions">
+                        <div class="dropdown">
+                            <button class="hacker-menu-btn" data-bs-toggle="dropdown">
+                                <span></span><span></span><span></span>
+                            </button>
+                            <ul class="dropdown-menu hacker-dropdown">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-database"></i> ACCESS</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-file-export"></i> EXFIL</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-lock"></i> ENCRYPT</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="hacker-stats">
+                    <h3 class="hacker-number" data-target="1600">0000</h3>
+                    <p class="hacker-label">[DATA_BREACHED]</p>
+                    <div class="hacker-progress">
+                        <div class="progress-bar" style="width: 78%"></div>
+                    </div>
+                    <div class="hacker-trend positive">
+                        <span class="trend-symbol">↗</span>
+                        <span class="trend-value">+55%</span>
+                        <span class="trend-status">STEALING</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Card -->
+    <div class="col-lg-3 col-md-6 col-12">
+        <div class="hacker-card connection-card">
+            <div class="hacker-overlay"></div>
+            <div class="glitch-lines"></div>
+            <div class="hacker-content">
+                <div class="hacker-header">
+                    <div class="hacker-icon">
+                        <img src="{{ url_for('static', filename='assets/img/remote-access.png') }}" alt="Connection">
+                        <div class="icon-glow"></div>
+                    </div>
+                    <div class="hacker-actions">
+                        <div class="dropdown">
+                            <button class="hacker-menu-btn" data-bs-toggle="dropdown">
+                                <span></span><span></span><span></span>
+                            </button>
+                            <ul class="dropdown-menu hacker-dropdown">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-wifi"></i> CONNECT</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-terminal"></i> SHELL</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-power-off"></i> KILL</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="hacker-stats">
+                    <h3 class="hacker-number" data-target="0">0000</h3>
+                    <p class="hacker-label">[CONNECTIONS_LIVE]</p>
+                    <div class="hacker-progress">
+                        <div class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="hacker-trend neutral">
+                        <span class="trend-symbol">─</span>
+                        <span class="trend-value">0%</span>
+                        <span class="trend-status">OFFLINE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </div>
+</div>
+
+</div>
+
+<style>
+/* Dashboard Stats Cards */
+.stats-card {
+    position: relative;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    overflow: hidden;
+    height: 160px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.stats-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.stats-card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+}
+
+.stats-card-content {
+    position: relative;
+    z-index: 2;
+    padding: 24px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.stats-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.stats-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.stats-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+}
+
+.stats-actions {
+    margin-left: auto;
+}
+
+.stats-menu-btn {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.stats-menu-btn:hover {
+    background: rgba(255,255,255,0.25);
+    transform: scale(1.1);
+}
+
+.stats-info {
+    flex: 1;
+}
+
+.stats-number {
+    font-size: 32px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 4px 0;
+    line-height: 1;
+}
+
+.stats-label {
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    margin: 0 0 12px 0;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-trend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.stats-trend.positive {
+    color: #4ade80;
+}
+
+.stats-trend.neutral {
+    color: #fbbf24;
+}
+
+.stats-trend.negative {
+    color: #f87171;
+}
+
+.stats-trend i {
+    font-size: 10px;
+}
+
+/* Card Variations */
+.pocs-card {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+}
+
+.targets-card {
+    background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+}
+
+.data-card {
+    background: linear-gradient(135deg, #ffd93d 0%, #f39800 100%);
+}
+
+.connection-card {
+    background: linear-gradient(135deg, #6c5ce7 0%, #5f3dc4 100%);
+}
+
+/* Dropdown Menu Styling */
+.stats-card .dropdown-menu {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    padding: 8px;
+}
+
+.stats-card .dropdown-item {
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #64748b;
+    transition: all 0.2s ease;
+}
+
+.stats-card .dropdown-item:hover {
+    background: rgba(0,0,0,0.05);
+    color: #1e293b;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .stats-card {
+        height: 140px;
+    }
+    
+    .stats-card-content {
+        padding: 20px;
+    }
+    
+    .stats-number {
+        font-size: 28px;
+    }
+    
+    .stats-icon {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .stats-icon img {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+/* Animation cho số */
+@keyframes countUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stats-number {
+    animation: countUp 0.8s ease-out;
+}
+
+/* Hiệu ứng loading */
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.stats-card:hover::before {
+    left: 100%;
+}
+</style>
+
+<script>
+    // Animation cho số khi load trang
+    document.addEventListener('DOMContentLoaded', function() {
+        const numbers = document.querySelectorAll('.stats-number');
+        
+        numbers.forEach(number => {
+            const finalValue = parseInt(number.textContent);
+            const duration = 2000; // 2 seconds
+            const increment = finalValue / (duration / 16); // 60fps
+            let currentValue = 0;
+            
+            const timer = setInterval(() => {
+                currentValue += increment;
+                if (currentValue >= finalValue) {
+                    number.textContent = finalValue.toString().padStart(4, '0');
+                    clearInterval(timer);
+                } else {
+                    number.textContent = Math.floor(currentValue).toString().padStart(4, '0');
+                }
+            }, 16);
+        });
+    });
+
+    // Hiệu ứng hover nâng cao
+    document.querySelectorAll('.stats-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-10px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+</script>
+
+<!--Script lấy dữ liệu render ra-->
+<script>
+
+
+</script>
