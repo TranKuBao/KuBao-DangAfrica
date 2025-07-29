@@ -105,16 +105,15 @@
                 <div class="terminal-line">
                   
                   <span class="command" id="currentCommand"></span>
-                  <span class="cursor" id="cursor">|</span>
                 </div>
               </div>
             </div>
             <!-- Terminal input area -->
             <div class="terminal-input-area" id="terminalInputArea">
               <div class="terminal-line" id="currentInputLine">
-                <span class="prompt" id="currentPrompt">root@target:~$</span>
+                <span class="prompt" id="currentPrompt"></span>
                 <span class="command-input" id="commandInput" contenteditable="true" spellcheck="false"></span>
-                <span class="cursor" id="cursor">|</span>
+                
               </div>
             </div>
             <div class="p-2 d-flex gap-2">
@@ -190,7 +189,7 @@
 .success-line { color: #4CAF50; }
 .terminal-input-area { 
   padding: 15px; 
-  background: #2d2d2d; 
+  background: #1e1e1e; 
   border-top: 1px solid #404040; 
 }
 .terminal-input-area .terminal-line {

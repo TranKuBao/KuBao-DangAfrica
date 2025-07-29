@@ -67,7 +67,6 @@ def shells():
         return render_template('error/500.html'), 500
 
 @blueprint.route('/shells/<shell_id>')
-# Trang xem chi tiết shell và tương tác với shell cụ thể
 def view_shell(shell_id):
     """Trang xem chi tiết shell và tương tác"""
     try:
@@ -75,12 +74,16 @@ def view_shell(shell_id):
         if not shell:
             return render_template('error/404.html'), 404
         
+        # Lấy tất cả targets cho dropdown
+        targets = Targets.query.all()
+        
         return render_template(
             'shells/view-shell.html',
             segment='view_shell',
             shell_id=shell_id,
             shell_name=shell.name,
-            shell=shell
+            shell=shell,
+            targets=targets  # QUAN TRỌNG: Thêm targets vào context
         )
     except Exception as e:
         logger.error(f"Error in view_shell route: {e}")

@@ -1,76 +1,1043 @@
-{% extends "layouts/base.html" %}
 
-{% block title %}Charts{% endblock title %}
-
-{% block content %}
-
-<div class="container-fluid py-4">
-    <!-- [ Main Content ] start -->
-    <div class="row">
-        <!-- [ Bar Chart ] start -->
-        <div class="col-sm-12 col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Bar Chart</h5>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <!-- Header thông tin shell -->
+                <div class="card mb-4 shell-info-card">
+                    <div class="card-header pb-0 d-flex flex-wrap justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1 text-light">
+                                <i class="fas fa-terminal me-2 text-success"></i>Shell Detail
+                            </h5>
+                            <div class="d-flex flex-wrap gap-3 align-items-center">
+                                <span class="badge bg-dark text-light border border-secondary">
+                                    <i class="fas fa-plug me-1"></i>Session: {{ shell.connection_id }}
+                                </span>
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-code me-1"></i>Type: {{ shell.shell_type.name }}
+                                </span>
+                                <span class="badge bg-secondary" id="statusBadge">
+                                    <i class="fas fa-circle me-1"></i>Status: {{ shell.status.name }}
+                                </span>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-user me-1"></i>User: {{ shell.user or 'N/A' }}
+                                </span>
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-crown me-1"></i>Privilege: {{ shell.privilege_level or 'N/A' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-end text-light">
+                            <div class="mb-1">
+                                <i class="fas fa-calendar-alt me-1 text-info"></i> Created: {{ shell.created_at|replace('T', ' ')|truncate(19, True, '') if shell.created_at }}
+                            </div>
+                            <div>
+                                <i class="fas fa-clock me-1 text-warning"></i> Updated: {{ shell.updated_at|replace('T', ' ')|truncate(19, True, '') if shell.updated_at }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body text-center">
-                    <div id="bar-chart"></div>
+
+                <!-- Kali Linux Terminal -->
+                <div class="card mb-4 terminal-card">
+                    <div class="card-header pb-0 d-flex align-items-center justify-content-between terminal-header">
+                        <h6 class="mb-0 text-light">
+                            <i class="fas fa-terminal me-2"></i>Interactive Shell - Terminal
+                        </h6>
+                        <div class="d-flex align-items-center gap-3">
+                            <span id="shellStatus" class="badge bg-secondary">
+                                <i class="fas fa-circle me-1"></i>Disconnected
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="kali-terminal">
+                            <!-- Terminal Window Titlebar -->
+                            <div class="terminal-titlebar">
+                                <div class="window-controls">
+                                    <div class="control close" title="Close"></div>
+                                    <div class="control minimize" title="Minimize"></div>
+                                    <div class="control maximize" title="Maximize"></div>
+                                </div>
+                                <div class="window-title">
+                                    <i class="fas fa-terminal me-2"></i>
+                                    <span id="terminalTitle">Terminal - Disconnected</span>
+                                </div>
+                                <div class="window-menu">
+                                    <i class="fas fa-bars"></i>
+                                </div>
+                            </div>
+
+                            <!-- Terminal Body - Ban đầu trống đen -->
+                            <div class="terminal-body" id="terminalOutput">
+                                <div class="terminal-content" id="terminalContent">
+                                    <!-- Terminal trống khi chưa kết nối -->
+                                    <div class="waiting-message" id="waitingMessage">
+                                        <div class="connection-status">
+                                            <i class="fas fa-power-off text-muted me-2"></i>
+                                            <span class="text-muted">Shell not connected. Click "Start Shell" to begin.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terminal Controls -->
+                            <div class="terminal-controls">
+                                <div class="control-group">
+                                    <button type="button" class="btn btn-kali" id="clearTerminal" title="Clear Terminal (Ctrl+L)" disabled>
+                                        <i class="fas fa-trash me-1"></i>Clear
+                                    </button>
+                                    <button type="button" class="btn btn-kali" id="saveOutput" title="Save Output" disabled>
+                                        <i class="fas fa-save me-1"></i>Save
+                                    </button>
+                                    <button type="button" class="btn btn-kali" id="fullscreen" title="Fullscreen">
+                                        <i class="fas fa-expand me-1"></i>Fullscreen
+                                    </button>
+                                    <button type="button" class="btn btn-kali" id="loadHistory" title="Command History" disabled>
+                                        <i class="fas fa-history me-1"></i>History
+                                    </button>
+                                </div>
+                                
+                                <div class="control-group">
+                                    <button type="button" class="btn btn-kali btn-power" id="toggleShellBtn" title="Start/Stop Shell">
+                                        <i class="fas fa-power-off me-1"></i><span id="toggleShellBtnText">Start Shell</span>
+                                    </button>
+                                    <button type="button" class="btn btn-kali btn-disconnect" id="disconnectShell" title="Force Disconnect" disabled>
+                                        <i class="fas fa-times me-1"></i>Disconnect
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <!-- [ Bar Chart ] end -->
-
-        <!-- [ Pie Chart ] start -->
-        <div class="col-sm-12 col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Pie Chart</h5>
-                </div>
-                <div class="card-body text-center">
-                    <div id="pie-chart" style="cursor:pointer; color: green !important;"></div>
-                    
-                </div>
-            </div>
-        </div>
-        <!-- [ Pie Chart ] end -->
     </div>
-    <!-- [ Main Content ] end -->
-</div>
-{% endblock content %}
 
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<script>
+    <style>
+        /* Import Ubuntu Mono font - giống font của Kali Linux */
+        @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap');
 
-document.querySelector('#pie-chart').addEventListener('click', function() {
-    showAlertSuccess("Tạo dữ liệu thành công!");
-    showAlertWarning("Vui lòng nhập đầy đủ thông tin!");
-    showAlertError("Lỗi kết nối server!");
-});
+        :root {
+            --kali-bg: #000000;
+            --kali-text: #ffffff;
+            --kali-green: #00ff00;
+            --kali-blue: #3b78ff;
+            --kali-red: #ff5555;
+            --kali-yellow: #f1fa8c;
+            --kali-cyan: #8be9fd;
+            --kali-magenta: #ff79c6;
+            --kali-gray: #6272a4;
+            --kali-user: #50fa7b;
+            --kali-host: #ffb86c;
+            --kali-path: #8be9fd;
+            --font-mono: 'Ubuntu Mono', 'Courier New', monospace;
+        }
 
+        body {
+            background: #1a1a1a;
+            font-family: var(--font-mono);
+        }
 
-    // showAlertWarning("Vui lòng nhập đầy đủ thông tin!");
-    // showAlertError("Lỗi kết nối server!");
-  document.addEventListener("DOMContentLoaded", function() {
-    var products = JSON.parse('{{ products | tojson | safe }}');
-    var names = products.map(p => p.name);
-    var prices = products.map(p => p.price);
+        /* Card styling */
+        .shell-info-card {
+            background: rgba(0, 0, 0, 0.8) !important;
+            border: 1px solid #333 !important;
+        }
 
-    var barOptions = {
-      chart: { type: 'bar', height: 350 },
-      series: [{ name: 'Price', data: prices }],
-      xaxis: { categories: names }
-    };
-    var barChart = new ApexCharts(document.querySelector("#bar-chart"), barOptions);
-    barChart.render();
+        .terminal-card {
+            background: rgba(0, 0, 0, 0.9) !important;
+            border: 1px solid #333 !important;
+        }
 
-    var pieOptions = {
-      chart: { type: 'pie', height: 350 },
-      series: prices,
-      labels: names
-    };
-    var pieChart = new ApexCharts(document.querySelector("#pie-chart"), pieOptions);
-    pieChart.render();
-  });
-</script>
-{% endblock extra_js %}
+        .terminal-header {
+            background: #2d2d2d !important;
+            border-bottom: 1px solid #333 !important;
+        }
+
+        /* Kali Terminal Container */
+        .kali-terminal {
+            background: var(--kali-bg);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--kali-text);
+            border-radius: 0;
+            overflow: hidden;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Terminal Titlebar - giống GNOME Terminal */
+        .terminal-titlebar {
+            background: linear-gradient(to bottom, #4a4a4a, #2d2d2d);
+            border-bottom: 1px solid #1a1a1a;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 13px;
+            color: #ffffff;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .control:hover {
+            transform: scale(1.1);
+        }
+
+        .control.close {
+            background: linear-gradient(to bottom, #ff6b6b, #ff5252);
+        }
+
+        .control.minimize {
+            background: linear-gradient(to bottom, #ffd93d, #ffb300);
+        }
+
+        .control.maximize {
+            background: linear-gradient(to bottom, #6bcf7f, #4caf50);
+        }
+
+        .window-title {
+            font-weight: normal;
+            font-size: 13px;
+        }
+
+        .window-menu {
+            cursor: pointer;
+            padding: 4px;
+            transition: background 0.2s ease;
+        }
+
+        .window-menu:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        /* Terminal Body */
+        .terminal-body {
+            flex: 1;
+            background: var(--kali-bg);
+            color: var(--kali-text);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.4;
+            padding: 10px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .terminal-content {
+            min-height: 100%;
+        }
+
+        /* Waiting Message - khi chưa kết nối */
+        .waiting-message {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 400px;
+        }
+
+        .connection-status {
+            text-align: center;
+            font-size: 16px;
+            opacity: 0.7;
+        }
+
+        /* Kali Linux Prompt - chỉ hiện khi connected */
+        .kali-prompt {
+            color: var(--kali-text);
+            font-weight: normal;
+        }
+
+        .user {
+            color: var(--kali-user);
+            font-weight: bold;
+        }
+
+        .at {
+            color: var(--kali-text);
+        }
+
+        .hostname {
+            color: var(--kali-host);
+            font-weight: bold;
+        }
+
+        .path {
+            color: var(--kali-path);
+            font-weight: bold;
+        }
+
+        .prompt-symbol {
+            color: var(--kali-red);
+            font-weight: bold;
+        }
+
+        /* Terminal Lines */
+        .terminal-line {
+            margin-bottom: 2px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .command {
+            color: var(--kali-text);
+        }
+
+        .output-line {
+            color: var(--kali-text);
+            margin-bottom: 1px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* File/Directory colors - giống ls --color */
+        .dir {
+            color: var(--kali-blue);
+            font-weight: bold;
+        }
+
+        .file {
+            color: var(--kali-text);
+        }
+
+        .executable {
+            color: var(--kali-green);
+            font-weight: bold;
+        }
+
+        .symlink {
+            color: var(--kali-cyan);
+        }
+
+        /* Command Input */
+        .command-input {
+            background: transparent;
+            border: none;
+            color: var(--kali-text);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            outline: none;
+            min-width: 1px;
+            white-space: pre;
+        }
+
+        .command-input:focus {
+            outline: none;
+        }
+
+        /* Cursor */
+        .cursor {
+            color: var(--kali-text);
+            animation: blink 1s infinite;
+            font-weight: normal;
+        }
+
+        .cursor-blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Current input line styling */
+        .current-input {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Terminal Controls */
+        .terminal-controls {
+            background: #2d2d2d;
+            border-top: 1px solid #333;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-kali {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            transition: all 0.2s ease;
+        }
+
+        .btn-kali:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #777;
+            color: #fff;
+        }
+
+        .btn-kali:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-power {
+            background: rgba(0, 255, 0, 0.1);
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+
+        .btn-power:hover:not(:disabled) {
+            background: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+        }
+
+        .btn-disconnect {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .btn-disconnect:hover:not(:disabled) {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff0000;
+        }
+
+        /* Status badges */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* Scrollbar styling */
+        .terminal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal-body::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .terminal-body::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        .terminal-body::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+
+        /* Fullscreen mode */
+        .kali-terminal.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            border-radius: 0;
+        }
+
+        /* System colors for different output types */
+        .error-line { color: var(--kali-red); }
+        .success-line { color: var(--kali-green); }
+        .warning-line { color: var(--kali-yellow); }
+        .info-line { color: var(--kali-cyan); }
+
+        /* Hide waiting message when connected */
+        .terminal-connected .waiting-message {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .kali-terminal {
+                height: 400px;
+            }
+            
+            .terminal-body {
+                font-size: 12px;
+            }
+            
+            .control-group {
+                flex-wrap: wrap;
+            }
+            
+            .btn-kali span {
+                display: none;
+            }
+        }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Terminal state management
+        let isConnected = false;
+        let shellReady = false;
+        let currentShellId = '{{ shell.connection_id }}';
+        let commandHistory = [];
+        let historyIndex = -1;
+        let currentCommand = '';
+
+        // DOM elements
+        const terminalContent = document.getElementById('terminalContent');
+        const commandInput = document.getElementById('commandInput');
+        const shellStatus = document.getElementById('shellStatus');
+        const terminalTitle = document.getElementById('terminalTitle');
+        const toggleShellBtn = document.getElementById('toggleShellBtn');
+        const disconnectShell = document.getElementById('disconnectShell');
+        const waitingMessage = document.getElementById('waitingMessage');
+
+        // Initialize empty terminal
+        function initEmptyTerminal() {
+            terminalContent.innerHTML = `
+                <div class="waiting-message" id="waitingMessage">
+                    <div class="connection-status">
+                        <i class="fas fa-power-off text-muted me-2"></i>
+                        <span class="text-muted">Shell not connected. Click "Start Shell" to begin.</span>
+                    </div>
+                </div>
+            `;
+            isConnected = false;
+            shellReady = false;
+            updateUI();
+        }
+
+        // Initialize connected terminal with Kali banner
+        function initConnectedTerminal() {
+            terminalContent.innerHTML = `
+                <div class="kali-banner">
+                    <div class="output-line">Linux kali-target 5.18.0-kali7-amd64 #1 SMP PREEMPT_DYNAMIC Debian 5.18.16-1kali1 (2022-08-31) x86_64</div>
+                    <div class="output-line"></div>
+                    <div class="output-line">The programs included with the Kali GNU/Linux system are free software;</div>
+                    <div class="output-line">the exact distribution terms for each program are described in the</div>
+                    <div class="output-line">individual files in /usr/share/doc/*/copyright.</div>
+                    <div class="output-line"></div>
+                    <div class="output-line">Kali GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent</div>
+                    <div class="output-line">permitted by applicable law.</div>
+                    <div class="output-line"></div>
+                    <div class="output-line">Last login: ${new Date().toLocaleString()}</div>
+                    <div class="output-line"></div>
+                </div>
+                <div class="terminal-line current-input">
+                    <span class="kali-prompt">┌──(<span class="user">root</span><span class="at">㉿</span><span class="hostname">kali-target</span>)-[<span class="path">~</span>]</span>
+                </div>
+                <div class="terminal-line current-input">
+                    <span class="prompt-symbol">└─# </span>
+                    <span class="command-input" id="commandInput" contenteditable="true" spellcheck="false"></span>
+                    <span class="cursor">█</span>
+                </div>
+            `;
+            
+            // Reattach event listeners
+            setupCommandInput();
+            
+            isConnected = true;
+            shellReady = true;
+            updateUI();
+            
+            // Focus on input
+            setTimeout(() => {
+                const newInput = document.getElementById('commandInput');
+                if (newInput) {
+                    newInput.focus();
+                }
+            }, 100);
+        }
+
+        // Add terminal output
+        function addOutput(text, type = 'normal') {
+            if (!isConnected) return;
+            
+            const lines = text.split('\n');
+            const currentInputLine = terminalContent.querySelector('.current-input');
+            
+            lines.forEach(line => {
+                const outputDiv = document.createElement('div');
+                outputDiv.className = `output-line ${type === 'error' ? 'error-line' : type === 'success' ? 'success-line' : ''}`;
+                outputDiv.textContent = line;
+                
+                if (currentInputLine) {
+                    terminalContent.insertBefore(outputDiv, currentInputLine);
+                } else {
+                    terminalContent.appendChild(outputDiv);
+                }
+            });
+            
+            scrollToBottom();
+        }
+
+        // Add new prompt after command execution
+        function addNewPrompt() {
+            if (!isConnected) return;
+            
+            // Remove current input styling from old prompt
+            const oldInputs = terminalContent.querySelectorAll('.current-input');
+            oldInputs.forEach(el => el.classList.remove('current-input'));
+            
+            // Add new prompt
+            const promptDiv1 = document.createElement('div');
+            promptDiv1.className = 'terminal-line current-input';
+            promptDiv1.innerHTML = `<span class="kali-prompt">┌──(<span class="user">root</span><span class="at">㉿</span><span class="hostname">kali-target</span>)-[<span class="path">~</span>]</span>`;
+            
+            const promptDiv2 = document.createElement('div');
+            promptDiv2.className = 'terminal-line current-input';
+            promptDiv2.innerHTML = `<span class="prompt-symbol">└─# </span><span class="command-input" id="commandInput" contenteditable="true" spellcheck="false"></span><span class="cursor">█</span>`;
+            
+            terminalContent.appendChild(promptDiv1);
+            terminalContent.appendChild(promptDiv2);
+            
+            // Reattach event listeners
+            setupCommandInput();
+            
+            // Focus on new input
+            setTimeout(() => {
+                const newInput = document.getElementById('commandInput');
+                if (newInput) {
+                    newInput.focus();
+                }
+            }, 50);
+            
+            scrollToBottom();
+        }
+
+        // Setup command input event listeners
+        function setupCommandInput() {
+            const input = document.getElementById('commandInput');
+            if (!input) return;
+            
+            input.addEventListener('keydown', handleKeyDown);
+            input.addEventListener('input', handleInput);
+            input.addEventListener('paste', handlePaste);
+        }
+
+        // Handle keyboard input
+        function handleKeyDown(e) {
+            if (!isConnected || !shellReady) {
+                e.preventDefault();
+                return;
+            }
+            
+            const input = e.target;
+            
+            switch (e.key) {
+                case 'Enter':
+                    e.preventDefault();
+                    const command = input.textContent.trim();
+                    if (command) {
+                        executeCommand(command);
+                        commandHistory.push(command);
+                        historyIndex = commandHistory.length;
+                    }
+                    input.textContent = '';
+                    break;
+                    
+                case 'ArrowUp':
+                    e.preventDefault();
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        input.textContent = commandHistory[historyIndex];
+                        setCursorToEnd(input);
+                    }
+                    break;
+                    
+                case 'ArrowDown':
+                    e.preventDefault();
+                    if (historyIndex < commandHistory.length - 1) {
+                        historyIndex++;
+                        input.textContent = commandHistory[historyIndex];
+                        setCursorToEnd(input);
+                    } else if (historyIndex === commandHistory.length - 1) {
+                        historyIndex++;
+                        input.textContent = '';
+                    }
+                    break;
+                    
+                case 'Tab':
+                    e.preventDefault();
+                    // TODO: Add tab completion
+                    break;
+                    
+                case 'l':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        clearTerminal();
+                    }
+                    break;
+            }
+        }
+
+        function handleInput(e) {
+            currentCommand = e.target.textContent;
+        }
+
+        function handlePaste(e) {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            document.execCommand('insertText', false, text);
+        }
+
+        function setCursorToEnd(element) {
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.selectNodeContents(element);
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        // Execute command - Updated to use real backend
+        function executeCommand(command) {
+            // Show command in terminal
+            const currentInputs = terminalContent.querySelectorAll('.current-input');
+            if (currentInputs.length >= 2) {
+                const commandSpan = currentInputs[1].querySelector('.command-input');
+                if (commandSpan) {
+                    commandSpan.textContent = command;
+                    commandSpan.removeAttribute('contenteditable');
+                }
+            }
+            
+            // Gửi lệnh thật tới backend thay vì mock
+            sendRealCommand(command);
+        }
+
+        // Update UI based on connection status
+        function updateUI() {
+            if (isConnected) {
+                shellStatus.className = 'badge bg-success pulse';
+                shellStatus.innerHTML = '<i class="fas fa-circle me-1"></i>Connected';
+                terminalTitle.textContent = 'Terminal - root@kali-target';
+                toggleShellBtn.innerHTML = '<i class="fas fa-power-off me-1"></i>Stop Shell';
+                toggleShellBtn.className = 'btn btn-kali btn-disconnect';
+                
+                // Enable controls
+                document.getElementById('clearTerminal').disabled = false;
+                document.getElementById('saveOutput').disabled = false;
+                document.getElementById('loadHistory').disabled = false;
+                document.getElementById('disconnectShell').disabled = false;
+                
+            } else {
+                shellStatus.className = 'badge bg-secondary';
+                shellStatus.innerHTML = '<i class="fas fa-circle me-1"></i>Disconnected';
+                terminalTitle.textContent = 'Terminal - Disconnected';
+                toggleShellBtn.innerHTML = '<i class="fas fa-power-off me-1"></i>Start Shell';
+                toggleShellBtn.className = 'btn btn-kali btn-power';
+                
+                // Disable controls
+                document.getElementById('clearTerminal').disabled = true;
+                document.getElementById('saveOutput').disabled = true;
+                document.getElementById('loadHistory').disabled = true;
+                document.getElementById('disconnectShell').disabled = true;
+            }
+        }
+
+        // Clear terminal
+        function clearTerminal() {
+            if (isConnected) {
+                initConnectedTerminal();
+            } else {
+                initEmptyTerminal();
+            }
+        }
+
+        // Scroll to bottom
+        function scrollToBottom() {
+            const terminalBody = document.getElementById('terminalOutput');
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        // Event listeners - Updated to use real backend
+        document.getElementById('toggleShellBtn').addEventListener('click', function() {
+            if (isConnected) {
+                // Stop shell - Sử dụng backend thật
+                if (confirm('Are you sure you want to stop the shell?')) {
+                    stopRealShell(); // Gọi hàm backend thật
+                }
+            } else {
+                // Start shell - Sử dụng backend thật
+                shellStatus.className = 'badge bg-warning';
+                shellStatus.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Starting...';
+                terminalTitle.textContent = 'Terminal - Starting...';
+                
+                // Show starting message
+                terminalContent.innerHTML = `
+                    <div class="waiting-message">
+                        <div class="connection-status">
+                            <i class="fas fa-spinner fa-spin text-warning me-2"></i>
+                            <span class="text-warning">Starting reverse shell listener...</span>
+                        </div>
+                    </div>
+                `;
+                
+                startRealShell(); // Gọi hàm backend thật
+            }
+        });
+
+        document.getElementById('disconnectShell').addEventListener('click', function() {
+            if (confirm('Force disconnect the shell?')) {
+                disconnectRealShell(); // Gọi hàm backend thật
+            }
+        });
+
+        document.getElementById('clearTerminal').addEventListener('click', clearTerminal);
+
+        document.getElementById('saveOutput').addEventListener('click', function() {
+            if (!isConnected) return;
+            
+            const content = terminalContent.textContent;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `shell_output_${currentShellId}_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('fullscreen').addEventListener('click', function() {
+            const terminal = document.querySelector('.kali-terminal');
+            terminal.classList.toggle('fullscreen');
+            
+            const icon = this.querySelector('i');
+            if (terminal.classList.contains('fullscreen')) {
+                icon.className = 'fas fa-compress me-1';
+                this.title = 'Exit Fullscreen (ESC)';
+            } else {
+                icon.className = 'fas fa-expand me-1';
+                this.title = 'Fullscreen';
+            }
+        });
+
+        document.getElementById('loadHistory').addEventListener('click', function() {
+            if (!isConnected || commandHistory.length === 0) return;
+            
+            addOutput('\n--- Command History ---');
+            commandHistory.forEach((cmd, index) => {
+                addOutput(`${index + 1}: ${cmd}`);
+            });
+            addOutput('--- End History ---\n');
+            addNewPrompt();
+        });
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // ESC to exit fullscreen
+            if (e.key === 'Escape') {
+                const terminal = document.querySelector('.kali-terminal');
+                if (terminal.classList.contains('fullscreen')) {
+                    terminal.classList.remove('fullscreen');
+                    const fullscreenBtn = document.getElementById('fullscreen');
+                    fullscreenBtn.querySelector('i').className = 'fas fa-expand me-1';
+                    fullscreenBtn.title = 'Fullscreen';
+                }
+            }
+            
+            // Ctrl+Shift+C to copy
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                e.preventDefault();
+                const selection = window.getSelection();
+                if (selection.toString()) {
+                    navigator.clipboard.writeText(selection.toString());
+                }
+            }
+            
+            // Ctrl+Shift+V to paste
+            if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+                e.preventDefault();
+                if (isConnected && shellReady) {
+                    navigator.clipboard.readText().then(text => {
+                        const input = document.getElementById('commandInput');
+                        if (input) {
+                            input.textContent += text;
+                            setCursorToEnd(input);
+                        }
+                    });
+                }
+            }
+        });
+
+        // Window controls
+        document.querySelector('.control.close').addEventListener('click', function() {
+            if (confirm('Close terminal?')) {
+                window.close();
+            }
+        });
+
+        document.querySelector('.control.minimize').addEventListener('click', function() {
+            // Minimize effect
+            const terminal = document.querySelector('.kali-terminal');
+            terminal.style.transform = 'scale(0.1)';
+            terminal.style.opacity = '0';
+            setTimeout(() => {
+                terminal.style.transform = 'scale(1)';
+                terminal.style.opacity = '1';
+            }, 1000);
+        });
+
+        document.querySelector('.control.maximize').addEventListener('click', function() {
+            document.getElementById('fullscreen').click();
+        });
+
+        // Initialize terminal on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initEmptyTerminal();
+            
+            // Check initial shell status from backend
+            // TODO: Replace with actual API call
+            const initialStatus = '{{ shell.status.name }}';
+            if (initialStatus === 'CONNECTED') {
+                setTimeout(() => {
+                    initConnectedTerminal();
+                }, 500);
+            }
+        });
+
+        // Socket.IO integration - REAL BACKEND INTEGRATION
+        const socket = io.connect('http://' + document.domain + ':' + location.port);
+        
+        // Khi kết nối socket thành công
+        socket.on('connect', function() {
+            console.log('Connected to Socket.IO server');
+            addOutput('Connected to Socket.IO server', 'success');
+            // Tham gia room shell hiện tại
+            socket.emit('join_shell', { shell_id: currentShellId });
+        });
+        
+        // Nhận cập nhật trạng thái shell từ server (realtime)
+        socket.on('shell_status_update', function(data) {
+            console.log('Received shell_status_update:', data);
+            if (data.shell_id !== currentShellId) return;
+            
+            if (data.status === 'CONNECTED') {
+                console.log('Shell connected, initializing terminal');
+                initConnectedTerminal();
+            } else if (data.status === 'DISCONNECTED' || data.status === 'CLOSED') {
+                console.log('Shell disconnected');
+                isConnected = false;
+                shellReady = false;
+                initEmptyTerminal();
+                addOutput('Shell disconnected', 'error');
+            } else if (data.status === 'LISTENING') {
+                console.log('Shell listening for connections');
+                shellStatus.className = 'badge bg-warning';
+                shellStatus.innerHTML = '<i class="fas fa-clock me-1"></i>Listening';
+                terminalTitle.textContent = 'Terminal - Listening';
+                terminalContent.innerHTML = `
+                    <div class="waiting-message">
+                        <div class="connection-status">
+                            <i class="fas fa-clock text-warning me-2"></i>
+                            <span class="text-warning">Waiting for reverse shell connection...</span>
+                        </div>
+                    </div>
+                `;
+            } else if (data.status === 'ERROR') {
+                console.log('Shell error:', data.error);
+                shellStatus.className = 'badge bg-danger';
+                shellStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Error';
+                terminalTitle.textContent = 'Terminal - Error';
+                addOutput(`Error: ${data.error || 'Unknown error'}`, 'error');
+            }
+            updateUI();
+        });
+        
+        // Nhận output từ shell (realtime) - PTY mode
+        socket.on('terminal_output', function(data) {
+            console.log('Received terminal_output:', data);
+            if (data.shell_id !== currentShellId || !isConnected) return;
+            
+            if (data.output) {
+                // Process and display real output from shell
+                const cleanOutput = removeAnsiCodes(data.output);
+                
+                // Kiểm tra xem có phải là prompt không
+                if (cleanOutput.includes(') || cleanOutput.includes('#')) {
+                    // Đây có thể là prompt mới, thêm prompt line
+                    addNewPrompt();
+                } else {
+                    // Output bình thường
+                    addOutput(cleanOutput);
+                }
+            }
+        });
+        
+        // Gửi lệnh thực tế tới shell qua socket (PTY mode)
+        function sendRealCommand(command) {
+            if (!currentShellId || !isConnected || !shellReady) {
+                addOutput('Shell not ready!', 'error');
+                return;
+            }
+            
+            console.log('Sending command to shell:', command);
+            
+            // Thêm lệnh vào history
+            if (command.trim()) {
+                commandHistory.push(command);
+                historyIndex = commandHistory.length;
+            }
+            
+            // Gửi lệnh + newline để thực thi
+            socket.emit('terminal_input', {
+                shell_id: currentShellId,
+                input: command + '\n'
+            });
+        }
+        
+        // Bật shell thông qua socket
+        function startRealShell() {
+            console.log('Starting shell:', currentShellId);
+            socket.emit('shell_start', { shell_id: currentShellId });
+        }
+        
+        // Tắt shell thông qua socket  
+        function stopRealShell() {
+            console.log('Stopping shell:', currentShellId);
+            socket.emit('shell_stop', { shell_id: currentShellId });
+        }
+        
+        // Force disconnect shell
+        function disconnectRealShell() {
+            console.log('Disconnecting shell:', currentShellId);
+            socket.emit('shell_disconnect', { shell_id: currentShellId });
+        }
+        
+        // Remove ANSI escape sequences
+        function removeAnsiCodes(str) {
+            return str
+                .replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '')
+                .replace(/\x1B\]8;[^;]*;[^;]*\x07/g, '')
+                .replace(/\x1B\[[0-9]*[ABCDEFGJKST]/g, '')
+                .replace(/\x1B\[[0-9]*[hl]/g, '')
+                .replace(/\x1B\[[0-9]*[JK]/g, '')
+                .replace(/\x1B\[[0-9]*[m]/g, '')
+                .replace(/\x1B\[[0-9;]*[ABCDEFGJKST]/g, '')
+                .replace(/\x1B\[[0-9;]*[hl]/g, '')
+                .replace(/\x1B\[[0-9;]*[JK]/g, '')
+                .replace(/\x1B\[[0-9;]*[m]/g, '');
+        }
