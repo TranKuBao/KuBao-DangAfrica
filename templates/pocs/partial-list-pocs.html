@@ -1,5 +1,4 @@
 {% for poc in pocs %}
-
 <tr>
   <td>
     <div class="d-flex px-2 py-1">
@@ -18,7 +17,7 @@
     </div>
   </td>
   <td>
-    <div d-flex flex-column justify-content-center>
+    <div class="d-flex flex-column justify-content-center">
       <p class="mb-0 text-sm" style="width: 360px; min-width: 120px; white-space: normal !important; word-break: break-word !important;">
         {{ poc.appversion }}
       </p>
@@ -29,152 +28,163 @@
     <span class="mb-0 text-sm" style="color:black !important;">{{ poc.appname }}</span>
   </td>
   <td>
-    <p class="text-xs font-weight-bold mb-0">Au:{{ poc.author}}</p> 
+    <p class="text-xs font-weight-bold mb-0">Au: {{ poc.author }}</p> 
     <p class="text-xs text-secondary mb-0">
       Refer: {{ poc.references }}
     </p>
   </td>                
   <td class="align-middle">
-    <a
-      class="cursor-pointer"
-      id="dropdownTable"
-      data-bs-toggle="dropdown"
-      aria-expanded="false"
-    >
-      <i class="fa fa-ellipsis-v text-secondary"></i>
-    </a>
-    <ul
-      class="dropdown-menu px-2 py-3 ms-sm-n4 ms-n5"
-      aria-labelledby="dropdownTable"
-      style="color: black !important; border: 1px solid black !important"
-    >
-      <li>
-        <a
-          class="dropdown-item border-radius-md"
-          href="/view-poc?poc_path={{ poc.path | urlencode }}""
-          style="color: black !important"
-          data-poc-id="{{ poc.path }}"
-          >Xem</a
-        >
-      </li>
-      <li>
-        <a
-          class="dropdown-item border-radius-md"
-          href="javascript:void(0);"
-          style="color: black !important"
-          data-poc-id="{{poc.path}}"
-          onclick="showPocModal('{{poc.path}}')"
-          >Sử dụng</a
-        >
-      </li>
+    <div class="d-flex justify-content-center gap-2">
+      <!-- Nút Xem -->
+      <a
+        href="/view-poc?poc_path={{ poc.path | urlencode }}"
+        style="background-color: #f97316; color: #ffffff; border-color: #ffef0dff;"
+        class="btn btn-sm btn-outline-primary"
+        title="Xem POC"
+        data-poc-id="{{ poc.path }}"
+      >
+        <i class="fas fa-eye"></i>
+      </a>
       
-
-      <li>
-        <a
-          class="dropdown-item border-radius-md"
-          href="javascript:;"
-          style="color: black !important"
-          data-poc-id="{{poc.path}}"
-          >Xóa</a
-        >
-      </li>
-    </ul>
+      <!-- Nút Sử dụng -->
+      <button
+        type="button"
+        style="background-color: #22c55e; color: #ffffff; border-color: #ffef0dff;"
+        class="btn btn-sm btn-outline-success"
+        title="Sử dụng POC"
+        data-poc-id="{{ poc.path }}"
+        onclick="showPocModal('{{ poc.path }}')"
+      >
+        <i class="fas fa-play"></i>
+      </button>
+      
+      <!-- Nút Xóa -->
+      <button
+        type="button"
+        style="background-color: #ee0d0dff; color: #ffffff; border-color: #ffef0dff;"
+        class="btn btn-sm btn-outline-danger"
+        title="Xóa POC"
+        data-poc-id="{{ poc.path }}"
+        onclick="confirmDelete('{{ poc.path }}', '{{ poc.name }}')"
+      >
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
   </td>
 </tr>
-
-
 {% endfor %}
+
 <script>
-
-  // load danh sách target
-  function loadTargetList() {
-    $.ajax({
-      url: '/api/targets',
-      type: 'GET',
-      success: function(resp) {
-        // resp.html là HTML, resp.targets là danh sách nếu bạn trả về dạng JSON
-        // Giả sử bạn trả về resp.targets là mảng các object {hostname, ip_address, ...}
-        let options = '';
-        if (resp.targets) {
-          resp.targets.forEach(t => {
-            // Có thể hiển thị cả hostname và ip nếu muốn
-            options += `<option value="${t.hostname}">${t.ip_address}</option>`;
-          });
-        }
-        document.getElementById('target-list').innerHTML = options;
+// load danh sách target
+function loadTargetList() {
+  $.ajax({
+    url: '/api/targets',
+    type: 'GET',
+    success: function(resp) {
+      let options = '';
+      if (resp.targets) {
+        resp.targets.forEach(t => {
+          options += `<option value="${t.hostname}">${t.ip_address}</option>`;
+        });
       }
-    });
-  }
+      document.getElementById('target-list').innerHTML = options;
+    }
+  });
+}
 
-
-
-
-  function showPocModal(pocpath) {
-  console.log("path: ",pocpath);
+function showPocModal(pocpath) {
+  console.log("path: ", pocpath);
   document.getElementById('pocModalLabel').innerText = 'POC: ' + pocpath.slice(4);
   document.getElementById('target-value').value = 'http://vulbox.com' || '';
   document.getElementById('rport-value').value = 1337 || '';
-  // ... cập nhật các field khác
+  
+  let currentPocPath = 'pocs' + pocpath.slice(4);
   // Lấy thông tin modes từ API
   $.ajax({
-      url: '/get-poc-info',
-      type: 'POST',
-      data: {
-        poc_path: pocpath.slice(4),
-      },
-    })
-    .done((response) => {
-      console.log("Response from get-poc-info:", response); // Thêm log để debug
-      if (response['status'] === 0) {
-        const modes = response['data']['modes'];
-        console.log("Modes:", modes); // Thêm log để debug
-        
-        // Hiển thị/ẩn các button dựa trên modes hỗ trợ
-        const verifyBtn = document.getElementById('verify');
-          const attackBtn = document.getElementById('attack');
-          const shellBtn = document.getElementById('shell');
-          
-          // Ẩn tất cả button trước
-          if (verifyBtn) verifyBtn.style.display = 'none';
-          if (attackBtn) attackBtn.style.display = 'none';
-          if (shellBtn) shellBtn.style.display = 'none';
-          
-          // Hiển thị button theo modes hỗ trợ (nếu tồn tại)
-          if (modes && modes.includes('verify') && verifyBtn) {
-            verifyBtn.style.display = 'inline-block';
-          }
-          if (modes && modes.includes('attack') && attackBtn) {
-            attackBtn.style.display = 'inline-block';
-          }
-          if (modes && modes.includes('shell') && shellBtn) {
-            shellBtn.style.display = 'inline-block';
-          }
-
-
-        // Hiển thị giao diện module option 
-        const options = response['data']['options'] || [];
-        const dynamicOptionsDiv = document.getElementById('dynamic-options');
-        dynamicOptionsDiv.innerHTML = '';
-        options.forEach(opt => {
-          const [name, value, type, desc] = opt;
-          dynamicOptionsDiv.innerHTML += `
-            <div class="form-group mb-2">
-              <label class="col-form-label font-weight-semibold">${name} (${type})</label>
-              <input type="text" class="form-control" id="opt-${name}" value="${value || ''}" placeholder="${desc || ''}">
-            </div>
-          `;
-        });
-
-
-        ////
+    url: '/get-poc-info',
+    type: 'POST',
+    data: {
+      poc_path: currentPocPath,
+    },
+  })
+  .done((response) => {
+    console.log("Response from get-poc-info:", response);
+    if (response['status'] === 0) {
+      const modes = response['data']['modes'];
+      console.log("Modes:", modes);
+      
+      // Hiển thị/ẩn các button dựa trên modes hỗ trợ
+      const verifyBtn = document.getElementById('verify');
+      const attackBtn = document.getElementById('attack');
+      const shellBtn = document.getElementById('shell');
+      
+      // Ẩn tất cả button trước
+      if (verifyBtn) verifyBtn.style.display = 'none';
+      if (attackBtn) attackBtn.style.display = 'none';
+      if (shellBtn) shellBtn.style.display = 'none';
+      
+      // Hiển thị button theo modes hỗ trợ
+      if (modes && modes.includes('verify') && verifyBtn) {
+        verifyBtn.style.display = 'inline-block';
       }
-    })
-    .fail((error) => {
-      console.error("Lỗi khi lấy thông tin PoC:", error);
-    });
-    
+      if (modes && modes.includes('attack') && attackBtn) {
+        attackBtn.style.display = 'inline-block';
+      }
+      if (modes && modes.includes('shell') && shellBtn) {
+        shellBtn.style.display = 'inline-block';
+      }
+
+      // Hiển thị giao diện module option 
+      const options = response['data']['options'] || [];
+      const dynamicOptionsDiv = document.getElementById('dynamic-options');
+      dynamicOptionsDiv.innerHTML = '';
+      options.forEach(opt => {
+        const [name, value, type, desc] = opt;
+        dynamicOptionsDiv.innerHTML += `
+          <div class="form-group mb-2">
+            <label class="col-form-label font-weight-semibold">${name} (${type})</label>
+            <input type="text" class="form-control" id="opt-${name}" value="${value || ''}" placeholder="${desc || ''}">
+          </div>
+        `;
+      });
+    }
+  })
+  .fail((error) => {
+    console.error("Lỗi khi lấy thông tin PoC:", error);
+  });
+  
   const modal = new bootstrap.Modal(document.getElementById('pocModal'));
   modal.show();
-  //loadTargetList();
+}
+
+// Hàm xác nhận xóa POC
+function confirmDelete(pocPath, pocName) {
+  if (confirm(`Bạn có chắc chắn muốn xóa POC "${pocName}"?`)) {
+    deletePoc(pocPath);
+  }
+}
+
+// Hàm xóa POC
+function deletePoc(pocPath) {
+  $.ajax({
+    url: '/delete-poc',
+    type: 'POST',
+    data: {
+      poc_path: pocPath
+    },
+    success: function(response) {
+      if (response.status === 0) {
+        // Xóa thành công, reload trang hoặc remove row
+        location.reload();
+        // Hoặc có thể remove row cụ thể:
+        // $(`[data-poc-id="${pocPath}"]`).closest('tr').fadeOut();
+      } else {
+        alert('Lỗi khi xóa POC: ' + response.message);
+      }
+    },
+    error: function() {
+      alert('Có lỗi xảy ra khi xóa POC');
+    }
+  });
 }
 </script>

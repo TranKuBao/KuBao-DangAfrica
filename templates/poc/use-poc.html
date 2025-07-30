@@ -239,6 +239,8 @@
   function verify_click() {
     data_input = getAllInputData();
 
+    showAlertSuccess('Is verifing the target...  ');
+
     $.ajax({
       url: '/api/verify-mode',
       type: 'POST',
@@ -280,6 +282,8 @@
   function attack_click() {
     data_input = getAllInputData();
 
+    showAlertSuccess('Is attacking the target...  ');
+
     $.ajax({
       url: '/api/attack-mode',
       type: 'POST',
@@ -307,12 +311,14 @@
         }
       } else {
         html = 'No result';
+        showAlertSuccess('No result found for this POC');
       }
       document.getElementById('output-result').innerHTML = html;
 
     })
   .fail((error) =>{
-    console.log("Phát hiện lỗi: ",error)
+    console.log("Phát hiện lỗi: ",error);
+    showAlertError(error);
   });
   }
 

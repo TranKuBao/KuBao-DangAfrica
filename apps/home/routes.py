@@ -181,7 +181,7 @@ def poc():
     poc_path=request.args.get('poc_path')
     return render_template('poc/view-poc.html', segment='view_poc', poc_path=poc_path)
 
-#lấy các toàn bộ thông tin của 1 POC
+#lấy các toàn bộ thông tin của 1 POC => nó càn giúp nạp POC 
 @blueprint.route('/get-poc-info', methods = ['POST'])
 def get_poc_info():
     if not 'poc_path' in request.form:
