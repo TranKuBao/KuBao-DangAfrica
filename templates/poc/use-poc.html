@@ -73,7 +73,7 @@
           <button type="button" class="btn btn-hacker-warning mx-2 px-4" id="btn-attack" onclick="attack_click()">
             ⚠ Attack
           </button>
-          <button type="button" class="btn btn-hacker mx-2 px-4" id="btn-shell">
+          <button type="button" class="btn btn-hacker mx-2 px-4" id="btn-shell" onclick="shell_click()">
             ⛓ Shell
           </button>
         </div>
@@ -219,8 +219,8 @@
     data['target-value'] = document.getElementById('target-value').value;
     data['rport-value'] = document.getElementById('rport-value').value;
 
-    data['lhost-value'] = document.getElementById('lhost-value').value;
-    data['lport-value'] = document.getElementById('lport-value').value;
+    //data['lhost-value'] = document.getElementById('lhost-value').value || 0.0.0.0;
+    //data['lport-value'] = document.getElementById('lport-value').value || 1337;
 
     // ... các trường khác nếu có
     console.log("data's option",data);
@@ -239,11 +239,17 @@
       url: '/api/verify-mode',
       type: 'POST',
       data: data_input,
+      beforeSend: function() {
+            // Show loading state
+            document.getElementById('h6-output-result').innerHTML = "IS Checking the target...  ";
+            document.getElementById('h6-output-result').style.backgroundColor = "#00ff2aff";
+        }
     })
     .done((resp)=>{
       console.log("STATUS:",resp['status']);
       console.log('Dữ liệu',resp['data'] );
       alert(resp['data']['Message']);
+      document.getElementById('h6-output-result').style.backgroundColor = "#e3e3e7";
       document.getElementById('h6-output-result').innerHTML = "------------------------Result for POC------------------------";
 
       // Xử lý kết quả trả về
@@ -267,6 +273,7 @@
 
     })
     .fail((error) =>{
+      showAlertError(error);
       console.log("Phát hiện lỗi: ",error)
     });
 
@@ -282,11 +289,17 @@
       url: '/api/attack-mode',
       type: 'POST',
       data: data_input,
+      beforeSend: function() {
+            // Show loading state
+            document.getElementById('h6-output-result').innerHTML = "IS starting attack the target...  ";
+            document.getElementById('h6-output-result').style.backgroundColor = "#00ff2aff";
+        }
     })
     .done((resp)=>{
       console.log("STATUS:",resp['status']);
       console.log('Dữ liệu',resp['data'] );
       alert(resp['data']['Message']);
+      document.getElementById('h6-output-result').style.backgroundColor = "#e3e3e7";
       document.getElementById('h6-output-result').innerHTML = "------------------------Result for POC------------------------";
 
       // Xử lý kết quả trả về
@@ -319,10 +332,17 @@
   //gọi API verify
   function shell_click() {
     const data = getAllInputData();
-    if(data['lhost-value'] === null || data['lport-value'] === null || data['lport-value'] > 65535 || data['lport-value'] < 1) {
+    const lhost = document.getElementById('lhost-value').value;
+    const lport = document.getElementById('lport-value').value;
+
+    if(lhost === null || lport === null || lport > 65535 || lport < 1) {
       showAlertError('Please select a LHOST and LPORT appropriate....');
       return;
     }
+    
+    // Append lhost và lport vào data object
+    data['lhost-value'] = lhost;
+    data['lport-value'] = lport;
 
     showAlertSuccess('Starting shell mode...');
 
@@ -331,13 +351,38 @@
       url: '/api/shell-mode',
       type: 'POST',
       data: data,
+      beforeSend: function() {
+            // Show loading state
+            document.getElementById('h6-output-result').innerHTML = "Starting shell in the target...  ";
+            document.getElementById('h6-output-result').style.backgroundColor = "#00ff2aff";
+        }
     })
     .done((resp)=>{
       console.log("STATUS:",resp['status']);
       console.log('Dữ liệu',resp['data'] );
       alert(resp['data']['Message']);
       document.getElementById('h6-output-result').innerHTML = "------------------------Please Check Shell Connection------------------------"; 
+      document.getElementById('h6-output-result').style.backgroundColor = "#e3e3e7";
       document.getElementById('output-result').innerHTML = "Please check shell connection status in Shell page  ";
+
+      // Xử lý kết quả trả về
+      let html = '';
+      if (resp['data']) {
+        // Nếu là object, hiển thị từng key-value
+        for (const key in resp['data']) {
+          if (typeof resp['data'][key] === 'object') {
+            html += `<b>${key}:</b><br>`;
+            for (const subkey in resp['data'][key]) {
+              html += `&nbsp;&nbsp;${subkey}: ${resp['data'][key][subkey]}<br>`;
+            }
+          } else {
+            html += `<b>${key}:</b> ${resp['data'][key]}<br>`;
+          }
+        }
+      } else {
+        html = 'No result';
+      }
+      document.getElementById('output-result').innerHTML = html;
     })
     .fail((error) =>{
       console.log("Phát hiện lỗi: ",error);

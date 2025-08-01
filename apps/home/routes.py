@@ -20,7 +20,7 @@ import requests
 from lib.server.server import Server
 from lib import database, const
 
-import os
+import os,time
 from os import urandom,path as ospath,remove as osremove
 
 import subprocess
@@ -435,83 +435,88 @@ def get_verification_results():
 
 
 
-@blueprint.route('/api/shell-mode', methods = ['POST'])
+@blueprint.route('/api/shell-mode', methods=['POST'])
 def ShellMode():
-    #lấy dữ liệu từ request
+    # Get request data
     params = {}
     for key in request.form:
         params[key] = request.form[key]
-    #Set params to pocsuite3
-    for key,val in params.items():
+        
+    # Validate required params
+    if 'lhost-value' not in params or 'lport-value' not in params:
+        return jsonify({
+            'status': -1, 
+            'msg': 'Missing required parameters: lhost and lport'
+        }), 400
+
+    # Set params to pocsuite3
+    for key, val in params.items():
         key = key.replace('-value','')
         command = key + ' ' + val
-        print(command)
         poc_core.command_set(command)
-    
-    # sau khi set các tham số cho pocsuite 
-    # => kiểm tra shell pwncat tồn tại với lhost-lport chưa
-    check_Createshell = ShellConnection.query.filter_by(
+
+    try:
+        # Check existing shell
+        shell = ShellConnection.query.filter_by(
             local_ip=params['lhost-value'],
             local_port=params['lport-value']
         ).first()
-    
-    # => nếu chưa thì khởi tạo shellpwncat
-    if not check_Createshell:
-        # tạo shell mới
-        try: 
+
+        # Create new shell if not exists
+        if not shell:
             shell = ShellConnection(
                 local_ip=params['lhost-value'],
                 local_port=params['lport-value'],
-                shell_type=ShellType.PWN_CAT,
-                status=ShellStatus.RUNNING,
+                shell_type=ShellType.REVERSE,
+                status=ShellStatus.CLOSED,
                 created_at=dt.datetime.utcnow(),
                 updated_at=dt.datetime.utcnow()
             )
             db.session.add(shell)
             db.session.commit()
-            print(f"[+] Created new shell connection in DB: {shell.local_ip}:{shell.local_port}")
-        except Exception as e:
-            print(f"[-] Error creating shell connection: {str(e)}")
-            return jsonify({'status': -1, 'msg': f'Error creating shell connection: {str(e)}'}), 500
-    
-    # =>  kiểm tra bật chưa và bật shell pwncat
-    if shell.status != ShellStatus.LISTENING:
-        try:
-            # Bật shell pwncat
-            start_shell(shell.local_ip, shell.local_port)
-            shell.update_status(ShellStatus.LISTENING)
-            db.session.commit()
-            print(f"[+] Started shell pwncat on {shell.local_ip}:{shell.local_port}")
-        except Exception as e:
-            print(f"[-] Error starting shell pwncat: {str(e)}")
-            return jsonify({'status': -1, 'msg': f'Error starting shell pwncat: {str(e)}'}), 500            
-        
-    
-    # chõ này dùng để kiểm tra cấu hình POCSUITE trước khi thực hiện chức năng shell,
-    poc_core.command_show('options') 
-    try:
-        # chạy dưới dạng shell 
-        poc_core.command_shell()
-        result = {
-                'target': params['target-value'],
-                'mode': 'Shelled',
-                'shell_id': shell.id,
-                'shell_status': shell.status.value
-            }
-        
-        tmp = poc_core.current_module.result
-        if(isinstance(tmp,dict)):
-            for key,val in tmp.items():
-                result[key] = val
-        else:
-            result['result'] = str(tmp)   
-    except:
-        result['result'] = 'No result'   
-    # x = kb.plugins
-    result['target'] = params['target-value']
-    result['mode'] = 'Shelled'
-    return jsonify({'status': 0, 'data': result})
+            print(f"[+] Created new shell: {shell.local_ip}:{shell.local_port}")
 
+        # Start shell if not listening
+        if shell.status != ShellStatus.LISTENING:  # Fix the condition here
+            start_shell(shell.connection_id)
+            # shell.update_status(ShellStatus.LISTENING)
+            # db.session.commit()
+            print(f"[+] Started shell on {shell.local_ip}:{shell.local_port}")
+
+        time.sleep(1)  # Wait for shell to be ready
+        # Run shell command
+        poc_core.command_show('options')
+        try:
+            poc_core.command_shell()
+            print(f"[+] Initiated reverse shell connection to {shell.local_ip}:{shell.local_port}")
+        except Exception as e:
+            print(f"[-] Error initiating reverse shell: {str(e)}")
+            # Continue execution - the listener is still running
+
+        # Prepare response
+        result = {
+            'target': params['target-value'],
+            'mode': 'Shelled',
+            'shell_id': shell.id,
+            'shell_status': shell.status.value,
+            'Message': f'Shell started successfully on {shell.local_ip}:{shell.local_port}'
+        }
+
+        # Add POC results if any
+        tmp = poc_core.current_module.result
+        if isinstance(tmp, dict):
+            result.update(tmp)
+        else:
+            result['result'] = str(tmp)
+
+        return jsonify({'status': 0, 'data': result})
+
+    except Exception as e:
+        print(f"[-] Error in shell mode: {str(e)}")
+        return jsonify({
+            'status': -1,
+            'msg': f'Error in shell mode: {str(e)}'
+        }), 500
 
 
 

@@ -411,16 +411,11 @@
               </div>
             `;
           });
-
-
         }
       })
       .fail((error) => {
         console.error("Lỗi khi lấy thông tin PoC:", error);
       });
-      
-      
-
       // ... cập nhật các field khác
       const modal = new bootstrap.Modal(document.getElementById('pocModal'));
       modal.show();
