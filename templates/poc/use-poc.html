@@ -243,6 +243,7 @@
             // Show loading state
             document.getElementById('h6-output-result').innerHTML = "IS Checking the target...  ";
             document.getElementById('h6-output-result').style.backgroundColor = "#00ff2aff";
+            document.getElementById('output-result').innerHTML = "";
         }
     })
     .done((resp)=>{
@@ -293,6 +294,7 @@
             // Show loading state
             document.getElementById('h6-output-result').innerHTML = "IS starting attack the target...  ";
             document.getElementById('h6-output-result').style.backgroundColor = "#00ff2aff";
+            document.getElementById('output-result').innerHTML = "";
         }
     })
     .done((resp)=>{
@@ -355,6 +357,7 @@
             // Show loading state
             document.getElementById('h6-output-result').innerHTML = "Starting shell in the target...  ";
             document.getElementById('h6-output-result').style.backgroundColor = "#00ff2aff";
+            document.getElementById('output-result').innerHTML = "";
         }
     })
     .done((resp)=>{
@@ -371,7 +374,7 @@
         // Nếu là object, hiển thị từng key-value
         for (const key in resp['data']) {
           if (typeof resp['data'][key] === 'object') {
-            html += `<b>${key}:</b><br>`;
+            html += `<b>${key}:</b><br>`;chauw e
             for (const subkey in resp['data'][key]) {
               html += `&nbsp;&nbsp;${subkey}: ${resp['data'][key][subkey]}<br>`;
             }

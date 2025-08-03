@@ -129,9 +129,21 @@
               <button type="button" class="btn btn-outline-info btn-sm" id="loadHistory">
                 <i class="fas fa-history me-1"></i>History
               </button>
+              <!-- Nút debug terminal state -->
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="debugTerminal" onclick="debugTerminalState()">
+                <i class="fas fa-bug me-1"></i>Debug
+              </button>
+              <!-- Nút force sync shell status -->
+              <button type="button" class="btn btn-outline-info btn-sm" id="forceSyncBtn" onclick="forceSyncShellStatus()">
+                <i class="fas fa-sync me-1"></i>Force Sync
+              </button>
               <!-- Nút bật/tắt shell -->
               <button type="button" class="btn btn-outline-warning btn-sm" id="toggleShellBtn">
                 <i class="fas fa-power-off me-1"></i><span id="toggleShellBtnText">Tắt Shell</span>
+              </button>
+              <!-- Nút đóng shell hoàn toàn -->
+              <button type="button" class="btn btn-outline-danger btn-sm" id="closeShellBtn" onclick="closeShellCompletely()">
+                <i class="fas fa-times-circle me-1"></i>Close Shell
               </button>
               <button type="button" class="btn btn-danger btn-sm ms-auto" id="disconnectShell" disabled>
                 <i class="fas fa-times me-1"></i>Disconnect
@@ -297,11 +309,175 @@
 .success-line { color: #4CAF50; }
 .warning-line { color: #ffa726; }
 .info-line { color: #42a5f5; }
+
+/* Auto-completion styles */
+.command-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #2d2d2d;
+  border: 1px solid #404040;
+  border-top: none;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+}
+
+.suggestion-item {
+  padding: 8px 12px;
+  color: #ffffff;
+  cursor: pointer;
+  border-bottom: 1px solid #404040;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+.suggestion-item:hover {
+  background: #404040;
+}
+
+.suggestion-item.selected {
+  background: #4CAF50;
+  color: #ffffff;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+/* Improved terminal input area */
+.terminal-input-area {
+  position: relative;
+}
+
+/* Better cursor visibility */
+.cursor {
+  color: #ffffff;
+  animation: blink 1s infinite;
+  font-weight: bold;
+  background: #4CAF50;
+  padding: 0 1px;
+}
+
+/* Selection styling */
+.command-input::selection {
+  background: #4CAF50;
+  color: #ffffff;
+}
+
+.command-input::-moz-selection {
+  background: #4CAF50;
+  color: #ffffff;
+}
+
+/* Terminal scrollbar improvements */
+.terminal-body::-webkit-scrollbar {
+  width: 12px;
+}
+
+.terminal-body::-webkit-scrollbar-track {
+  background: #2d2d2d;
+  border-radius: 6px;
+}
+
+.terminal-body::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 6px;
+  border: 2px solid #2d2d2d;
+}
+
+.terminal-body::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .command-suggestions {
+    max-height: 150px;
+  }
+  
+  .suggestion-item {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Loading states */
+.terminal-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #4CAF50;
+}
+
+.terminal-loading .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #404040;
+  border-top: 2px solid #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error states */
+.terminal-error {
+  background: #ff6b6b;
+  color: #ffffff;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+/* Success states */
+.terminal-success {
+  background: #4CAF50;
+  color: #ffffff;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+  font-weight: bold;
+}
 </style>
 
 <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 
 <script>
+// ==========================
+// Đợi Socket.IO load xong
+// ==========================
+function waitForSocketIO() {
+  return new Promise((resolve, reject) => {
+    if (typeof io !== 'undefined') {
+      resolve();
+    } else {
+      // Kiểm tra mỗi 100ms với timeout 10 giây
+      let attempts = 0;
+      const maxAttempts = 100; // 10 giây
+      
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if (typeof io !== 'undefined') {
+          clearInterval(checkInterval);
+          resolve();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          reject(new Error('Socket.IO failed to load after 10 seconds'));
+        }
+      }, 100);
+    }
+  });
+}
+
 // ==========================
 // Quản lý target liên kết
 // ==========================
@@ -336,7 +512,7 @@ let currentShellId = '{{ shell.connection_id }}';
 let currentShellData = null;
 let commandHistory = [];
 let historyIndex = -1;
-let shellReady = false; // Trạng thái shell đã sẵn sàng nhận lệnh
+let shellReady = false; // Trạng thái shell đã sẵn sàng
 let outputBuffer = ''; // Buffer để xử lý output bị chia nhỏ
 
 // Terminal state management
@@ -1026,13 +1202,42 @@ function deleteWordBeforeCursor() {
 // ==========================
 // Tích hợp Socket.IO cho realtime shell
 // ==========================
-const socket = io.connect('http://' + document.domain + ':' + location.port);
+let socket = null;
+
+// Khởi tạo Socket.IO khi đã sẵn sàng
+async function initializeSocketIO() {
+  console.log('[DEBUG] Waiting for Socket.IO to load...');
+  try {
+    await waitForSocketIO();
+    console.log('[DEBUG] Socket.IO loaded, initializing connection...');
+    
+    socket = io.connect('http://' + document.domain + ':' + location.port);
+    console.log('[DEBUG] Socket connection created');
 
 // Khi kết nối socket thành công
 socket.on('connect', function() {
+      console.log('[DEBUG] Socket connected successfully');
   printOutput('Đã kết nối tới server Socket.IO', 'success');
   // Tham gia room shell hiện tại
   socket.emit('join_shell', { shell_id: currentShellId });
+      
+      // Kiểm tra xem shell đã connected chưa
+      if (isConnected && shellReady) {
+        console.log('[DEBUG] Socket connected and shell is ready, initializing terminal');
+        initializeTerminalForConnectedShell();
+      }
+    });
+    
+    // Khi socket disconnect
+    socket.on('disconnect', function() {
+      console.log('[DEBUG] Socket disconnected');
+      printOutput('Mất kết nối tới server Socket.IO', 'error');
+    });
+    
+    // Khi socket error
+    socket.on('connect_error', function(error) {
+      console.error('[DEBUG] Socket connection error:', error);
+      printOutput('Lỗi kết nối Socket.IO: ' + error, 'error');
 });
 
 // Nhận cập nhật trạng thái shell từ server (realtime)
@@ -1059,12 +1264,14 @@ socket.on('shell_status_update', function(data) {
     console.log('[DEBUG] Shell connected, setting isConnected = true');
     $('#shellStatus').addClass('bg-success').text('Connected');
     isConnected = true;
-    // Không clear terminal khi kết nối thành công để giữ lại output đã nhận
+        
+        // Kiểm tra xem terminal đã được khởi tạo chưa
     if (!$('#terminalContent').children().length) {
       // Chỉ init terminal nếu chưa có nội dung
       initTerminal();
       printOutput('Shell đã kết nối thành công!', 'success');
     }
+        
     // Không in prompt ngay, đợi output từ pwncat
     // Focus vào input khi kết nối thành công
     $('#commandInput').focus();
@@ -1072,6 +1279,7 @@ socket.on('shell_status_update', function(data) {
     // Enable input khi shell đã kết nối
     $('#commandInput').prop('disabled', false);
     $('#sendCommand').prop('disabled', false);
+        $('#disconnectShell').prop('disabled', false);
     
     // Auto-set shellReady sau 3 giây nếu chưa được set
     setTimeout(() => {
@@ -1096,7 +1304,10 @@ socket.on('shell_status_update', function(data) {
 // Nhận output từ shell (realtime) - PTY mode
 socket.on('terminal_output', function(data) {
   console.log('[DEBUG] Received terminal_output:', data);
-  if (data.shell_id !== currentShellId) return;
+      if (data.shell_id !== currentShellId) {
+        console.log('[DEBUG] Ignoring output for different shell:', data.shell_id);
+        return;
+      }
   if (data.output) {
     console.log('[DEBUG] Writing to terminal:', JSON.stringify(data.output));
     
@@ -1107,6 +1318,7 @@ socket.on('terminal_output', function(data) {
     const cleanBuffer = removeAnsi(outputBuffer);
     if (cleanBuffer.includes('WARNING: your terminal doesn\'t support cursor position requests (CPR).')) {
       // Bỏ qua warning này, không hiển thị
+          console.log('[DEBUG] Skipping CPR warning');
       outputBuffer = '';
       return;
     }
@@ -1129,6 +1341,15 @@ socket.on('terminal_output', function(data) {
       if (!lastChild.length || !lastChild.hasClass('terminal-line')) {
         setTimeout(() => printPrompt(), 100);
       }
+          
+          // Enable input nếu chưa được enable
+          if ($('#commandInput').prop('disabled')) {
+            console.log('[DEBUG] Enabling input after prompt detection');
+            $('#commandInput').prop('disabled', false);
+            $('#disconnectShell').prop('disabled', false);
+            focusInput();
+          }
+          
         } else if (cleanBuffer.includes('registered new host') && !shellReady) {
       // Đã nhận thông báo host được đăng ký, shell gần như sẵn sàng
       console.log('[DEBUG] Host registered detected, shell almost ready');
@@ -1145,6 +1366,35 @@ socket.on('terminal_output', function(data) {
     }
   }
 });
+    
+    // Nhận thông báo đã tham gia shell room
+    socket.on('joined_shell', function(data) {
+      console.log('[DEBUG] Joined shell room:', data);
+      if (data.shell_id === currentShellId) {
+        console.log('[DEBUG] Successfully joined shell room for:', currentShellId);
+        
+        // Kiểm tra xem shell đã connected chưa
+        if (isConnected && shellReady) {
+          console.log('[DEBUG] Shell is already connected, initializing terminal');
+          initializeTerminalForConnectedShell();
+        }
+      }
+    });
+    
+    console.log('[DEBUG] Socket.IO initialization completed');
+  } catch (error) {
+    console.error('[DEBUG] Error initializing Socket.IO:', error);
+    printOutput('Lỗi khởi tạo Socket.IO: ' + error.message, 'error');
+    
+    // Fallback: tạo socket đơn giản
+    try {
+      socket = io.connect('http://' + document.domain + ':' + location.port);
+      console.log('[DEBUG] Fallback socket created');
+    } catch (fallbackError) {
+      console.error('[DEBUG] Fallback socket also failed:', fallbackError);
+    }
+  }
+}
 
 // ==========================
 // Các hàm thao tác shell
@@ -1152,14 +1402,74 @@ socket.on('terminal_output', function(data) {
 
 // Gửi yêu cầu join shell (khi bật shell)
 function connectToShell(shellId) {
+  console.log('[DEBUG] connectToShell called for:', shellId);
+  
+  if (!socket) {
+    console.log('[DEBUG] Socket not initialized, cannot connect to shell');
+    return;
+  }
+  
+  // Tham gia shell room
   socket.emit('join_shell', { shell_id: shellId });
-  // Gửi request bật shell qua socket
+  
+  // Kiểm tra xem shell đã connected chưa
+  if (isConnected && shellReady) {
+    console.log('[DEBUG] Shell already connected and ready, no need to start');
+    return;
+  }
+  
+  // Gửi request bật shell qua socket (chỉ khi chưa connected)
   socket.emit('shell_start', { shell_id: shellId });
+}
+
+// Hàm kiểm tra và khởi tạo terminal cho shell đã connected
+function initializeTerminalForConnectedShell() {
+  console.log('[DEBUG] Initializing terminal for connected shell');
+  console.log('[DEBUG] Current state - isConnected:', isConnected, 'shellReady:', shellReady);
+  
+  // Khởi tạo terminal nếu chưa có
+  if (!$('#terminalContent').children().length) {
+    console.log('[DEBUG] Terminal content is empty, initializing...');
+    initTerminal();
+  } else {
+    console.log('[DEBUG] Terminal content already exists');
+  }
+  
+  // Enable input
+  console.log('[DEBUG] Enabling input elements...');
+  $('#commandInput').prop('disabled', false);
+  $('#disconnectShell').prop('disabled', false);
+  
+  // Focus vào input
+  console.log('[DEBUG] Setting focus to input...');
+  setTimeout(() => {
+    focusInput();
+    console.log('[DEBUG] Focus set to input');
+  }, 100);
+  
+  // In thông báo sẵn sàng
+  printOutput('Shell đã sẵn sàng. Bạn có thể bắt đầu nhập lệnh!', 'success');
+  
+  // Set shellReady
+  shellReady = true;
+  isConnected = true;
+  
+  console.log('[DEBUG] Terminal initialized for connected shell - isConnected:', isConnected, 'shellReady:', shellReady);
 }
 
 // Gửi lệnh tới shell qua socket (PTY mode)
 function sendCommandToShell(command) {
+  console.log('[DEBUG] sendCommandToShell called with:', command);
+  console.log('[DEBUG] Current state - isConnected:', isConnected, 'shellReady:', shellReady);
+  
+  if (!socket) {
+    console.log('[DEBUG] Socket not initialized, cannot send command');
+    printOutput('Socket chưa kết nối!', 'error');
+    return;
+  }
+  
   if (!currentShellId || !isConnected) {
+    console.log('[DEBUG] Shell not connected, cannot send command');
     printOutput('Shell chưa kết nối!', 'error');
     return;
   }
@@ -1182,6 +1492,7 @@ function sendCommandToShell(command) {
     lastLine.find('.command').text(command);
   }
   
+  console.log('[DEBUG] Sending command via socket:', command);
   // Gửi lệnh + newline để thực thi
   socket.emit('terminal_input', {
     shell_id: currentShellId,
@@ -1193,20 +1504,48 @@ function sendCommandToShell(command) {
   cursorPosition = 0;
   $('#commandInput').text('');
   
+  console.log('[DEBUG] Command sent successfully');
   // Không in prompt ngay, đợi output từ shell
 }
 
 // Ngắt kết nối shell
 function disconnectShell() {
-  if (currentShellId) {
-    socket.emit('shell_stop', { shell_id: currentShellId });
+  if (!socket) {
+    console.log('[DEBUG] Socket not initialized, cannot disconnect shell');
+    return;
   }
+  
+  if (currentShellId) {
+    // Gửi signal đóng shell hoàn toàn
+    socket.emit('shell_stop', { 
+      shell_id: currentShellId,
+      action: 'close_completely'
+    });
+    
+    // Gửi AJAX request để đóng shell
+    $.ajax({
+      url: `/api/shells/${currentShellId}/close`,
+      type: 'POST',
+      data: JSON.stringify({action: 'close_completely'}),
+      contentType: 'application/json',
+      success: function(resp) {
+        console.log('[DEBUG] Shell closed successfully:', resp);
+        printOutput('Shell đã đóng hoàn toàn.', 'info');
+      },
+      error: function(xhr) {
+        console.error('[DEBUG] Error closing shell:', xhr);
+        printOutput('Lỗi khi đóng shell.', 'error');
+      }
+    });
+  }
+  
   isConnected = false;
+  shellReady = false;
   $('#shellStatus').removeClass('bg-success bg-warning').addClass('bg-secondary').text('Disconnected');
   $('#disconnectShell').prop('disabled', true);
   $('#commandInput').prop('disabled', true);
   $('#sendCommand').prop('disabled', true);
-  printOutput('Đang chờ kết nối reverse shell...');
+  printOutput('Shell đã đóng hoàn toàn.');
 }
 
 // ==========================
@@ -1216,13 +1555,17 @@ $('#commandInput').on('keydown', handleKeyDown);
 
 // Xử lý input text
 $('#commandInput').on('input', function() {
+  console.log('[DEBUG] Input event triggered');
   currentCommand = $(this).text();
   cursorPosition = currentCommand.length;
 });
 
 // Xử lý click để focus
 $('#commandInput').on('click', function() {
+  console.log('[DEBUG] Input clicked, focusing...');
   focusInput();
+  // Kiểm tra và khôi phục terminal state nếu cần
+  checkAndRestoreTerminalState();
 });
 
 // Xử lý paste
@@ -1308,10 +1651,28 @@ $('#toggleShellBtn').click(function() {
       if (resp.status === 'success') {
         const status = resp.data.status.toUpperCase();
         if (status === 'CLOSED' || status === 'DISCONNECTED' || status === 'ERROR') {
+          // Bật shell
+          console.log('[DEBUG] Starting shell:', currentShellId);
           connectToShell(currentShellId);
+          
+          // Cập nhật UI ngay lập tức
+          $('#shellStatus').removeClass('bg-secondary bg-danger').addClass('bg-warning').text('Starting...');
+          updateToggleShellBtn('LISTENING');
+          
+          // Thông báo cho user
+          printOutput('Đang khởi động shell...', 'info');
         } else {
+          // Tắt shell
           if (confirm('Bạn có chắc muốn tắt shell này?')) {
+            console.log('[DEBUG] Stopping shell:', currentShellId);
             disconnectShell();
+            
+            // Cập nhật UI ngay lập tức
+            $('#shellStatus').removeClass('bg-success bg-warning').addClass('bg-secondary').text('Stopping...');
+            updateToggleShellBtn('CLOSED');
+            
+            // Thông báo cho user
+            printOutput('Đang tắt shell...', 'info');
           }
         }
       }
@@ -1336,30 +1697,97 @@ function updateToggleShellBtn(status) {
 
 // Kiểm tra trạng thái shell khi load trang
 function refreshShellStatus() {
+  console.log('[DEBUG] Refreshing shell status for:', currentShellId);
+  
   $.ajax({
     url: `/api/shells/${currentShellId}`,
     type: 'GET',
     success: function(resp) {
       if (resp.status === 'success') {
         const status = resp.data.status.toUpperCase();
+        console.log('[DEBUG] Current shell status:', status);
+        
+        // Cập nhật UI theo trạng thái
         updateToggleShellBtn(status);
+        
         if (status === 'CONNECTED') {
+          console.log('[DEBUG] Shell is connected, initializing terminal for existing connection');
+          $('#shellStatus').removeClass('bg-secondary bg-warning').addClass('bg-success').text('Connected');
+          
+          // Khởi tạo terminal cho shell đã connected
+          initializeTerminalForConnectedShell();
+          
+          // Tham gia shell room và kết nối
           connectToShell(currentShellId);
+          
         } else if (status === 'LISTENING') {
+          console.log('[DEBUG] Shell is listening');
           $('#shellStatus').removeClass('bg-success bg-secondary').addClass('bg-warning').text('Listening');
           isConnected = false;
+          shellReady = false;
+          
+          // Tham gia shell room để nhận updates
+          socket.emit('join_shell', { shell_id: currentShellId });
+          
+          // Disable input
+          $('#commandInput').prop('disabled', true);
+          $('#disconnectShell').prop('disabled', true);
+          
           initTerminal();
-          printOutput('Đang chờ kết nối reverse shell...');
-        } else {
+          printOutput('Đang chờ kết nối reverse shell...', 'info');
+          
+        } else if (status === 'CLOSED' || status === 'DISCONNECTED' || status === 'ERROR') {
+          console.log('[DEBUG] Shell is closed/disconnected');
           $('#shellStatus').removeClass('bg-success bg-warning').addClass('bg-secondary').text(status);
           isConnected = false;
+          shellReady = false;
+          
+          // Disable input
+          $('#commandInput').prop('disabled', true);
+          $('#disconnectShell').prop('disabled', true);
+          
           initTerminal();
-          printOutput('Đang chờ kết nối reverse shell...');
+          printOutput('Shell đã đóng. Nhấn "Bật Shell" để kết nối lại.', 'info');
+          
+        } else {
+          console.log('[DEBUG] Unknown shell status:', status);
+          $('#shellStatus').removeClass('bg-success bg-warning').addClass('bg-secondary').text(status);
+          isConnected = false;
+          shellReady = false;
+          
+          // Disable input
+          $('#commandInput').prop('disabled', true);
+          $('#disconnectShell').prop('disabled', true);
+          
+          initTerminal();
+          printOutput(`Trạng thái shell: ${status}`, 'info');
         }
+        
+        // Tham gia shell room để nhận updates realtime (nếu chưa join)
+        if (socket) {
+          socket.emit('join_shell', { shell_id: currentShellId });
+        } else {
+          console.log('[DEBUG] Socket not initialized, cannot join shell room');
+        }
+        
+      } else {
+        console.error('[DEBUG] Failed to get shell status:', resp);
+        printOutput(`Lỗi lấy trạng thái shell: ${resp.msg || 'Unknown error'}`, 'error');
+        
+        // Fallback: tham gia shell room để nhận updates
+        socket.emit('join_shell', { shell_id: currentShellId });
       }
     },
     error: function(xhr) {
+      console.error('[DEBUG] Error refreshing shell status:', xhr);
       printOutput(`Lỗi kiểm tra trạng thái: ${xhr.responseJSON?.msg || 'Unknown error'}`, 'error');
+      
+      // Fallback: tham gia shell room để nhận updates
+      if (socket) {
+        socket.emit('join_shell', { shell_id: currentShellId });
+      } else {
+        console.log('[DEBUG] Socket not initialized, cannot join shell room');
+      }
     }
   });
 }
@@ -1367,7 +1795,15 @@ function refreshShellStatus() {
 // ==========================
 // Khởi tạo khi load trang
 // ==========================
-$(document).ready(function() {
+$(document).ready(async function() {
+  console.log('[DEBUG] Initializing view-shell page for shell:', currentShellId);
+  
+  // Reset terminal state khi vào lại
+  resetTerminalState();
+  
+  // Khởi tạo Socket.IO trước
+  await initializeSocketIO();
+  
   initTerminal(); // Khởi tạo terminal
   render_target_info(); // Lấy danh sách target
   refreshShellStatus(); // Kiểm tra trạng thái shell ban đầu
@@ -1375,6 +1811,10 @@ $(document).ready(function() {
   // Focus vào terminal khi load
   setTimeout(() => {
     focusInput();
+    // Debug terminal state sau 2 giây
+    setTimeout(() => {
+      debugTerminalState();
+    }, 2000);
   }, 500);
   
   // Thêm tooltip cho phím tắt
@@ -1400,7 +1840,686 @@ $(document).ready(function() {
   
   // Trigger resize event
   $(window).trigger('resize');
+  
+  // ==========================
+  // RESET TERMINAL STATE
+  // ==========================
+  function resetTerminalState() {
+    console.log('[DEBUG] Resetting terminal state');
+    
+    // Reset các biến global
+    isConnected = false;
+    shellReady = false;
+    outputBuffer = '';
+    commandHistory = [];
+    historyIndex = -1;
+    cursorPosition = 0;
+    currentCommand = '';
+    selectionStart = 0;
+    selectionEnd = 0;
+    
+    // Reset UI elements
+    $('#commandInput').prop('disabled', true);
+    $('#disconnectShell').prop('disabled', true);
+    $('#shellStatus').removeClass('bg-success bg-warning bg-danger').addClass('bg-secondary').text('Initializing...');
+    
+    // Clear terminal content
+    $('#terminalContent').empty();
+    
+    // Reset suggestions
+    hideSuggestions();
+    
+    console.log('[DEBUG] Terminal state reset completed');
+  }
 });
 
+// ==========================
+// AUTO-COMPLETION SYSTEM
+// ==========================
+let commandSuggestions = [];
+let currentSuggestionIndex = -1;
+let isShowingSuggestions = false;
+
+// Danh sách lệnh phổ biến
+const commonCommands = [
+    'ls', 'cd', 'pwd', 'cat', 'grep', 'find', 'ps', 'top', 'kill', 'chmod', 'chown',
+    'cp', 'mv', 'rm', 'mkdir', 'rmdir', 'touch', 'nano', 'vim', 'vi', 'less', 'more',
+    'head', 'tail', 'wc', 'sort', 'uniq', 'cut', 'awk', 'sed', 'tr', 'tee',
+    'ssh', 'scp', 'rsync', 'wget', 'curl', 'ping', 'netstat', 'ifconfig', 'ip',
+    'systemctl', 'service', 'apt', 'yum', 'pip', 'python', 'node', 'npm',
+    'docker', 'kubectl', 'git', 'tar', 'zip', 'unzip', 'gzip', 'bzip2',
+    'whoami', 'id', 'groups', 'passwd', 'sudo', 'su', 'exit', 'logout',
+    'history', 'alias', 'export', 'source', 'echo', 'printf', 'read',
+    'for', 'while', 'if', 'case', 'function', 'return', 'break', 'continue'
+];
+
+// Tạo suggestions dựa trên input
+function generateSuggestions(input) {
+    if (!input.trim()) return [];
+    
+    const suggestions = [];
+    const inputLower = input.toLowerCase();
+    
+    // Tìm commands phù hợp
+    for (const cmd of commonCommands) {
+        if (cmd.toLowerCase().startsWith(inputLower)) {
+            suggestions.push(cmd);
+        }
+    }
+    
+    // Thêm các suggestions đặc biệt
+    if (inputLower.startsWith('ls')) {
+        suggestions.push('ls -la', 'ls -lh', 'ls -R', 'ls -t');
+    } else if (inputLower.startsWith('ps')) {
+        suggestions.push('ps aux', 'ps -ef', 'ps -eo pid,ppid,cmd');
+    } else if (inputLower.startsWith('find')) {
+        suggestions.push('find . -name "*.txt"', 'find . -type f', 'find . -mtime -7');
+    } else if (inputLower.startsWith('grep')) {
+        suggestions.push('grep -r "pattern"', 'grep -i "pattern"', 'grep -v "pattern"');
+    }
+    
+    return suggestions.slice(0, 10); // Giới hạn 10 suggestions
+}
+
+// Hiển thị suggestions
+function showSuggestions(suggestions) {
+    if (suggestions.length === 0) {
+        hideSuggestions();
+        return;
+    }
+    
+    // Tạo dropdown suggestions
+    let dropdown = $('#commandSuggestions');
+    if (dropdown.length === 0) {
+        dropdown = $('<div id="commandSuggestions" class="command-suggestions"></div>');
+        $('.terminal-input-area').append(dropdown);
+    }
+    
+    dropdown.empty();
+    suggestions.forEach((suggestion, index) => {
+        const item = $(`<div class="suggestion-item" data-index="${index}">${suggestion}</div>`);
+        dropdown.append(item);
+    });
+    
+    dropdown.show();
+    isShowingSuggestions = true;
+    currentSuggestionIndex = -1;
+}
+
+// Ẩn suggestions
+function hideSuggestions() {
+    $('#commandSuggestions').hide();
+    isShowingSuggestions = false;
+    currentSuggestionIndex = -1;
+}
+
+// Chọn suggestion
+function selectSuggestion(index) {
+    const suggestions = $('.suggestion-item');
+    if (index >= 0 && index < suggestions.length) {
+        suggestions.removeClass('selected');
+        suggestions.eq(index).addClass('selected');
+        currentSuggestionIndex = index;
+    }
+}
+
+// Áp dụng suggestion
+function applySuggestion() {
+    if (currentSuggestionIndex >= 0) {
+        const suggestion = $('.suggestion-item').eq(currentSuggestionIndex).text();
+        currentCommand = suggestion;
+        cursorPosition = suggestion.length;
+        $('#commandInput').text(suggestion);
+        updateCursor();
+        hideSuggestions();
+    }
+}
+
+// Xử lý Tab cho auto-completion
+function handleTabCompletion() {
+    const input = $('#commandInput').text();
+    const suggestions = generateSuggestions(input);
+    
+    if (suggestions.length === 1) {
+        // Nếu chỉ có 1 suggestion, áp dụng luôn
+        currentCommand = suggestions[0];
+        cursorPosition = suggestions[0].length;
+        $('#commandInput').text(suggestions[0]);
+        updateCursor();
+        hideSuggestions();
+    } else if (suggestions.length > 1) {
+        // Nếu có nhiều suggestions, hiển thị dropdown
+        showSuggestions(suggestions);
+        selectSuggestion(0);
+    }
+}
+
+// Cập nhật handleKeyDown để hỗ trợ auto-completion
+const originalHandleKeyDown = window.handleKeyDown;
+window.handleKeyDown = function(e) {
+    const key = e.key;
+    const ctrl = e.ctrlKey;
+    const shift = e.shiftKey;
+    const alt = e.altKey;
+    
+    // Tab - Auto-completion
+    if (key === 'Tab') {
+        e.preventDefault();
+        if (isShowingSuggestions) {
+            // Nếu đang hiển thị suggestions, chọn suggestion tiếp theo
+            const suggestions = $('.suggestion-item');
+            const nextIndex = (currentSuggestionIndex + 1) % suggestions.length;
+            selectSuggestion(nextIndex);
+        } else {
+            // Tạo suggestions mới
+            handleTabCompletion();
+        }
+        return;
+    }
+    
+    // Enter - Áp dụng suggestion hoặc gửi lệnh
+    if (key === 'Enter') {
+        if (isShowingSuggestions) {
+            e.preventDefault();
+            applySuggestion();
+            return;
+        }
+    }
+    
+    // Escape - Ẩn suggestions
+    if (key === 'Escape') {
+        if (isShowingSuggestions) {
+            e.preventDefault();
+            hideSuggestions();
+            return;
+        }
+    }
+    
+    // Arrow keys trong suggestions
+    if (isShowingSuggestions && (key === 'ArrowUp' || key === 'ArrowDown')) {
+        e.preventDefault();
+        const suggestions = $('.suggestion-item');
+        let newIndex = currentSuggestionIndex;
+        
+        if (key === 'ArrowUp') {
+            newIndex = currentSuggestionIndex <= 0 ? suggestions.length - 1 : currentSuggestionIndex - 1;
+        } else {
+            newIndex = currentSuggestionIndex >= suggestions.length - 1 ? 0 : currentSuggestionIndex + 1;
+        }
+        
+        selectSuggestion(newIndex);
+        return;
+    }
+    
+    // Gọi hàm gốc
+    originalHandleKeyDown.call(this, e);
+    
+    // Ẩn suggestions khi gõ
+    if (isShowingSuggestions && key.length === 1) {
+        hideSuggestions();
+    }
+};
+
+// Click vào suggestion
+$(document).on('click', '.suggestion-item', function() {
+    const index = parseInt($(this).data('index'));
+    selectSuggestion(index);
+    applySuggestion();
+});
+
+// ==========================
+// IMPROVED CURSOR HANDLING
+// ==========================
+function improvedUpdateCursor() {
+    const input = $('#commandInput');
+    const text = input.text();
+    
+    // Tạo range để đặt con trỏ chính xác hơn
+    const range = document.createRange();
+    const selection = window.getSelection();
+    
+    if (cursorPosition <= text.length) {
+        let node = input[0].firstChild;
+        if (!node) {
+            node = document.createTextNode('');
+            input[0].appendChild(node);
+        }
+        
+        // Tính toán vị trí chính xác hơn
+        let currentPos = 0;
+        let targetNode = node;
+        let targetOffset = 0;
+        
+        // Duyệt qua các node con để tìm vị trí chính xác
+        const walker = document.createTreeWalker(
+            input[0],
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        while (walker.nextNode()) {
+            const textNode = walker.currentNode;
+            const textLength = textNode.textContent.length;
+            
+            if (currentPos + textLength >= cursorPosition) {
+                targetNode = textNode;
+                targetOffset = cursorPosition - currentPos;
+                break;
+            }
+            currentPos += textLength;
+        }
+        
+        range.setStart(targetNode, targetOffset);
+        range.setEnd(targetNode, targetOffset);
+        
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+}
+
+// Override updateCursor function
+window.updateCursor = improvedUpdateCursor;
+  
+  // Trigger resize event
+  $(window).trigger('resize');
+  
+  // ==========================
+  // XỬ LÝ BROWSER TAB CLOSE
+  // ==========================
+  let isPageUnloading = false;
+  
+  // Xử lý khi user đóng tab hoặc rời khỏi trang
+  window.addEventListener('beforeunload', function(e) {
+    if (isConnected && !isPageUnloading) {
+      isPageUnloading = true;
+      
+      // Hiển thị cảnh báo cho user nhưng KHÔNG đóng shell
+      const message = 'Shell đang kết nối. Shell sẽ tiếp tục chạy trong background. Bạn có thể mở lại tab này để tiếp tục sử dụng.';
+      e.preventDefault();
+      e.returnValue = message;
+      
+      // KHÔNG gửi signal đóng shell - để shell tiếp tục chạy
+      console.log('[DEBUG] Tab closing, but shell will continue running in background');
+      
+      return message;
+    }
+  });
+  
+  // Xử lý khi page visibility thay đổi (tab ẩn/hiện)
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden && isConnected) {
+      console.log('[DEBUG] Page hidden, shell still running in background');
+      // Có thể thêm logic để pause shell hoặc hiển thị thông báo
+    } else if (!document.hidden && isConnected) {
+      console.log('[DEBUG] Page visible, checking terminal state');
+      // Kiểm tra và khôi phục terminal state khi tab được focus lại
+      setTimeout(() => {
+        checkAndRestoreTerminalState();
+      }, 500);
+    }
+  });
+  
+  // ==========================
+  // CẢI THIỆN TRẢI NGHIỆM TERMINAL
+  // ==========================
+  
+  // Cải thiện cursor positioning
+  function improvedUpdateCursor() {
+    const input = $('#commandInput');
+    const text = input.text();
+    
+    // Tạo range để đặt con trỏ chính xác hơn
+    const range = document.createRange();
+    const selection = window.getSelection();
+    
+    if (cursorPosition <= text.length) {
+      let node = input[0].firstChild;
+      if (!node) {
+        node = document.createTextNode('');
+        input[0].appendChild(node);
+      }
+      
+      // Tính toán vị trí chính xác hơn
+      let currentPos = 0;
+      let targetNode = node;
+      let targetOffset = 0;
+      
+      // Duyệt qua các node con để tìm vị trí chính xác
+      const walker = document.createTreeWalker(
+        input[0],
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
+      
+      while (walker.nextNode()) {
+        const textNode = walker.currentNode;
+        const textLength = textNode.textContent.length;
+        
+        if (currentPos + textLength >= cursorPosition) {
+          targetNode = textNode;
+          targetOffset = cursorPosition - currentPos;
+          break;
+        }
+        currentPos += textLength;
+      }
+      
+      range.setStart(targetNode, targetOffset);
+      range.setEnd(targetNode, targetOffset);
+      
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+  
+  // Cải thiện selection handling
+  function handleSelectionChange() {
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const input = $('#commandInput')[0];
+      
+      if (input.contains(range.startContainer)) {
+        // Tính toán vị trí selection trong input
+        const startOffset = getTextOffset(input, range.startContainer, range.startOffset);
+        const endOffset = getTextOffset(input, range.endContainer, range.endOffset);
+        
+        selectionStart = startOffset;
+        selectionEnd = endOffset;
+      }
+    }
+  }
+  
+  function getTextOffset(root, node, offset) {
+    let totalOffset = 0;
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+    
+    while (walker.nextNode()) {
+      const textNode = walker.currentNode;
+      if (textNode === node) {
+        return totalOffset + offset;
+      }
+      totalOffset += textNode.textContent.length;
+    }
+    return totalOffset;
+  }
+  
+  // Cải thiện copy/paste
+  function improvedPaste(e) {
+    e.preventDefault();
+    const text = (e.originalEvent || e).clipboardData.getData('text/plain');
+    
+    // Xử lý paste với selection
+    if (selectionStart !== selectionEnd) {
+      // Xóa selection trước
+      const beforeSelection = currentCommand.slice(0, selectionStart);
+      const afterSelection = currentCommand.slice(selectionEnd);
+      currentCommand = beforeSelection + text + afterSelection;
+      cursorPosition = selectionStart + text.length;
+    } else {
+      // Paste tại vị trí con trỏ
+      currentCommand = currentCommand.slice(0, cursorPosition) + text + currentCommand.slice(cursorPosition);
+      cursorPosition += text.length;
+    }
+    
+    $('#commandInput').text(currentCommand);
+    improvedUpdateCursor();
+    
+    // Reset selection
+    selectionStart = selectionEnd = cursorPosition;
+  }
+  
+  // Cải thiện copy
+  function improvedCopy(e) {
+    const selection = window.getSelection();
+    if (selection.toString()) {
+      e.originalEvent.clipboardData.setData('text/plain', selection.toString());
+    } else {
+      // Copy toàn bộ text nếu không có selection
+      e.originalEvent.clipboardData.setData('text/plain', currentCommand);
+    }
+  }
+  
+  // Cải thiện cut
+  function improvedCut(e) {
+    const selection = window.getSelection();
+    if (selection.toString()) {
+      e.originalEvent.clipboardData.setData('text/plain', selection.toString());
+      
+      // Xóa selection
+      const beforeSelection = currentCommand.slice(0, selectionStart);
+      const afterSelection = currentCommand.slice(selectionEnd);
+      currentCommand = beforeSelection + afterSelection;
+      cursorPosition = selectionStart;
+      
+      $('#commandInput').text(currentCommand);
+      improvedUpdateCursor();
+      
+      // Reset selection
+      selectionStart = selectionEnd = cursorPosition;
+    }
+  }
+  
+  // Thêm event listeners cho cải thiện
+  $('#commandInput').on('selectionchange', handleSelectionChange);
+  $('#commandInput').off('paste').on('paste', improvedPaste);
+  $('#commandInput').off('copy').on('copy', improvedCopy);
+  $('#commandInput').off('cut').on('cut', improvedCut);
+  
+  // ==========================
+  // PERFORMANCE OPTIMIZATION
+  // ==========================
+  
+  // Debounce resize events
+  let resizeTimeout;
+  $(window).off('resize').on('resize', function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function() {
+      const terminalBody = $('#terminalOutput');
+      const containerHeight = $('.shell-container').height();
+      const headerHeight = $('.terminal-header').outerHeight();
+      const inputHeight = $('.terminal-input-area').outerHeight();
+      const buttonHeight = $('.p-2').outerHeight();
+      
+      const newHeight = containerHeight - headerHeight - inputHeight - buttonHeight - 30;
+      terminalBody.css('max-height', newHeight + 'px');
+    }, 100);
+  });
+  
+  // Limit terminal output để tránh memory leak
+  const MAX_TERMINAL_LINES = 1000;
+  function limitTerminalOutput() {
+    const terminalContent = $('#terminalContent');
+    const lines = terminalContent.children();
+    
+    if (lines.length > MAX_TERMINAL_LINES) {
+      // Xóa các dòng cũ nhất
+      const linesToRemove = lines.length - MAX_TERMINAL_LINES;
+      lines.slice(0, linesToRemove).remove();
+    }
+  }
+  
+  // Override printOutput để limit output
+  const originalPrintOutput = window.printOutput;
+  window.printOutput = function(output, type = 'normal') {
+    originalPrintOutput(output, type);
+    limitTerminalOutput();
+  };
+  
+  // ==========================
+  // SESSION MANAGEMENT
+  // ==========================
+  
+  // Auto-save session state
+  function saveSessionState() {
+    const state = {
+      commandHistory: commandHistory,
+      currentCommand: currentCommand,
+      cursorPosition: cursorPosition,
+      isConnected: isConnected,
+      shellReady: shellReady
+    };
+    localStorage.setItem('terminal_session_' + currentShellId, JSON.stringify(state));
+  }
+  
+  function loadSessionState() {
+    const saved = localStorage.getItem('terminal_session_' + currentShellId);
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        commandHistory = state.commandHistory || [];
+        currentCommand = state.currentCommand || '';
+        cursorPosition = state.cursorPosition || 0;
+        // Không restore isConnected và shellReady vì cần kiểm tra lại
+      } catch (e) {
+        console.error('Error loading session state:', e);
+      }
+    }
+  }
+  
+  // Auto-save mỗi 30 giây
+  setInterval(saveSessionState, 30000);
+  
+  // Load session state khi khởi tạo
+  loadSessionState();
+  
+  // Cleanup khi rời khỏi trang
+  window.addEventListener('pagehide', function() {
+    saveSessionState();
+  });
+  
+  // ==========================
+  // RESET TERMINAL STATE
+  // ==========================
+  function resetTerminalState() {
+    console.log('[DEBUG] Resetting terminal state');
+    
+    // Reset các biến global
+    isConnected = false;
+    shellReady = false;
+    outputBuffer = '';
+    commandHistory = [];
+    historyIndex = -1;
+    cursorPosition = 0;
+    currentCommand = '';
+    selectionStart = 0;
+    selectionEnd = 0;
+    
+    // Reset UI elements
+    $('#commandInput').prop('disabled', true);
+    $('#disconnectShell').prop('disabled', true);
+    $('#shellStatus').removeClass('bg-success bg-warning bg-danger').addClass('bg-secondary').text('Initializing...');
+    
+    // Clear terminal content
+    $('#terminalContent').empty();
+    
+    // Reset suggestions
+    hideSuggestions();
+    
+    console.log('[DEBUG] Terminal state reset completed');
+  }
+  
+  // Nhận thông báo đã tham gia shell room
+  socket.on('joined_shell', function(data) {
+    console.log('[DEBUG] Joined shell room:', data);
+    if (data.shell_id === currentShellId) {
+      console.log('[DEBUG] Successfully joined shell room for:', currentShellId);
+      
+      // Kiểm tra xem shell đã connected chưa
+      if (isConnected && shellReady) {
+        console.log('[DEBUG] Shell is already connected, initializing terminal');
+        initializeTerminalForConnectedShell();
+      }
+    }
+  });
+
+  // Hàm kiểm tra và khôi phục terminal state
+  function checkAndRestoreTerminalState() {
+    console.log('[DEBUG] Checking terminal state...');
+    
+    // Kiểm tra xem shell có đang connected không
+    if (isConnected && shellReady) {
+      console.log('[DEBUG] Shell is connected and ready, checking terminal state');
+      
+      // Kiểm tra xem input có bị disabled không
+      if ($('#commandInput').prop('disabled')) {
+        console.log('[DEBUG] Input is disabled, enabling...');
+        $('#commandInput').prop('disabled', false);
+        $('#disconnectShell').prop('disabled', false);
+      }
+      
+      // Kiểm tra xem terminal có nội dung không
+      if (!$('#terminalContent').children().length) {
+        console.log('[DEBUG] Terminal is empty, initializing...');
+        initializeTerminalForConnectedShell();
+      }
+      
+      // Focus vào input
+      setTimeout(() => {
+        focusInput();
+      }, 100);
+    }
+  }
+  
+  // Test function để debug terminal state
+  function debugTerminalState() {
+    console.log('[DEBUG] === TERMINAL STATE DEBUG ===');
+    console.log('[DEBUG] isConnected:', isConnected);
+    console.log('[DEBUG] shellReady:', shellReady);
+    console.log('[DEBUG] currentShellId:', currentShellId);
+    console.log('[DEBUG] input disabled:', $('#commandInput').prop('disabled'));
+    console.log('[DEBUG] disconnect disabled:', $('#disconnectShell').prop('disabled'));
+    console.log('[DEBUG] terminal content children:', $('#terminalContent').children().length);
+    console.log('[DEBUG] shell status text:', $('#shellStatus').text());
+    console.log('[DEBUG] === END DEBUG ===');
+  }
+  
+  // Expose debug function globally
+  window.debugTerminalState = debugTerminalState;
+  
+  // Force sync shell status function
+  function forceSyncShellStatus() {
+    console.log('[DEBUG] Force syncing shell status for:', currentShellId);
+    
+    $.ajax({
+      url: `/api/shells/${currentShellId}/force-sync`,
+      type: 'POST',
+      success: function(resp) {
+        if (resp.status === 'success') {
+          console.log('[DEBUG] Force sync successful:', resp);
+          printOutput(`Shell status synced: ${resp.memory_status} -> ${resp.database_status}`, 'success');
+          
+          // Refresh shell status sau khi sync
+          setTimeout(() => {
+            refreshShellStatus();
+          }, 1000);
+        } else {
+          console.error('[DEBUG] Force sync failed:', resp);
+          printOutput(`Force sync failed: ${resp.msg}`, 'error');
+        }
+      },
+      error: function(xhr) {
+        console.error('[DEBUG] Force sync error:', xhr);
+        printOutput(`Force sync error: ${xhr.responseJSON?.msg || 'Unknown error'}`, 'error');
+      }
+    });
+  }
+  
+  // Expose force sync function globally
+  window.forceSyncShellStatus = forceSyncShellStatus;
+
+  // Function để đóng shell hoàn toàn
+  function closeShellCompletely() {
+    if (confirm('Bạn có chắc muốn đóng shell hoàn toàn?')) {
+      disconnectShell();
+      printOutput('Shell đã đóng hoàn toàn.', 'info');
+    }
+  }
 </script>
 {% endblock content %}

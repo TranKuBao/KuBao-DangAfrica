@@ -65,15 +65,22 @@ def create_app(config):
     # Khởi tạo socketio với app
     socketio.init_app(app, cors_allowed_origins="*")
     
-    # Đảm bảo shell_manager được khởi tạo trước
-    from apps.managershell.pwncat import shell_manager
+    # Đảm bảo shell_manager được khởi tạo với app instance
+    from apps.managershell.pwncat import init_shell_manager
+    shell_manager = init_shell_manager(app)
     shell_manager.socketio = socketio
+    
+    # Thêm shell_manager vào globals trước khi setup
+    globals()['shell_manager'] = shell_manager
+    
+    # Setup shell_manager trong routes
+    from apps.managershell.routes import setup_shell_manager
+    setup_shell_manager()
     
     # Đăng ký các event cho terminal shell
     from apps.managershell.socketio_events import register_terminal_events
     register_terminal_events(socketio)
 
-
     return app
 
-__all__ = ['db', 'login_manager', 'create_app', 'socketio']
+__all__ = ['db', 'login_manager', 'create_app', 'socketio', 'shell_manager']

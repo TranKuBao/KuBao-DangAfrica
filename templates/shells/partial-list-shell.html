@@ -1,5 +1,5 @@
 {% for shell in shells %}
-                <tr>                  
+                <tr data-shell-id="{{shell.connection_id}}">                  
                   <td class="align-middle text-center">
                     <input type="checkbox" class="row-checkbox m-0"
                            style="
@@ -106,64 +106,148 @@
 <!-- xử lý bật tắt shell-->
 <script>
 function HandleActionShell(connectionID, nowaction){
+  console.log('[DEBUG] HandleActionShell called:', connectionID, nowaction);
+  
   // lấy acction hiện tại của shell
   if(nowaction == 'CLOSED'){
-    console.log('Bật Shell');
-    //nếu đang tắt thì giờ mình đi bất
+    console.log('[DEBUG] Starting shell:', connectionID);
+    //nếu đang tắt thì giờ mình đi bật
     if(confirm("Do you want to start Shell?")){
+      // Hiển thị loading state
+      const btn = event.target.closest('button');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Starting...';
+      btn.disabled = true;
+      
       $.ajax({
         url:`/api/shells/${connectionID}/start`,
         type: 'POST',
         success:  function(resp) {
           if(resp.status == 'success'){
-            //Làm 1 cái notic thông bác 
-            alert("Enabled successful");
+            console.log('[DEBUG] Shell started successfully');
+            // Refresh lại danh sách để cập nhật status
             showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
             showAlertSuccess('Shell is turned on');
           }
           else{
+            console.error('[DEBUG] Failed to start shell:', resp.msg);
             alert(`${resp.msg}`);
             showAlertError(`${resp.msg}`);
           }
         },
-        error: function(error){
-          alert(`${error.msg}`);
-          showAlertError(`${error.msg}`);
+        error: function(xhr){
+          console.error('[DEBUG] Error starting shell:', xhr);
+          const errorMsg = xhr.responseJSON?.msg || 'Unknown error';
+          alert(`${errorMsg}`);
+          showAlertError(`${errorMsg}`);
+        },
+        complete: function() {
+          // Restore button state
+          btn.innerHTML = originalText;
+          btn.disabled = false;
         }
       });
     }
     
   } else {
-    console.log('Tắt Shell');
+    console.log('[DEBUG] Stopping shell:', connectionID);
     //nếu không phải là đang tắt thì mình tắt hết
     if(confirm("Are you sure you want to close Shell?")){
+      // Hiển thị loading state
+      const btn = event.target.closest('button');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Stopping...';
+      btn.disabled = true;
+      
       $.ajax({
         url: `/api/shells/${connectionID}/close`,
         type: 'POST',
         success: function(resp){
           if(resp.status== 'success'){
-            /// lam cai NOti o day
-            
-            alert('Success Turn Off');
+            console.log('[DEBUG] Shell stopped successfully');
+            // Refresh lại danh sách để cập nhật status
             showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
             showAlertSuccess('Shell is turned off');
           }
           else{
+            console.error('[DEBUG] Failed to stop shell:', resp.msg);
             alert(`${resp.msg}`);
             showAlertError(`${resp.msg}`);
           }
         },
-        error: function(error){
-          alert(`${error.msg}`);
-          showAlertError(`${error.msg}`);
+        error: function(xhr){
+          console.error('[DEBUG] Error stopping shell:', xhr);
+          const errorMsg = xhr.responseJSON?.msg || 'Unknown error';
+          alert(`${errorMsg}`);
+          showAlertError(`${errorMsg}`);
+        },
+        complete: function() {
+          // Restore button state
+          btn.innerHTML = originalText;
+          btn.disabled = false;
         }
       });
-    };
+    }
+  }
+}
+
+// Hàm đồng bộ status cho một shell cụ thể
+function syncShellStatus(shellId) {
+  console.log('[DEBUG] Syncing shell status:', shellId);
+  
+  $.ajax({
+    url: `/api/shells/${shellId}/sync-status`,
+    type: 'POST',
+    success: function(resp) {
+      if(resp.status === 'success') {
+        console.log('[DEBUG] Shell status synced:', resp);
+        showAlertSuccess(`Shell status synced: ${resp.database_status}`);
+        // Refresh lại danh sách
+        showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
+      } else {
+        console.error('[DEBUG] Failed to sync shell status:', resp.message);
+        showAlertError(resp.message);
+      }
+    },
+    error: function(xhr) {
+      console.error('[DEBUG] Error syncing shell status:', xhr);
+      const errorMsg = xhr.responseJSON?.message || 'Unknown error';
+      showAlertError(errorMsg);
+    }
+  });
+}
+
+// Hàm đồng bộ tất cả shell status
+function syncAllShellStatus() {
+  console.log('[DEBUG] Syncing all shell status');
+  
+  if(confirm("Do you want to sync all shell status?")) {
+    $.ajax({
+      url: '/api/shells/sync-all-status',
+      type: 'POST',
+      success: function(resp) {
+        if(resp.status === 'success') {
+          console.log('[DEBUG] All shell status synced:', resp);
+          showAlertSuccess(`Synced ${resp.synced_count} shells`);
+          // Refresh lại danh sách
+          showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
+        } else {
+          console.error('[DEBUG] Failed to sync all shell status:', resp.message);
+          showAlertError(resp.message);
+        }
+      },
+      error: function(xhr) {
+        console.error('[DEBUG] Error syncing all shell status:', xhr);
+        const errorMsg = xhr.responseJSON?.message || 'Unknown error';
+        showAlertError(errorMsg);
+      }
+    });
   }
 }
 </script>
 
 <!-- Xem 1 shell-->
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 <script>
 function HandViewShell(connectionID) {
   console.log('Opening shell view for:', connectionID);
@@ -172,4 +256,77 @@ function HandViewShell(connectionID) {
   // mở bằng tab mới
   window.open(`/shells/${connectionID}`, '_blank');
 }
+
+// ==========================
+// REALTIME STATUS UPDATES
+// ==========================
+// Kết nối Socket.IO để nhận updates realtime
+const listSocket = io.connect('http://' + document.domain + ':' + location.port);
+
+// Nhận cập nhật trạng thái shell từ server
+listSocket.on('shell_status_update', function(data) {
+  console.log('[DEBUG] Received shell status update:', data);
+  
+  // Tìm row tương ứng với shell_id
+  const shellId = data.shell_id;
+  const row = document.querySelector(`tr[data-shell-id="${shellId}"]`);
+  
+  if (row) {
+    // Cập nhật badge status
+    const statusCell = row.querySelector('.badge');
+    if (statusCell) {
+      statusCell.className = 'badge ms-1';
+      
+      if (data.status === 'CONNECTED') {
+        statusCell.classList.add('bg-gradient-info');
+        statusCell.textContent = 'CONNECTED';
+      } else if (data.status === 'LISTENING') {
+        statusCell.classList.add('bg-gradient-success');
+        statusCell.textContent = 'LISTENING';
+      } else if (data.status === 'CLOSED') {
+        statusCell.classList.add('bg-gradient-secondary');
+        statusCell.textContent = 'CLOSED';
+      } else if (data.status === 'ERROR') {
+        statusCell.classList.add('bg-gradient-danger');
+        statusCell.textContent = 'ERROR';
+      } else {
+        statusCell.classList.add('bg-gradient-dark');
+        statusCell.textContent = data.status;
+      }
+    }
+    
+    // Cập nhật nút bật/tắt
+    const toggleBtn = row.querySelector('button[onclick*="HandleActionShell"]');
+    if (toggleBtn) {
+      if (data.status === 'CLOSED' || data.status === 'DISCONNECTED' || data.status === 'ERROR') {
+        toggleBtn.innerHTML = '<i class="fa fa-play"></i> Turn ON';
+        toggleBtn.className = 'btn btn-sm btn-outline-success';
+        toggleBtn.onclick = function() {
+          HandleActionShell(shellId, 'CLOSED');
+        };
+      } else {
+        toggleBtn.innerHTML = '<i class="fa fa-stop"></i> Turn OFF';
+        toggleBtn.className = 'btn btn-sm btn-outline-danger';
+        toggleBtn.onclick = function() {
+          HandleActionShell(shellId, data.status);
+        };
+      }
+    }
+    
+    console.log('[DEBUG] Updated shell status in list:', shellId, data.status);
+  }
+});
+
+// Tham gia room cho tất cả shells khi load trang
+document.addEventListener('DOMContentLoaded', function() {
+  // Lấy tất cả shell IDs từ table
+  const shellRows = document.querySelectorAll('tr[data-shell-id]');
+  shellRows.forEach(row => {
+    const shellId = row.getAttribute('data-shell-id');
+    if (shellId) {
+      listSocket.emit('join_shell', { shell_id: shellId });
+      console.log('[DEBUG] Joined shell room for list updates:', shellId);
+    }
+  });
+});
 </script>

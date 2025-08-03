@@ -7,7 +7,7 @@ import select
 import socket
 import termios
 import sys
-from datetime import datetime
+import datetime as dt
 
 from urllib.parse import urlparse
 from flask_socketio import SocketIO 
@@ -20,13 +20,14 @@ except ImportError:
     db = None
 
 class PwncatManager:
-    def __init__(self):
-        self.shells = {}  # {shell_id: shell_info_dict}
-        self.lock = threading.Lock()
+    def __init__(self, app=None):
+        self.shells = {}  # Dictionary lưu thông tin shell
+        self.lock = threading.Lock()  # Lock để thread-safe
+        self.app = app  # Flask app instance
+        self.socketio = None  # SocketIO instance
         self.counter = 0
         self.reconnect_interval = 10  # giây
         # Không sử dụng Redis message queue, sử dụng memory queue
-        self.socketio = None  # Sẽ được set từ bên ngoài
         self._auto_reconnect_thread = threading.Thread(target=self.auto_reconnect_shells, daemon=True)
         self._auto_reconnect_thread.start()
 
@@ -54,26 +55,44 @@ class PwncatManager:
             return None
 
     def _emit_shell_status(self, shell_id, status):
-        """Phát sự kiện Socket.IO khi trạng thái shell thay đổi"""
-        if self.socketio:
-            print(f"[DEBUG] Emitting shell status: {shell_id} -> {status}")
-            self.socketio.emit('shell_status_update', {
-                'shell_id': shell_id,
-                'status': status
-            }, namespace='/')
-        else:
-            print(f"[DEBUG] socketio not set, cannot emit status: {shell_id} -> {status}")
+        """Emit shell status update qua Socket.IO"""
+        try:
+            from flask_socketio import emit
+            
+            print(f"[DEBUG] Emitting shell status update: {shell_id} -> {status}")
+            
+            # Sử dụng app context
+            with self.app.app_context():
+                emit('shell_status_update', {
+                    'shell_id': shell_id,
+                    'status': status,
+                    'timestamp': dt.datetime.utcnow().isoformat()
+                }, room=shell_id, namespace='/')
+            
+            print(f"[DEBUG] Shell status update emitted successfully")
+        except Exception as e:
+            print(f"[!] Error emitting shell status: {e}")
+            import traceback
+            print(f"[DEBUG] Traceback: {traceback.format_exc()}")
 
     def _emit_terminal_output(self, shell_id, data):
-        """Phát dữ liệu terminal output qua Socket.IO"""
-        if self.socketio:
-            print(f"[DEBUG] Emitting terminal output: {shell_id} -> {repr(data)}")
-            self.socketio.emit('terminal_output', {
-                'shell_id': shell_id,
-                'output': data
-            }, namespace='/')
-        else:
-            print(f"[DEBUG] socketio not set, cannot emit output: {shell_id} -> {repr(data)}")
+        """Emit terminal output qua Socket.IO"""
+        try:
+            from flask_socketio import emit
+            
+            print(f"[DEBUG] Emitting terminal output: {shell_id} -> {repr(data[:100])}")
+            
+            # Sử dụng app context
+            with self.app.app_context():
+                emit('terminal_output', {
+                    'shell_id': shell_id,
+                    'output': data
+                }, room=shell_id, namespace='/')
+                
+        except Exception as e:
+            print(f"[!] Error emitting terminal output: {e}")
+            import traceback
+            print(f"[DEBUG] Traceback: {traceback.format_exc()}")
 
     def _pty_reader_thread(self, shell_id, master_fd):
         """Thread đọc dữ liệu từ PTY và gửi về client"""
@@ -94,12 +113,19 @@ class PwncatManager:
                             if not connection_detected and ('registered new host' in decoded_data or 'pwncat$' in decoded_data):
                                 connection_detected = True
                                 print(f"[DEBUG] Connection detected for shell {shell_id}, updating status to CONNECTED")
-                                self._emit_shell_status(shell_id, "CONNECTED")
-                                # Cập nhật trạng thái trong database
+                                
+                                # Cập nhật trạng thái trong memory
                                 with self.lock:
                                     if shell_id in self.shells:
                                         self.shells[shell_id]["status"] = "connected"
-                                        self.save_shell_to_db(self.shells[shell_id])
+                                
+                                # Cập nhật trạng thái trong database
+                                self.update_shell_status(shell_id, "CONNECTED")
+                                
+                                # Emit socket event để cập nhật frontend
+                                self._emit_shell_status(shell_id, "CONNECTED")
+                                
+                                print(f"[DEBUG] Shell {shell_id} status updated to CONNECTED")
                             
                             # Gửi dữ liệu về client qua Socket.IO
                             self._emit_terminal_output(shell_id, data.decode('utf-8', errors='ignore'))
@@ -149,7 +175,7 @@ class PwncatManager:
             os.close(slave_fd)
             
             shell_id = name if name else self._generate_shell_id("listener")
-            connect_time = datetime.utcnow().isoformat()
+            connect_time = dt.datetime.utcnow().isoformat()
             
             info = {
                 "id": shell_id,
@@ -183,7 +209,9 @@ class PwncatManager:
             print(f"[+] Started pwncat listener on port {port} as '{shell_id}' with PTY")
             print(f"[DEBUG] Process ID: {proc.pid}")
             print(f"[DEBUG] Waiting for connection on port {port}...")
-            self.save_shell_to_db(info)
+            
+            # Cập nhật database
+            self.update_shell_status(shell_id, "LISTENING")
             self._emit_shell_status(shell_id, "LISTENING")
             
             return shell_id
@@ -224,7 +252,7 @@ class PwncatManager:
             os.close(slave_fd)
             
             shell_id = name if name else self._generate_shell_id()
-            connect_time = datetime.utcnow().isoformat()
+            connect_time = dt.datetime.utcnow().isoformat()
             
             info = {
                 "id": shell_id,
@@ -257,7 +285,9 @@ class PwncatManager:
             
             print(f"[+] Connected to shell at {ip}:{target_port} as '{shell_id}' with PTY")
             self._update_shell_info(shell_id)
-            self.save_shell_to_db(info)
+            
+            # Cập nhật database
+            self.update_shell_status(shell_id, "CONNECTED")
             self._emit_shell_status(shell_id, "CONNECTED")
             
             return shell_id
@@ -289,7 +319,7 @@ class PwncatManager:
                 # Ghi dữ liệu vào PTY
                 print(f"[DEBUG] Writing {len(data)} bytes to PTY for shell {shell_id}")
                 os.write(master_fd, data.encode('utf-8'))
-                info["last_active"] = datetime.utcnow().isoformat()
+                info["last_active"] = dt.datetime.utcnow().isoformat()
                 print(f"[DEBUG] Successfully sent input to shell {shell_id}")
                 return True
             except (OSError, IOError) as e:
@@ -334,10 +364,10 @@ class PwncatManager:
                     except:
                         pass
                 
-                info["disconnect_time"] = datetime.utcnow().isoformat()
+                info["disconnect_time"] = dt.datetime.utcnow().isoformat()
                 info["last_status"] = "closed"
                 info["status"] = "closed"
-                self.save_shell_to_db(info)
+                self.update_shell_status(shell_id, "CLOSED")
                 self._emit_shell_status(shell_id, "CLOSED")
                 del self.shells[shell_id]
                 print(f"[-] Closed shell '{shell_id}'")
@@ -357,8 +387,8 @@ class PwncatManager:
         if not alive:
             info["last_status"] = "disconnected"
             info["status"] = "disconnected"
-            info["disconnect_time"] = datetime.utcnow().isoformat()
-            self.save_shell_to_db(info)
+            info["disconnect_time"] = dt.datetime.utcnow().isoformat()
+            self.update_shell_status(shell_id, "DISCONNECTED")
             self._emit_shell_status(shell_id, "DISCONNECTED")
         return alive
 
@@ -373,7 +403,7 @@ class PwncatManager:
                         if info.get("shell_type") == "bind" and info.get("ip") and info.get("port"):
                             info["reconnect_count"] += 1
                             info["last_status"] = "reconnecting"
-                            self.save_shell_to_db(info)
+                            self.update_shell_status(shell_id, "DISCONNECTED")
                             self._emit_shell_status(shell_id, "RECONNECTING")
                             try:
                                 new_shell_id = self.connect_shell(info["ip"], info["port"], name=shell_id, url=info.get("url"))
@@ -385,7 +415,7 @@ class PwncatManager:
                         elif info.get("shell_type") == "reverse" and info.get("port"):
                             info["reconnect_count"] += 1
                             info["last_status"] = "re-listening"
-                            self.save_shell_to_db(info)
+                            self.update_shell_status(shell_id, "DISCONNECTED")
                             self._emit_shell_status(shell_id, "RE-LISTENING")
                             try:
                                 new_shell_id = self.start_listener(info["port"], name=shell_id, url=info.get("url"))
@@ -397,14 +427,91 @@ class PwncatManager:
     
     def save_shell_to_db(self, info):
         """Lưu thông tin shell vào database"""
-        if not Targets or not db:
-            return
         try:
-            # Chỉ log thông tin, không save vào DB trong thread
-            print(f"[DEBUG] Would save shell to DB: {info.get('id')} - {info.get('status')}")
-            # TODO: Implement proper database saving in main thread
+            from apps.models import ShellConnection, ShellStatus, db
+            from datetime import datetime
+            
+            shell_id = info.get('id')
+            if not shell_id:
+                print(f"[DEBUG] No shell_id in info: {info}")
+                return
+            
+            # Tìm shell trong database
+            shell = ShellConnection.get_by_id(shell_id)
+            if not shell:
+                print(f"[DEBUG] Shell {shell_id} not found in database")
+                return
+            
+            # Cập nhật trạng thái
+            status = info.get('status', 'unknown')
+            if status == 'listening':
+                shell.status = ShellStatus.LISTENING
+            elif status == 'connected':
+                shell.status = ShellStatus.CONNECTED
+            elif status == 'closed':
+                shell.status = ShellStatus.CLOSED
+            elif status == 'disconnected':
+                shell.status = ShellStatus.DISCONNECTED
+            elif status == 'error':
+                shell.status = ShellStatus.ERROR
+            else:
+                print(f"[DEBUG] Unknown status: {status}")
+                return
+            
+            # Cập nhật thông tin khác
+            shell.updated_at = dt.datetime.utcnow()
+            
+            # Cập nhật thông tin user và privilege nếu có
+            if info.get('user'):
+                shell.user = info.get('user')
+            if info.get('privilege_level'):
+                shell.privilege_level = info.get('privilege_level')
+            if info.get('hostname'):
+                shell.hostname = info.get('hostname')
+            
+            # Commit vào database
+            db.session.commit()
+            print(f"[DEBUG] Updated shell {shell_id} status to {status} in database")
+            
         except Exception as e:
             print(f"[!] Error saving shell info to DB: {e}")
+            import traceback
+            print(f"[DEBUG] Traceback: {traceback.format_exc()}")
+
+    def update_shell_status(self, shell_id, status):
+        """Cập nhật trạng thái shell trong database"""
+        try:
+            from apps.models import ShellConnection, ShellStatus, db
+            
+            shell = ShellConnection.get_by_id(shell_id)
+            if not shell:
+                print(f"[DEBUG] Shell {shell_id} not found in database")
+                return False
+            
+            # Map status string to enum
+            status_mapping = {
+                'LISTENING': ShellStatus.LISTENING,
+                'CONNECTED': ShellStatus.CONNECTED,
+                'CLOSED': ShellStatus.CLOSED,
+                'DISCONNECTED': ShellStatus.DISCONNECTED,
+                'ERROR': ShellStatus.ERROR
+            }
+            
+            if status.upper() in status_mapping:
+                shell.status = status_mapping[status.upper()]
+                shell.updated_at = dt.datetime.utcnow()
+                db.session.commit()
+                print(f"[DEBUG] Updated shell {shell_id} status to {status} in database")
+                return True
+            else:
+                print(f"[DEBUG] Unknown status: {status}")
+                return False
+                
+        except Exception as e:
+            print(f"[!] Error updating shell status in DB: {e}")
+            import traceback
+            print(f"[DEBUG] Traceback: {traceback.format_exc()}")
+            return False
 
     # Các method cũ để tương thích ngược
     def send_command(self, shell_id, command, timeout=3):
@@ -455,5 +562,11 @@ class PwncatManager:
             print(f"[!] Error escalating privilege: {e}")
             return False
 
-# Tạo instance global
-shell_manager = PwncatManager()
+# Tạo instance global (sẽ được khởi tạo với app instance sau)
+shell_manager = None
+
+def init_shell_manager(app):
+    """Khởi tạo shell_manager với app instance"""
+    global shell_manager
+    shell_manager = PwncatManager(app)
+    return shell_manager

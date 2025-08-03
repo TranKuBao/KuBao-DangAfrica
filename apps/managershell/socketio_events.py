@@ -8,15 +8,20 @@ import fcntl
 import struct
 import termios
 from apps.models import ShellConnection, ShellStatus, ShellType
+import time
 
 # Setup logging
 logger = logging.getLogger(__name__)
 
+# Import shell_manager từ pwncat
+def get_shell_manager():
+    from apps import shell_manager
+    return shell_manager
+
 def register_terminal_events(socketio):
     """Đăng ký các event Socket.IO cho terminal"""
     
-    # Import shell_manager từ pwncat
-    from apps.managershell.pwncat import shell_manager
+    shell_manager = get_shell_manager()
     
     @socketio.on('connect')
     def handle_connect():
@@ -28,8 +33,18 @@ def register_terminal_events(socketio):
     def handle_disconnect():
         """Khi client ngắt kết nối"""
         logger.info(f"Client disconnected: {request.sid}")
+        
+        # Kiểm tra xem client có đang trong shell nào không
+        rooms = socketio.server.rooms(request.sid)
+        shell_rooms = [room for room in rooms if room != request.sid and room.startswith('shell_')]
+        
+        for shell_id in shell_rooms:
+            logger.info(f"Client {request.sid} disconnected from shell {shell_id}")
+            # Có thể thêm logic để đóng shell khi user disconnect
+            # Nhưng thường thì shell vẫn chạy background
+        
         # Rời khỏi tất cả room
-        for room in socketio.server.rooms(request.sid):
+        for room in rooms:
             if room != request.sid:
                 leave_room(room)
 
@@ -64,7 +79,7 @@ def register_terminal_events(socketio):
         logger.info(f"Terminal input for shell {shell_id}: {repr(input_data)}")
         
         # Gửi input tới shell thật
-        success = shell_manager.send_input_to_shell(shell_id, input_data)
+        success = get_shell_manager().send_input_to_shell(shell_id, input_data)
         
         if success:
             emit('input_sent', {'shell_id': shell_id, 'status': 'sent'})
@@ -91,7 +106,7 @@ def register_terminal_events(socketio):
         try:
             if shell.shell_type == ShellType.REVERSE:
                 # Khởi động listener
-                new_shell_id = shell_manager.start_listener(
+                new_shell_id = get_shell_manager().start_listener(
                     shell.local_port, 
                     name=shell_id,
                     url=shell.url,
@@ -99,7 +114,7 @@ def register_terminal_events(socketio):
                 )
             elif shell.shell_type == ShellType.BIND:
                 # Kết nối bind shell
-                new_shell_id = shell_manager.connect_shell(
+                new_shell_id = get_shell_manager().connect_shell(
                     shell.remote_ip,
                     shell.remote_port,
                     name=shell_id,
@@ -122,13 +137,35 @@ def register_terminal_events(socketio):
     def handle_shell_stop(data):
         """Dừng shell"""
         shell_id = data.get('shell_id')
+        action = data.get('action', 'normal')
+        
         if not shell_id:
             emit('error', {'message': 'Missing shell_id'})
             return
         
-        logger.info(f"Stopping shell: {shell_id}")
+        logger.info(f"Stopping shell: {shell_id} (action: {action})")
         
-        success = shell_manager.close_shell(shell_id)
+        # Nếu là close_on_unload, chỉ đóng shell mà không emit event
+        if action == 'close_on_unload':
+            success = get_shell_manager().close_shell(shell_id)
+            if success:
+                logger.info(f"Shell {shell_id} closed on page unload")
+            else:
+                logger.warning(f"Failed to close shell {shell_id} on page unload")
+            return
+        
+        # Nếu là close_completely, đóng shell hoàn toàn
+        if action == 'close_completely':
+            success = get_shell_manager().close_shell(shell_id)
+            if success:
+                emit('shell_stopped', {'shell_id': shell_id, 'status': 'closed_completely'})
+                logger.info(f"Shell {shell_id} closed completely")
+            else:
+                emit('error', {'message': f'Failed to close shell {shell_id} completely'})
+            return
+        
+        # Action bình thường
+        success = get_shell_manager().close_shell(shell_id)
         
         if success:
             emit('shell_stopped', {'shell_id': shell_id, 'status': 'stopped'})
@@ -137,7 +174,7 @@ def register_terminal_events(socketio):
 
     @socketio.on('terminal_resize')
     def handle_terminal_resize(data):
-        """Xử lý resize terminal"""
+        """Xử lý resize terminal với cải thiện"""
         shell_id = data.get('shell_id')
         cols = data.get('cols', 80)
         rows = data.get('rows', 24)
@@ -148,9 +185,62 @@ def register_terminal_events(socketio):
         
         logger.info(f"Terminal resize for shell {shell_id}: {cols}x{rows}")
         
-        # Gửi lệnh resize tới shell (nếu cần)
-        # Trong pwncat, có thể cần gửi escape sequence để resize
-        resize_cmd = f"\x1b[8;{rows};{cols}t"
-        shell_manager.send_input_to_shell(shell_id, resize_cmd)
-        
-        emit('resize_sent', {'shell_id': shell_id, 'cols': cols, 'rows': rows})
+        try:
+            # Kiểm tra shell có tồn tại không
+            shell_info = get_shell_manager().shells.get(shell_id)
+            if not shell_info:
+                emit('error', {'message': f'Shell {shell_id} not found'})
+                return
+            
+            # Gửi lệnh resize tới shell với nhiều phương pháp
+            resize_commands = [
+                # ANSI escape sequence chuẩn
+                f"\x1b[8;{rows};{cols}t",
+                # TIOCSWINSZ ioctl (nếu có thể)
+                f"\x1b[8;{rows};{cols};0;0t",
+                # Alternative format
+                f"\x1b[8;{rows};{cols};0t"
+            ]
+            
+            # Gửi từng lệnh resize để đảm bảo shell nhận được
+            for cmd in resize_commands:
+                get_shell_manager().send_input_to_shell(shell_id, cmd)
+            
+            # Cập nhật thông tin shell
+            shell_info['terminal_cols'] = cols
+            shell_info['terminal_rows'] = rows
+            
+            emit('resize_sent', {
+                'shell_id': shell_id, 
+                'cols': cols, 
+                'rows': rows,
+                'status': 'success'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error resizing terminal for shell {shell_id}: {e}")
+            emit('error', {'message': f'Error resizing terminal: {str(e)}'})
+
+    @socketio.on('terminal_heartbeat')
+    def handle_terminal_heartbeat(data):
+        """Xử lý heartbeat để kiểm tra kết nối"""
+        shell_id = data.get('shell_id')
+        if shell_id:
+            logger.debug(f"Terminal heartbeat from shell {shell_id}")
+            emit('heartbeat_ack', {'shell_id': shell_id, 'timestamp': time.time()})
+
+    @socketio.on('terminal_focus')
+    def handle_terminal_focus(data):
+        """Xử lý khi terminal được focus"""
+        shell_id = data.get('shell_id')
+        if shell_id:
+            logger.debug(f"Terminal focused for shell {shell_id}")
+            # Có thể thêm logic để resume shell nếu cần
+
+    @socketio.on('terminal_blur')
+    def handle_terminal_blur(data):
+        """Xử lý khi terminal mất focus"""
+        shell_id = data.get('shell_id')
+        if shell_id:
+            logger.debug(f"Terminal blurred for shell {shell_id}")
+            # Có thể thêm logic để pause shell nếu cần
