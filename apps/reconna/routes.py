@@ -3,9 +3,14 @@ from unittest import result
 from flask import render_template, request, redirect, url_for, jsonify, session
 from urllib3 import response
 from apps.reconna import blueprint
-import datetime
-
-# import ccác tool recon
+import datetime as dt
+import os 
+import json
+import time
+import random
+from flask import Blueprint, request, jsonify
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from apps.models import Targets, Reports, db
 from apps.reconna.Recon_Nmap._Nmap_ import Recon_Nmap
 from apps.reconna.Recon_Wappalyzer._Wappalyzer_ import Recon_Wappalyzer
 from apps.reconna.Recon_Dirsearch._Dirseach_ import Recon_Directory, DirsearchManager
@@ -140,10 +145,6 @@ def recon_wpscan_scan():
     except Exception as e:
         return jsonify({'status':-1,"error":str(e),"msg":str(e)})
 
-# @blueprint.route('/recon/wpscan/stream', methods=['GET'])
-# def wpscan_stream():
-#     """Stream real-time data từ WPScan"""
-#     return Recon_Wpscan.stream_data()
 
 @blueprint.route('/recon/wpscan/result', methods=['GET'])
 def get_wpscan_result():
@@ -170,7 +171,7 @@ def save_recon():
         if not report:
             return jsonify({'status': -1, 'msg': 'No information found server_ID'})
 
-        now_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now_time = dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         update_fields = {}
 
         if tool == 'nmap':
@@ -182,9 +183,26 @@ def save_recon():
         elif tool == 'wpscan':
             update_fields = {'wpscan': data_scan, 'update_wpscan': now_time}
         elif tool == 'pocs':
-            update_fields = {'pocs': data_scan, 'update_pocs': now_time}
-        else:
-            return jsonify({'status': -1, 'msg': 'Tool không hợp lệ'}), 400
+            # Chỉ lưu số lượng POC đã verify, không lưu toàn bộ dữ liệu
+            pocs = []
+            if data_scan:
+                try:
+                    pocs = json.loads(data_scan)
+                except Exception:
+                    pocs = []
+            
+            # Chỉ lưu số lượng POC đã verify
+            poc_count = len(pocs)
+            poc_dir = os.path.join(os.path.dirname(__file__), '../../pocsuite3/pocs')
+            total_poc = len([
+                f for f in os.listdir(os.path.abspath(poc_dir))
+                if f.endswith('.py') and not f.startswith('__')
+            ])
+            target = Targets.get_by_id(server_id=server_id)
+            if target:
+                target.exploitation_level = str(poc_count) + "/" + str(total_poc)
+                target.updated_at = dt.datetime.now(dt.timezone.utc)
+                db.session.commit()
 
         try:
             report.update(**update_fields)
@@ -194,23 +212,12 @@ def save_recon():
             return jsonify({'status': -1, 'msg': f'Lỗi commit DB: {e}'})
 
         return jsonify({'status': 0, 'msg': 'Saving successfully'})
+        
     except Exception as e:
         db.session.rollback()
         print(f'Lỗi ở hàm lưu dữ liệu lưu... {e}')
         return jsonify({'status': -1, 'msg': str(e), 'error': str(e)})
 
 
-# @blueprint.route('/api/getreport', methods=['POST', 'GET'])
-# def get_report():
-#     #lấy dữ liệu
-#     data = request.get_json();
-#     ID_Server = data.get('server_id')
-#     if ID_Server is None:
-#         ID_Server = request.args.get('serverID')
-    
-#     #query target
-#     target = Targets.get_by_id(server_id=ID_Server)
 
-#     #lấy hết report và lưu
-#     report_Target = 
 #================================================================================================

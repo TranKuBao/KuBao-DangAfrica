@@ -341,7 +341,7 @@ def AttackMode():
     result['Mode'] = 'Attacked'
     return jsonify({'status': 0, 'data': result})
 
-
+#2 hàm dười này để test xem có ổn ko khi lưu => chưa đưa và thực nghiệm
 @blueprint.route('/api/save-verification-results', methods=['POST'])
 def save_verification_results():
     """Save verification results to database"""
@@ -619,7 +619,30 @@ def upload_poc():
     
     return jsonify({'status': 0, 'msg': 'File uploaded and POC core reloaded successfully'}), 200
 
-
+@blueprint.route("/api/delete-poc", methods=['POST'])
+def delete_poc():
+    poc_path = request.form.get('poc_path')
+    if not poc_path:
+        return jsonify({'status':-1, 'msg':'poc-path is required'})
+    poc_path = poc_path + '.py'
+    #lấy đường dẫn
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'pocsuite3'))
+    file_path = os.path.abspath(os.path.join(base_dir, poc_path))
+    if not file_path.startswith(base_dir):
+        return jsonify({'status':-1, 'msg':'Invalid path'})
+    
+    try:
+        os.remove(file_path)
+        print(f"[+] Delete file POC : {poc_path}")
+        
+        #reload Pocsuite3
+        global poc_core
+        poc_core = PocsuiteInterpreter()
+        LogLastStatus(1)
+    except Exception as e:
+        return jsonify({'status':-1, 'msg':f"{str(e)}"})
+    
+    return jsonify({'status':0, 'msg':'Delete successfully'})
 
 
 

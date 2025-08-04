@@ -167,7 +167,7 @@ function confirmDelete(pocPath, pocName) {
 // Hàm xóa POC
 function deletePoc(pocPath) {
   $.ajax({
-    url: '/delete-poc',
+    url: '/api/delete-poc',
     type: 'POST',
     data: {
       poc_path: pocPath
@@ -175,15 +175,14 @@ function deletePoc(pocPath) {
     success: function(response) {
       if (response.status === 0) {
         // Xóa thành công, reload trang hoặc remove row
-        location.reload();
-        // Hoặc có thể remove row cụ thể:
-        // $(`[data-poc-id="${pocPath}"]`).closest('tr').fadeOut();
+        showContent(currentPage, document.getElementById("id_search_poc").value);
+        showAlertSuccess('Xóa POC thành công');
       } else {
-        alert('Lỗi khi xóa POC: ' + response.message);
+        showAlertError('Lỗi khi xóa POC: ' + response.message);  
       }
     },
     error: function() {
-      alert('Có lỗi xảy ra khi xóa POC');
+      showAlertError('Có lỗi xảy ra khi xóa POC');
     }
   });
 }

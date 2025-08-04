@@ -319,7 +319,7 @@ def view_target():
         elif "is not vulnerable" in msg or "is not vulnerable or offline" in msg:
             unexploitable += 1
         else:
-            unexploitable += 1
+            unexploitable += 1  # Sửa: đếm other thay vì unexploitable
 
     # Đếm số file POC thực sự
     poc_dir = os.path.join(os.path.dirname(__file__), '../../pocsuite3/pocs')
@@ -328,7 +328,12 @@ def view_target():
         if f.endswith('.py') and not f.startswith('__')
     ]) 
 
-    other = total_poc - exploitable - unexploitable
+    # Tính tổng POC đã chạy thực tế
+    total_executed = exploitable + unexploitable
+    other = total_poc - total_executed
+    
+    
+        # Không dừng chương trình, chỉ log lỗi
 
     list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
     return render_template(

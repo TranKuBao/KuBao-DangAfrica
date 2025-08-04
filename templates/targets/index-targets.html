@@ -930,7 +930,7 @@ document.getElementById("btn-delete-selected").addEventListener("click", functio
     .done((resp) =>{
       if(resp['status'] === 0){
         alert(`${resp['msg']}${resp['failed_ids'] && resp['failed_ids'].length ? ' | Failed IDs: ' + resp['failed_ids'].join(', ') : ''}`);
-        location.reload();
+        showContent(currentPage, document.getElementById("id_search_target").value, currentSortType);
       }
       else {
           alert(`Error: ${resp['msg']}`);
