@@ -331,14 +331,133 @@
     });
   }
 
+  // Hàm tự động khởi động shell trong background
+  function startShellInBackground(shellId) {
+    console.log('Starting shell in background:', shellId);
+    
+    $.ajax({
+      url: `/api/shells/${shellId}/start`,
+      type: 'POST',
+      success: function(resp) {
+        console.log('Shell started successfully:', resp);
+        showAlertSuccess('Shell listener started successfully!');
+      },
+      error: function(xhr, status, error) {
+        console.error('Failed to start shell:', error);
+        showAlertError('Failed to start shell listener. You can start it manually from the shell management page.');
+      }
+    });
+  }
+
+  // Hàm copy shell connection info
+  function copyShellInfo(shellId, lhost, lport) {
+    const info = `Shell ID: ${shellId}\nLocal IP: ${lhost}\nLocal Port: ${lport}\nConnection URL: ${window.location.origin}/shells/${shellId}`;
+    
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(info).then(() => {
+        showAlertSuccess('Shell connection info copied to clipboard!');
+      }).catch(() => {
+        // Fallback nếu clipboard API không hoạt động
+        fallbackCopyTextToClipboard(info);
+      });
+    } else {
+      fallbackCopyTextToClipboard(info);
+    }
+  }
+
+  // Fallback copy function
+  function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showAlertSuccess('Shell connection info copied to clipboard!');
+    } catch (err) {
+      showAlertError('Failed to copy to clipboard');
+    }
+    
+    document.body.removeChild(textArea);
+  }
+
+  // Hàm lấy LHOST/LPORT từ shell đã có
+  function getExistingShellInfo() {
+    return new Promise((resolve, reject) => {
+      $.ajax({
+        url: '/api/shells',
+        type: 'GET',
+        success: function(resp) {
+          if (resp.shells && resp.shells.length > 0) {
+            // Tìm shell đang listening
+            const listeningShell = resp.shells.find(s => s.status === 'listening');
+            if (listeningShell) {
+              resolve({
+                lhost: listeningShell.local_ip,
+                lport: listeningShell.local_port
+              });
+            } else {
+              resolve(null);
+            }
+          } else {
+            resolve(null);
+          }
+        },
+        error: function() {
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  // Hàm tự động điền LHOST/LPORT
+  async function autoFillShellInfo() {
+    const shellInfo = await getExistingShellInfo();
+    if (shellInfo) {
+      document.getElementById('lhost-value').value = shellInfo.lhost;
+      document.getElementById('lport-value').value = shellInfo.lport;
+      console.log(`Auto-filled shell info: ${shellInfo.lhost}:${shellInfo.lport}`);
+    }
+  }
+
+  // Tự động điền khi modal mở
+  $('#pocModal').on('show.bs.modal', function() {
+    autoFillShellInfo();
+  });
+
   //gọi API verify
   function shell_click() {
     const data = getAllInputData();
-    const lhost = document.getElementById('lhost-value').value;
-    const lport = document.getElementById('lport-value').value;
+    let lhost = document.getElementById('lhost-value').value;
+    let lport = document.getElementById('lport-value').value;
 
-    if(lhost === null || lport === null || lport > 65535 || lport < 1) {
-      showAlertError('Please select a LHOST and LPORT appropriate....');
+    // Nếu không có LHOST/LPORT, thử lấy từ shell đã có
+    if (!lhost || !lport) {
+      console.log('LHOST/LPORT not provided, checking for existing shells...');
+      getExistingShellInfo().then(shellInfo => {
+        if (shellInfo) {
+          lhost = shellInfo.lhost;
+          lport = shellInfo.lport;
+          document.getElementById('lhost-value').value = lhost;
+          document.getElementById('lport-value').value = lport;
+          console.log(`Using existing shell: ${lhost}:${lport}`);
+        }
+      });
+    }
+    
+    // Validate LHOST/LPORT
+    if (!lhost || !lport) {
+      showAlertError('Please provide LHOST and LPORT values');
+      return;
+    }
+    
+    if (lport < 1 || lport > 65535) {
+      showAlertError('LPORT must be between 1 and 65535');
       return;
     }
     
@@ -348,7 +467,6 @@
 
     showAlertSuccess('Starting shell mode...');
 
-    //
     $.ajax({
       url: '/api/shell-mode',
       type: 'POST',
@@ -363,58 +481,145 @@
     .done((resp)=>{
       console.log("STATUS:",resp['status']);
       console.log('Dữ liệu',resp['data'] );
-      alert(resp['data']['Message']);
-      document.getElementById('h6-output-result').innerHTML = "------------------------Please Check Shell Connection------------------------"; 
+      
+      if (resp['status'] === 0) {
+        showAlertSuccess(resp['data']['Message']);
+        
+        // Cập nhật LHOST/LPORT nếu server trả về giá trị khác
+        if (resp['data']['lhost'] && resp['data']['lport']) {
+          document.getElementById('lhost-value').value = resp['data']['lhost'];
+          document.getElementById('lport-value').value = resp['data']['lport'];
+        }
+        
+        // Tự động khởi động shell nếu có shell_id
+        if (resp['data']['shell_id']) {
+          console.log('Auto-starting shell:', resp['data']['shell_id']);
+          startShellInBackground(resp['data']['shell_id']);
+        }
+      } else {
+        showAlertError(resp['msg'] || 'Shell mode failed');
+      }
+      
+      document.getElementById('h6-output-result').innerHTML = "------------------------Shell Connection Information------------------------"; 
       document.getElementById('h6-output-result').style.backgroundColor = "#e3e3e7";
-      document.getElementById('output-result').innerHTML = "Please check shell connection status in Shell page  ";
 
-      // Xử lý kết quả trả về
+      // Xử lý kết quả trả về với thông tin chi tiết
       let html = '';
       if (resp['data']) {
-        // Nếu là object, hiển thị từng key-value
+        // Hiển thị thông tin shell connection
+        if (resp['data']['connection_info']) {
+          const conn = resp['data']['connection_info'];
+          html += `<div class="alert alert-success mb-3">
+            <h6><i class="fas fa-terminal me-2"></i>Shell Connection Established</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <strong>Shell ID:</strong> ${conn.shell_id}<br>
+                <strong>Name:</strong> ${conn.name}<br>
+                <strong>Type:</strong> ${conn.type}<br>
+                <strong>Status:</strong> <span class="badge bg-success">${conn.status}</span>
+              </div>
+              <div class="col-md-6">
+                <strong>Local IP:</strong> ${conn.local_ip}<br>
+                <strong>Local Port:</strong> ${conn.local_port}<br>
+                <strong>Created:</strong> ${conn.created_at ? new Date(conn.created_at).toLocaleString() : 'N/A'}
+              </div>
+            </div>
+            <div class="mt-3">
+              <a href="${resp['data']['shell_url']}" class="btn btn-primary btn-sm" target="_blank">
+                <i class="fas fa-external-link-alt me-1"></i>Open Shell Terminal
+              </a>
+              <button class="btn btn-info btn-sm ms-2" onclick="copyShellInfo('${conn.shell_id}', '${conn.local_ip}', '${conn.local_port}')">
+                <i class="fas fa-copy me-1"></i>Copy Connection Info
+              </button>
+            </div>
+          </div>`;
+        }
+        
+        // Hiển thị các thông tin khác
         for (const key in resp['data']) {
-          if (typeof resp['data'][key] === 'object') {
-            html += `<b>${key}:</b><br>`;chauw e
+          if (key !== 'connection_info' && typeof resp['data'][key] === 'object') {
+            html += `<div class="mb-2"><b>${key}:</b><br>`;
             for (const subkey in resp['data'][key]) {
               html += `&nbsp;&nbsp;${subkey}: ${resp['data'][key][subkey]}<br>`;
             }
-          } else {
-            html += `<b>${key}:</b> ${resp['data'][key]}<br>`;
+            html += `</div>`;
+          } else if (key !== 'connection_info' && key !== 'shell_url') {
+            html += `<div class="mb-2"><b>${key}:</b> ${resp['data'][key]}</div>`;
           }
         }
       } else {
-        html = 'No result';
+        html = '<div class="alert alert-warning">No result</div>';
       }
       document.getElementById('output-result').innerHTML = html;
     })
     .fail((error) =>{
       console.log("Phát hiện lỗi: ",error);
-      showAlertError(error);
+      showAlertError('Failed to start shell mode. Please check your network connection and try again.');
     });  
     
   }
 
   // Khi bấm nút Chọn, hiện dropdown các target từ API mới
   $('#btn-select-target').on('click', function() {
+    // Hiển thị loading state
+    $('#dropdown-targets').html('<div class="dropdown-item text-center"><i class="fa fa-spinner fa-spin"></i> Loading targets...</div>').show();
+    
     $.ajax({
       url: '/api/getalltarget',
       type: 'GET',
+      beforeSend: function() {
+        console.log('Đang gọi API getalltarget...');
+      },
       success: function(resp) {
+        console.log('API Response:', resp);
         let html = '';
-        if (resp.targets) {
+        
+        if (resp.targets && resp.targets.length > 0) {
           resp.targets.forEach(t => {
-            html += `<a class='dropdown-item' href='#' onclick="selectTarget('${t.hostname.replace(/'/g, "\\'")}')">${t.hostname} (${t.ip_address})</a>`;
+            // Escape special characters để tránh lỗi JavaScript
+            const safeHostname = t.hostname.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const displayText = `${t.hostname} (${t.ip_address})`;
+            html += `<a class='dropdown-item' href='#' onclick="selectTarget('${safeHostname}')">${displayText}</a>`;
           });
+          console.log(`Loaded ${resp.targets.length} targets`);
+        } else {
+          html = '<div class="dropdown-item text-muted">No targets found</div>';
+          console.log('No targets found in response');
         }
-        $('#dropdown-targets').html(html).toggle();
+        
+        $('#dropdown-targets').html(html);
+      },
+      error: function(xhr, status, error) {
+        console.error('Error fetching targets:', error);
+        console.error('Status:', status);
+        console.error('Response:', xhr.responseText);
+        
+        let errorMessage = 'Error loading targets';
+        try {
+          const errorData = JSON.parse(xhr.responseText);
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // Ignore JSON parse error
+        }
+        
+        $('#dropdown-targets').html(`<div class="dropdown-item text-danger">${errorMessage}</div>`);
       }
     });
   });
 
   // Hàm chọn target
   function selectTarget(val) {
+    console.log('Selected target:', val);
     $('#target-value').val(val);
     $('#dropdown-targets').hide();
+    
+    // Thêm visual feedback
+    $('#target-value').addClass('border-success');
+    setTimeout(() => {
+      $('#target-value').removeClass('border-success');
+    }, 1000);
   }
 
   // Ẩn dropdown khi click ngoài
@@ -424,4 +629,22 @@
     }
   });
 
+  // Thêm keyboard navigation cho dropdown
+  $(document).on('keydown', function(e) {
+    if (e.key === 'Escape') {
+      $('#dropdown-targets').hide();
+    }
+  });
+
+  // Thêm loading state cho button
+  $('#btn-select-target').on('click', function() {
+    const $btn = $(this);
+    const originalText = $btn.html();
+    $btn.html('<i class="fa fa-spinner fa-spin"></i> Loading...').prop('disabled', true);
+    
+    // Re-enable button after a delay
+    setTimeout(() => {
+      $btn.html(originalText).prop('disabled', false);
+    }, 3000);
+  });
 </script>

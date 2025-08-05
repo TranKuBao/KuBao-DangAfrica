@@ -367,8 +367,8 @@ def get_shell(shell_id):
             'status': 'success',
             'data': {
                 'connection_id': shell.connection_id,
-                'shell_type': shell.shell_type,
-                'status': shell.status,
+                'shell_type': shell.shell_type.value if hasattr(shell.shell_type, 'value') else str(shell.shell_type),
+                'status': shell.status.value if hasattr(shell.status, 'value') else str(shell.status),
                 'local_ip': shell.local_ip,
                 'local_port': shell.local_port,
                 'remote_ip': shell.remote_ip,
@@ -536,33 +536,32 @@ def debug_shell(shell_id):
         logger.error(f"Error debugging shell {shell_id}: {e}")
         return jsonify({'status': 'fail', 'msg': str(e)}), 500
 
-@blueprint.route('/api/shells/<shell_id>/start', methods=['POST'])
-# API: Khởi động shell (listener hoặc bind)
-def start_shell(shell_id):
-    """Khởi động shell"""
+# Thêm function riêng để khởi động shell (không phải API endpoint)
+def start_shell_function(shell_id):
+    """Function để khởi động shell (không phải API endpoint)"""
     try:
         conn = ShellConnection.get_by_id(shell_id)
         if not conn:
-            logger.error(f"Shell {shell_id} not found in database")
-            return jsonify({'status': 'fail', 'msg': 'Shell not found'}), 404
+            print(f"Shell {shell_id} not found in database")
+            return False
 
         if conn.status in [ShellStatus.LISTENING, ShellStatus.CONNECTED]:
-            logger.warning(f"Shell {shell_id} is already running with status {conn.status}")
-            return jsonify({'status': 'fail', 'msg': 'Shell is already running'}), 400
+            print(f"Shell {shell_id} is already running with status {conn.status}")
+            return True  # Đã chạy rồi thì coi như thành công
 
         # Debug: Log thông tin shell để kiểm tra
-        logger.info(f"Starting shell {shell_id}: type={conn.shell_type}, status={conn.status}")
+        print(f"Starting shell {shell_id}: type={conn.shell_type}, status={conn.status}")
         
         # Sửa: Lấy shell_type dạng string và so sánh chính xác
         shell_type = conn.shell_type.value if hasattr(conn.shell_type, 'value') else str(conn.shell_type)
         shell_type = shell_type.lower()
         
-        logger.info(f"Shell type after processing: {shell_type}")
+        print(f"Shell type after processing: {shell_type}")
         
         # Kiểm tra shell_type hợp lệ
         if shell_type not in ['reverse', 'bind']:
-            logger.error(f"Invalid shell type: {shell_type}")
-            return jsonify({'status': 'fail', 'msg': f'Invalid shell type: {shell_type}'}), 400
+            print(f"Invalid shell type: {shell_type}")
+            return False
         
         port = conn.local_port if shell_type == 'reverse' else conn.remote_port
         name = conn.name
@@ -571,19 +570,19 @@ def start_shell(shell_id):
         interface = '0.0.0.0' if shell_type == 'reverse' else None
         ip = conn.remote_ip if shell_type == 'bind' else None
 
-        logger.info(f"Starting {shell_type} shell: port={port}, ip={ip}, interface={interface}")
+        print(f"Starting {shell_type} shell: port={port}, ip={ip}, interface={interface}")
 
-        # Sửa: chỉ bật shell khi user thao tác, không tự động bật khi load trang
+        # Khởi động shell trong pwncat manager
         if shell_type == 'reverse':
             new_shell_id = get_shell_manager().start_listener(port, name=conn.connection_id, url=url, listen_ip=interface)
         elif shell_type == 'bind':
             new_shell_id = get_shell_manager().connect_shell(ip, port, name=conn.connection_id, url=url)
         else:
-            return jsonify({'status': 'fail', 'msg': 'Invalid shell type'}), 400
+            return False
 
         if not new_shell_id:
-            logger.error(f"Failed to start shell {shell_id} - shell_manager returned None")
-            return jsonify({'status': 'fail', 'msg': 'Failed to start shell'}), 500
+            print(f"Failed to start shell {shell_id} - shell_manager returned None")
+            return False
 
         # Cập nhật trạng thái trong database (backup)
         new_status = ShellStatus.LISTENING if shell_type == 'reverse' else ShellStatus.CONNECTED
@@ -591,7 +590,7 @@ def start_shell(shell_id):
         
         # Đảm bảo database được commit
         db.session.commit()
-        logger.info(f"Updated shell {shell_id} status to {new_status} in database")
+        print(f"Updated shell {shell_id} status to {new_status} in database")
 
         # Emit socket event để cập nhật realtime
         try:
@@ -604,26 +603,25 @@ def start_shell(shell_id):
         except Exception as e:
             logger.warning(f"Failed to emit socket event: {e}")
         
-        logger.info(f"Started shell {shell_id} with status {new_status}")
-        return jsonify({'status': 'success', 'msg': f'Shell started successfully'})
+        print(f"Started shell {shell_id} with status {new_status}")
+        return True
 
     except Exception as e:
-        logger.error(f"Error starting shell {shell_id}: {e}")
+        print(f"Error starting shell {shell_id}: {e}")
         import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return False
 
-        # Emit error status
-        try:
-            from flask_socketio import emit
-            emit('shell_status_update', {
-                'shell_id': shell_id,
-                'status': 'ERROR',
-                'timestamp': dt.datetime.utcnow().isoformat()
-            }, room=shell_id, namespace='/')
-        except Exception as emit_error:
-            logger.warning(f"Failed to emit error socket event: {emit_error}")
-
-        return jsonify({'status': 'fail', 'msg': str(e)}), 500
+@blueprint.route('/api/shells/<shell_id>/start', methods=['POST'])
+# API: Khởi động shell (listener hoặc bind)
+def start_shell(shell_id):
+    """Khởi động shell - API endpoint"""
+    success = start_shell_function(shell_id)
+    
+    if success:
+        return jsonify({'status': 'success', 'msg': f'Shell started successfully'})
+    else:
+        return jsonify({'status': 'fail', 'msg': 'Failed to start shell'}), 500
 
 @blueprint.route('/api/shells/<shell_id>/close', methods=['POST'])
 def close_shell(shell_id):
@@ -1063,22 +1061,70 @@ def sync_all_shell_status():
             'message': f'Error syncing all shell status: {str(e)}'
         }), 500
 
+@blueprint.route('/api/shells/debug-status', methods=['GET'])
+def debug_shell_status():
+    """Debug API để kiểm tra trạng thái shell"""
+    try:
+        # Lấy tất cả shell từ database
+        db_shells = ShellConnection.query.all()
+        db_shell_info = []
+        for shell in db_shells:
+            db_shell_info.append({
+                'connection_id': shell.connection_id,
+                'name': shell.name,
+                'status': shell.status.value if shell.status else None,
+                'local_ip': shell.local_ip,
+                'local_port': shell.local_port,
+                'created_at': shell.created_at.isoformat() if shell.created_at else None
+            })
+        
+        # Lấy shell từ memory
+        shell_manager = get_shell_manager()
+        memory_shells = {}
+        with shell_manager.lock:
+            for shell_id, info in shell_manager.shells.items():
+                memory_shells[shell_id] = {
+                    'status': info.get('status'),
+                    'type': info.get('type'),
+                    'port': info.get('port'),
+                    'ip': info.get('ip'),
+                    'last_active': info.get('last_active')
+                }
+        
+        return jsonify({
+            'status': 'success',
+            'database_shells': db_shell_info,
+            'memory_shells': memory_shells,
+            'total_db_shells': len(db_shell_info),
+            'total_memory_shells': len(memory_shells)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in debug_shell_status: {e}")
+        return jsonify({'status': 'error', 'msg': str(e)}), 500
+
 @blueprint.route('/api/shells/<shell_id>/force-sync', methods=['POST'])
 def force_sync_shell_status(shell_id):
     """Force sync shell status từ memory về database"""
     try:
+        print(f"[DEBUG] Force sync requested for shell: {shell_id}")
+        
         # Lấy shell từ database
         shell = ShellConnection.get_by_id(shell_id)
         if not shell:
+            print(f"[DEBUG] Shell {shell_id} not found in database")
             return jsonify({'status': 'fail', 'msg': 'Shell not found'}), 404
         
+        print(f"[DEBUG] Found shell in database: {shell.connection_id}, status: {shell.status}")
+        
         # Lấy status từ memory
-        with get_shell_manager().lock:
-            shell_info = get_shell_manager().shells.get(shell_id)
+        shell_manager = get_shell_manager()
+        with shell_manager.lock:
+            shell_info = shell_manager.shells.get(shell_id)
         
         if shell_info:
             memory_status = shell_info.get('status', 'unknown')
-            logger.info(f"[DEBUG] Shell {shell_id} memory status: {memory_status}")
+            print(f"[DEBUG] Shell {shell_id} memory status: {memory_status}")
             
             # Map memory status to database status
             status_mapping = {
@@ -1093,7 +1139,7 @@ def force_sync_shell_status(shell_id):
                 shell.status = status_mapping[memory_status]
                 shell.updated_at = dt.datetime.utcnow()
                 db.session.commit()
-                logger.info(f"[DEBUG] Updated shell {shell_id} status to {memory_status} in database")
+                print(f"[DEBUG] Updated shell {shell_id} status to {memory_status} in database")
                 
                 # Emit socket event
                 try:
@@ -1106,9 +1152,9 @@ def force_sync_shell_status(shell_id):
                             'status': memory_status.upper(),
                             'timestamp': dt.datetime.utcnow().isoformat()
                         }, room=shell_id, namespace='/')
-                    logger.info(f"[DEBUG] Emitted shell status update for {shell_id}")
+                    print(f"[DEBUG] Emitted shell status update for {shell_id}")
                 except Exception as e:
-                    logger.warning(f"Failed to emit socket event: {e}")
+                    print(f"[WARNING] Failed to emit socket event: {e}")
                 
                 return jsonify({
                     'status': 'success',
@@ -1122,10 +1168,34 @@ def force_sync_shell_status(shell_id):
                     'msg': f'Unknown memory status: {memory_status}'
                 }), 400
         else:
+            print(f"[DEBUG] Shell {shell_id} not found in memory, updating database status to CLOSED")
+            
+            # Nếu shell không có trong memory, đánh dấu là CLOSED
+            shell.status = ShellStatus.CLOSED
+            shell.updated_at = dt.datetime.utcnow()
+            db.session.commit()
+            
+            # Emit socket event
+            try:
+                from flask import current_app
+                from flask_socketio import emit
+                
+                with current_app.app_context():
+                    emit('shell_status_update', {
+                        'shell_id': shell_id,
+                        'status': 'CLOSED',
+                        'timestamp': dt.datetime.utcnow().isoformat()
+                    }, room=shell_id, namespace='/')
+                print(f"[DEBUG] Emitted shell status update for {shell_id}")
+            except Exception as e:
+                print(f"[WARNING] Failed to emit socket event: {e}")
+            
             return jsonify({
-                'status': 'fail',
-                'msg': 'Shell not found in memory'
-            }), 404
+                'status': 'success',
+                'msg': 'Shell not found in memory, marked as CLOSED',
+                'memory_status': 'not_found',
+                'database_status': 'CLOSED'
+            })
             
     except Exception as e:
         logger.error(f"Error force syncing shell {shell_id}: {e}")

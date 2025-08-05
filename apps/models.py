@@ -1103,7 +1103,7 @@ class ShellConnection(db.Model):
     connection_id = db.Column(db.String(255), primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     shell_type = db.Column(db.Enum(ShellType), nullable=False)
-    status = db.Column(db.Enum(ShellStatus), nullable=False, default=ShellStatus.LISTENING)
+    status = db.Column(db.Enum(ShellStatus), nullable=False, default=ShellStatus.CLOSED)
     
     # Connection details
     local_ip = db.Column(db.String(45), nullable=True)
@@ -1144,7 +1144,8 @@ class ShellConnection(db.Model):
     target = db.relationship(Targets, backref='shell_connections')
     commands = db.relationship('ShellCommand', backref='connection', lazy=True, cascade='all, delete-orphan')   
     def __init__(self, connection_id, name, shell_type, local_ip=None, local_port=None, 
-                 remote_ip=None, remote_port=None, target_id=None, hostname=None, url=None):
+                 remote_ip=None, remote_port=None, target_id=None, hostname=None, url=None, 
+                 status=ShellStatus.CLOSED, created_at=None, updated_at=None):
         self.connection_id = connection_id
         self.name = name
         self.shell_type = shell_type
@@ -1157,6 +1158,9 @@ class ShellConnection(db.Model):
         self.url = url
         self.connect_time = dt.datetime.utcnow()
         self.last_active = dt.datetime.utcnow()
+        self.status = status
+        self.created_at = created_at
+        self.updated_at = updated_at
     
     def __repr__(self):
         return f'<ShellConnection {self.connection_id}: {self.name}>'

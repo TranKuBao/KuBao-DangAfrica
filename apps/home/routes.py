@@ -3,13 +3,14 @@
 Copyright (c) 2019 - present AppSeed.us
 """
 import json
+from turtle import delay
 import wtforms
 import datetime as dt
 from apps.home import blueprint
-from apps import db
+from apps import db 
 from apps.models import Targets, ShellConnection, ShellStatus, ShellType
 from apps.authentication.models import Users
-from apps.managershell.routes import start_shell, close_shell
+from apps.managershell.routes import close_shell, get_shell_manager, start_shell_function
 from jinja2 import TemplateNotFound
 from flask_wtf import FlaskForm
 from flask_login import login_required, current_user
@@ -52,7 +53,7 @@ init_options()
 poc_core = PocsuiteInterpreter()
 ## Ending IMPORTING POCSUITE#
 server = Server()
-db = database.Database()
+lib_db = database.Database()  # Rename to avoid conflict
 listJobs = []
 
 # Chố này là route dành cho Pocsuite3
@@ -434,13 +435,14 @@ def get_verification_results():
         return jsonify({'status': -1, 'message': f'Error getting results: {str(e)}'}), 500
 
 
-
 @blueprint.route('/api/shell-mode', methods=['POST'])
 def ShellMode():
     # Get request data
     params = {}
     for key in request.form:
         params[key] = request.form[key]
+        
+    print(f"[DEBUG] ShellMode called with params: {params}")
         
     # Validate required params
     if 'lhost-value' not in params or 'lport-value' not in params:
@@ -456,15 +458,21 @@ def ShellMode():
         poc_core.command_set(command)
 
     try:
-        # Check existing shell
+        lhost = params['lhost-value']
+        lport = params['lport-value']
+        
+        # BƯỚC 1: Kiểm tra shell-pwncat đã có trong database
+        print(f"[STEP 1] Checking if shell exists in database: {lhost}:{lport}")
         shell = ShellConnection.query.filter_by(
-            local_ip=params['lhost-value'],
-            local_port=params['lport-value']
+            local_ip=lhost,
+            local_port=lport
         ).first()
-
+        
         # Create new shell if not exists
         if not shell:
             shell = ShellConnection(
+                connection_id=f"shell_{lhost}_{lport}_{int(time.time())}",
+                name=f"Reverse Shell {lhost}:{lport}",
                 local_ip=params['lhost-value'],
                 local_port=params['lport-value'],
                 shell_type=ShellType.REVERSE,
@@ -474,33 +482,55 @@ def ShellMode():
             )
             db.session.add(shell)
             db.session.commit()
-            print(f"[+] Created new shell: {shell.local_ip}:{shell.local_port}")
+            print(f"[+]STEP 2 Created new shell: {shell.local_ip}:{shell.local_port}")
+        else:
+            print(f"[STEP 2] Using existing shell: {shell.connection_id}")
 
+        # BƯỚC 3: Bật shell (start pwncat listener)
+        print(f"[STEP 3] Starting pwncat listener for shell: {shell.connection_id}")
+        
         # Start shell if not listening
         if shell.status != ShellStatus.LISTENING:  # Fix the condition here
-            start_shell(shell.connection_id)
-            # shell.update_status(ShellStatus.LISTENING)
-            # db.session.commit()
-            print(f"[+] Started shell on {shell.local_ip}:{shell.local_port}")
+            start_shell_function(shell.connection_id)
+            print(f"[+] Started PWNCAT shell on {shell.local_ip}:{shell.local_port}")
 
-        time.sleep(1)  # Wait for shell to be ready
-        # Run shell command
+
+        # Đợi listener sẵn sàng
+        time.sleep(4)
+        
+        # BƯỚC 4: Thực hiện kết nối thông qua POC
+        print(f"[STEP 4] Executing POC to create reverse shell connection to {shell.local_ip}:{shell.local_port}")
+        
+        # Hiển thị options để debug
         poc_core.command_show('options')
-        try:
-            poc_core.command_shell()
-            print(f"[+] Initiated reverse shell connection to {shell.local_ip}:{shell.local_port}")
-        except Exception as e:
-            print(f"[-] Error initiating reverse shell: {str(e)}")
-            # Continue execution - the listener is still running
+        
+        # Thực thi POC để tạo reverse shell kết nối đến pwncat listener
+        poc_core.command_shell()
+        time.sleep(1)
+        print(f"[+] POC executed, reverse shell should connect to pwncat listener at {shell.local_ip}:{shell.local_port}")
 
-        # Prepare response
+        # Prepare response with enhanced information
         result = {
-            'target': params['target-value'],
+            'target': params.get('target-value', 'Unknown'),
             'mode': 'Shelled',
-            'shell_id': shell.id,
+            'shell_id': shell.connection_id,
             'shell_status': shell.status.value,
-            'Message': f'Shell started successfully on {shell.local_ip}:{shell.local_port}'
+            'lhost': shell.local_ip,
+            'lport': shell.local_port,
+            'shell_url': f'/shells/{shell.connection_id}',
+            'Message': f'POC executed successfully. Reverse shell should connect to {shell.local_ip}:{shell.local_port}. You can interact with it at: /shells/{shell.connection_id}',
+            'connection_info': {
+                'shell_id': shell.connection_id,
+                'name': shell.name,
+                'type': shell.shell_type.value,
+                'status': shell.status.value,
+                'local_ip': shell.local_ip,
+                'local_port': shell.local_port,
+                'created_at': shell.created_at.isoformat() if shell.created_at else None
+            }
         }
+
+        print(f"[DEBUG] Returning result with shell_id: {shell.connection_id}")
 
         # Add POC results if any
         tmp = poc_core.current_module.result
@@ -513,6 +543,8 @@ def ShellMode():
 
     except Exception as e:
         print(f"[-] Error in shell mode: {str(e)}")
+        import traceback
+        print(f"[-] Traceback: {traceback.format_exc()}")
         return jsonify({
             'status': -1,
             'msg': f'Error in shell mode: {str(e)}'

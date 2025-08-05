@@ -1240,6 +1240,32 @@ socket.on('connect', function() {
       printOutput('Lỗi kết nối Socket.IO: ' + error, 'error');
 });
 
+// Nhận thông báo shell đã kết nối
+socket.on('shell_connected', function(data) {
+  console.log('[DEBUG] Received shell_connected:', data);
+  if (data.shell_id !== currentShellId) return;
+  
+  // Hiển thị thông báo kết nối đặc biệt
+  printOutput('🎉 ' + (data.message || 'Shell connected successfully!'), 'success');
+  
+  // Cập nhật trạng thái
+  isConnected = true;
+  shellReady = true;
+  
+  // Cập nhật UI
+  $('#shellStatus').removeClass('bg-warning bg-secondary bg-danger').addClass('bg-success').text('Connected');
+  $('#commandInput').prop('disabled', false);
+  $('#disconnectShell').prop('disabled', false);
+  
+  // Focus vào input
+  setTimeout(() => {
+    focusInput();
+  }, 100);
+  
+  // Hiển thị thông báo toast
+  showToast('success', 'Shell Connected!', 'Shell is now active and ready for interaction!');
+});
+
 // Nhận cập nhật trạng thái shell từ server (realtime)
 socket.on('shell_status_update', function(data) {
   console.log('[DEBUG] Received shell_status_update:', data);
@@ -1358,6 +1384,50 @@ socket.on('terminal_output', function(data) {
       // Kiểm tra xem có phải là output hoàn chỉnh không (có newline)
       if (outputBuffer.includes('\n') || outputBuffer.includes('\r')) {
         // In buffer và reset
+        if (outputBuffer.trim()) {
+          printOutput(outputBuffer);
+        }
+        outputBuffer = '';
+      }
+    }
+  }
+});
+
+// Nhận terminal data mới (cải tiến)
+socket.on('terminal_data', function(data) {
+  console.log('[DEBUG] Received terminal_data:', data);
+  if (data.shell_id !== currentShellId) return;
+  
+  if (data.type === 'connection_notice') {
+    // Hiển thị thông báo kết nối đặc biệt
+    printOutput('🎉 ' + (data.message || 'Shell connected!'), 'success');
+    showToast('success', 'Shell Connected!', 'Shell is now active and ready for interaction!');
+  } else if (data.type === 'output') {
+    // Xử lý output thông thường
+    if (data.data) {
+      outputBuffer += data.data;
+      
+      // Kiểm tra prompt và xử lý như cũ
+      const cleanBuffer = removeAnsi(outputBuffer);
+      if (cleanBuffer.includes('pwncat$') || cleanBuffer.includes('(local) pwncat$')) {
+        shellReady = true;
+        if (outputBuffer.trim()) {
+          printOutput(outputBuffer);
+        }
+        outputBuffer = '';
+        
+        const terminalContent = $('#terminalContent');
+        const lastChild = terminalContent.children().last();
+        if (!lastChild.length || !lastChild.hasClass('terminal-line')) {
+          setTimeout(() => printPrompt(), 100);
+        }
+        
+        if ($('#commandInput').prop('disabled')) {
+          $('#commandInput').prop('disabled', false);
+          $('#disconnectShell').prop('disabled', false);
+          focusInput();
+        }
+      } else if (outputBuffer.includes('\n') || outputBuffer.includes('\r')) {
         if (outputBuffer.trim()) {
           printOutput(outputBuffer);
         }
@@ -2513,6 +2583,48 @@ window.updateCursor = improvedUpdateCursor;
   
   // Expose force sync function globally
   window.forceSyncShellStatus = forceSyncShellStatus;
+
+  // Function để đóng shell hoàn toàn
+  function closeShellCompletely() {
+    if (confirm('Bạn có chắc muốn đóng shell hoàn toàn?')) {
+      disconnectShell();
+      printOutput('Shell đã đóng hoàn toàn.', 'info');
+    }
+  }
+
+  // Function để hiển thị toast notification
+  function showToast(type, title, message) {
+    // Tạo toast container nếu chưa có
+    if (!$('#toastContainer').length) {
+      $('body').append('<div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>');
+    }
+    
+    const toastId = 'toast_' + Date.now();
+    const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : type === 'warning' ? 'bg-warning' : 'bg-info';
+    const iconClass = type === 'success' ? 'fas fa-check-circle' : type === 'error' ? 'fas fa-exclamation-circle' : type === 'warning' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
+    
+    const toastHtml = `
+      <div id="${toastId}" class="toast show" role="alert" style="min-width: 300px;">
+        <div class="toast-header ${bgClass} text-white">
+          <i class="${iconClass} me-2"></i>
+          <strong class="me-auto">${title}</strong>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+          ${message}
+        </div>
+      </div>
+    `;
+    
+    $('#toastContainer').append(toastHtml);
+    
+    // Tự động ẩn sau 5 giây
+    setTimeout(() => {
+      $(`#${toastId}`).fadeOut(500, function() {
+        $(this).remove();
+      });
+    }, 5000);
+  }
 
   // Function để đóng shell hoàn toàn
   function closeShellCompletely() {
