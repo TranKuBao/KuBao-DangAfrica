@@ -374,7 +374,7 @@
       <div class="card h-100">
         <div class="card-header pb-0 p-3">
           <div class="row">
-            <div class="col-6 d-flex align-items-center justify-content-center">
+            <div class="col-6 d-flex align-items-sao ddos justify-content-center">
               <h6 class="mb-0">Invoices</h6>
             </div>
             <div class="col-6 d-flex justify-content-center align-items-center" style="margin-top: -5px !important;">
@@ -491,41 +491,100 @@
               </div>
             </div>
           </div>
-          <div class="row mt-4 justify-content-center align-items-center">
-            <div class="col-md-6 mb-2">
-              <div class="form-group">
-                <label class="form-control-label" for="select-PCB">Chọn POC đã được lọc</label>
-                <select id="select-POC" name="Server_id" class="form-control">
-                  <option value="" disabled selected>-- Chọn POC --</option>
-                  {% for poc in list_poc %}
-                  <option value="{{poc}}" {% if poc == "Hello Các em" %}selected{% endif %}>{{ poc }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </div>
-            <div class="col-md-6 mb-2 d-flex align-items-end justify-content-center">
-              
-              <a class="btn mb-0 w-100" id="reverse_button" name="Server_id" style="background-color: #f97316; color: #fff; border: none; height: 38px; display: flex; align-items: center; justify-content: center;">Run Reverse Shell</a>
+        </div>
+      </div>
+      <div class="card mt-4">
+        <div class="card-header pb-0 p-3">
+          <div class="row">
+            <div class="col-12 d-flex align-items-center justify-content-center">
+              <h6 class="mb-0">Shells liên quan đến Target này</h6>
             </div>
           </div>
         </div>
-      </div>
-      <div class="card mt-4" style="background-color: #000; color: #00ff00; font-family: 'Courier New', Courier, monospace; overflow: hidden;">
-        <div id="terminal">
-          <div id="output_terminal">
-            Các lệnh có thể dùng:
-            <br>- ls - Liệt kê các file và thư mục
-            <br>- pwd - Hiện thư mục hiện tại
-            <br>- cd [thư mục] - Di chuyển đến thư mục
-            <br>- cat [tên file] - Xem nội dung file
-            <br>- mkdir [tên thư mục] - Tạo thư mục mới
-            <br>- touch [tên file] - Tạo file mới
-            <br><br>$ 
-          </div>
-          <div class="input-line">
-            <span class="prompt">root@ctf:~$</span>
-            <input type="text" id="input_terminal" autofocus autocomplete="off"/>
-          </div>
+        <div class="card-body p-3">
+          {% if shells and shells|length > 0 %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Shell Name</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Type</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Status</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Connection</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder">User</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Connect Time</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for shell in shells %}
+                  <tr>
+                    <td>
+                      <div class="d-flex px-2 py-1">
+                        <div class="d-flex flex-column justify-content-center">
+                          <h6 class="mb-0 text-sm">{{ shell.name }}</h6>
+                          <p class="text-xs text-secondary mb-0">{{ shell.connection_id[:8] }}...</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge badge-sm bg-gradient-secondary">{{ shell.shell_type.value if shell.shell_type else 'N/A' }}</span>
+                    </td>
+                    <td>
+                      {% if shell.status.value == 'connected' %}
+                        <span class="badge badge-sm bg-gradient-success">{{ shell.status.value }}</span>
+                      {% elif shell.status.value == 'disconnected' %}
+                        <span class="badge badge-sm bg-gradient-danger">{{ shell.status.value }}</span>
+                      {% else %}
+                        <span class="badge badge-sm bg-gradient-secondary">{{ shell.status.value }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <p class="text-xs font-weight-bold mb-0">{{ shell.local_ip }}:{{ shell.local_port }}</p>
+                      <p class="text-xs text-secondary mb-0">→ {{ shell.remote_ip or 'N/A' }}:{{ shell.remote_port or 'N/A' }}</p>
+                    </td>
+                    <td>
+                      <p class="text-xs font-weight-bold mb-0">{{ shell.user or 'N/A' }}</p>
+                      <p class="text-xs text-secondary mb-0">{{ shell.os_info or 'N/A' }}</p>
+                    </td>
+                    <td>
+                      <p class="text-xs font-weight-bold mb-0">
+                        {% if shell.connect_time %}
+                          {{ shell.connect_time.strftime('%d/%m/%Y') }}
+                        {% else %}
+                          N/A
+                        {% endif %}
+                      </p>
+                      <p class="text-xs text-secondary mb-0">
+                        {% if shell.connect_time %}
+                          {{ shell.connect_time.strftime('%H:%M:%S') }}
+                        {% else %}
+                          N/A
+                        {% endif %}
+                      </p>
+                    </td>
+                    <td>
+                      <a href="/shells/{{ shell.connection_id }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <i class="fa fa-terminal"></i> XEM SHELL
+                      </a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-4">
+              <div class="icon icon-shape icon-lg bg-gradient-warning shadow text-center border-radius-xl mt-n4 mx-auto">
+                <i class="fas fa-terminal"></i>
+              </div>
+              <h6 class="mt-3">Chưa có Shell nào</h6>
+              <p class="text-sm">Chưa có shell nào được tạo cho target này. Hãy tạo shell mới từ trang quản lý shell.</p>
+              <a href="/shells" class="btn btn-primary btn-sm mt-2">
+                <i class="fa fa-plus"></i> Tạo Shell Mới
+              </a>
+            </div>
+          {% endif %}
         </div>
       </div>
     </div>

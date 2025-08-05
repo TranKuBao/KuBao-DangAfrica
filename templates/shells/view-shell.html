@@ -2634,4 +2634,79 @@ window.updateCursor = improvedUpdateCursor;
     }
   }
 </script>
+
+
+<script>
+  $('#updateTargetBtn').click(function() {
+    const targetId = $('#targetSelect').val(); // ✅ Fix: targetId -> targetSelect
+    const shellId = '{{shell.connection_id}}'; // ✅ Fix: Thêm quotes cho string
+    
+    if (!targetId) {
+      showToast('error', 'Error', 'Vui lòng chọn target để liên kết');
+      return;
+    }
+
+    $.ajax({
+      url: `/api/shells/${shellId}/link_target`, // ✅ URL đã đúng
+      type: 'POST',
+      contentType: 'application/json', // ✅ Fix: Thêm Content-Type
+      data: JSON.stringify({ target_id: targetId }), // ✅ Fix: Gửi JSON thay vì form data
+      success: function(resp) {
+                if (resp.status === 'success') {
+          showToast('success', 'Success', 'Target linked successfully');
+          showAlertSuccess('Target linked successfully');
+          
+          // ✅ Chỉ cập nhật phần UI liên quan thay vì reload toàn trang
+          const selectedOption = $('#targetSelect option:selected');
+          const targetId = selectedOption.val();
+          const targetText = selectedOption.text();
+          
+          if (targetId) {
+            // Cập nhật thông tin target đã liên kết
+            $('#linkedTargetInfo').html(`
+              <div><strong>Hostname:</strong> <span id="linkedTargetHostname">${targetText.split(' (')[0]}</span></div>
+              <div><strong>Target ID:</strong> <a href="/view-target?idtarget=${targetId}" target="_blank" id="linkedTargetId">${targetId}</a></div>
+            `);
+          }
+        } else {
+          showToast('error', 'Error', resp.msg);
+          showAlertError(resp.msg);
+        }
+      },
+      error: function(xhr, status, error) {
+        showToast('error', 'Error', `Failed to link target: ${error}`);
+        showAlertError(`Failed to link target: ${error}`);
+      }
+    });
+  });
+
+     // ✅ Au
+   // ✅ Save shell notes functionality
+   $('#saveNoteBtn').click(function() {
+     const shellId = '{{shell.connection_id}}'; 
+     const shellNotes = $('#shellNote').val();
+     
+     $.ajax({
+       url: `/api/shells/${shellId}/notes`,
+       type: 'POST',
+       contentType: 'application/json',
+       data: JSON.stringify({ notes: shellNotes }),
+       success: function(resp) {
+         if (resp.status === 'success') {
+           showToast('success', 'Success', 'Shell notes updated successfully');
+           showAlertSuccess('Notes successfully updated');
+           $('#noteStatus').text('Notes saved successfully').show().fadeOut(3000);
+         } else {
+           showToast('error', 'Error', resp.msg);
+           $('#noteStatus').text('Failed to save notes').removeClass('text-success').addClass('text-danger').show().fadeOut(3000);
+         }
+       },
+       error: function(xhr, status, error) {
+         showToast('error', 'Error', `Failed to update shell notes: ${error}`);
+         $('#noteStatus').text('Failed to save notes').removeClass('text-success').addClass('text-danger').show().fadeOut(3000);
+       }
+     });
+   });
+
+</script>
 {% endblock content %}

@@ -6,7 +6,7 @@ Copyright (c) 2019 - present AppSeed.us
 import datetime as dt
 from apps.targets import blueprint
 from apps import db
-from apps.models import Targets, Reports
+from apps.models import Targets, Reports, ShellConnection
 from apps.authentication.models import Users
 from jinja2 import TemplateNotFound
 from flask_wtf import FlaskForm
@@ -335,6 +335,9 @@ def view_target():
     
         # Không dừng chương trình, chỉ log lỗi
 
+    # Lấy danh sách shells có liên quan đến target hiện tại
+    shells = ShellConnection.query.filter_by(target_id=idtarget).all()
+    
     list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
     return render_template(
                             'targets/view-target.html', 
@@ -344,7 +347,8 @@ def view_target():
                             report=report,
                             exploitable=exploitable,
                             unexploitable=unexploitable,
-                            other=other
+                            other=other,
+                            shells=shells
                         )
 
 
