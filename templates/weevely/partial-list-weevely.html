@@ -1,0 +1,251 @@
+{% for weevely in weevely_connections %}
+                <tr data-weevely-id="{{weevely.connection_id}}">                  
+                  <td class="align-middle text-center">
+                    <input type="checkbox" class="row-checkbox m-0"
+                           style="
+                             width: 18px;
+                             height: 18px;
+                             cursor: pointer;
+                             border: 2px solid #c9c2c2;
+                             border-radius: 4px;
+                             accent-color: #f97316;
+                             color: #fff;
+                             transition: all 0.2s ease;
+                           "
+                           data-shell-id="{{weevely.connection_id}}"
+                           onchange="onshellCheckboxChange(this)">
+                  </td>
+                  <td>
+                    <div class="d-flex px-2 py-1">
+                      <div>
+                        <!-- Weevely logo -->
+                        <img                          
+                          src="{{ url_for('static', filename='assets/img/weevely-logo.svg') }}" 
+                          class="avatar avatar-sm me-3"
+                          onerror="this.src='{{ url_for('static', filename='assets/img/shell.png') }}'"
+                        />
+                      </div>
+                      <div class="d-flex flex-column justify-content-center">
+                        <h6 class="mb-0 text-sm">
+                          <a href="javascript:" onclick="viewWeevelyDetails('{{weevely.connection_id}}')">
+                            {{ weevely.name }}
+                          </a>
+                        </h6> 
+                        <p class="text-xs text-secondary mb-0">
+                          URL: {{ weevely.url|truncate(50, True, '...') }}
+                        </p>
+                        {% if weevely.hostname %}
+                        <p class="text-xs text-muted mb-0">
+                          Host: {{ weevely.hostname }}
+                        </p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <!-- Badge trạng thái weevely -->
+                    {% if weevely.status.name == 'CONNECTED' %}
+                    <span class="badge bg-gradient-success ms-1">CONNECTED</span>
+                    {% elif weevely.status.name == 'LISTENING' %}
+                    <span class="badge bg-gradient-info ms-1">READY</span>
+                    {% elif weevely.status.name == 'CLOSED' %}
+                    <span class="badge bg-gradient-secondary ms-1">INACTIVE</span>
+                    {% elif weevely.status.name == 'DISCONNECTED' %}
+                    <span class="badge bg-gradient-warning ms-1">DISCONNECTED</span>
+                    {% elif weevely.status.name == 'ERROR' %}
+                    <span class="badge bg-gradient-danger ms-1">ERROR</span>
+                    {% else %}
+                    <span class="badge bg-gradient-dark ms-1">{{ weevely.status.name }}</span>
+                    {% endif %}
+                    
+                    {% if weevely.last_active %}
+                    <p class="text-xs text-secondary mb-0">
+                      Last: {{ weevely.last_active|replace('T', ' ')|truncate(16, True, '') }}
+                    </p>
+                    {% endif %}
+                  </td>
+                  <td class="align-middle text-center text-sm">
+                    <span class="badge bg-gradient-purple">Weevely</span>
+                    <p class="text-xs text-secondary mb-0">
+                      WEBSHELL
+                    </p>
+                    {% if 'Backdoor file:' in (weevely.notes or '') %}
+                    <p class="text-xs text-muted mb-0">
+                      <i class="fas fa-file"></i> Generated
+                    </p>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if weevely.os_info %}
+                    <p class="text-xs font-weight-bold mb-0">OS: {{weevely.os_info|truncate(20, True, '...')}}</p> 
+                    {% endif %}
+                    {% if weevely.user %}
+                    <p class="text-xs text-secondary mb-0">User: {{ weevely.user }}</p>
+                    {% endif %}
+                    {% if weevely.privilege_level %}
+                    <p class="text-xs text-info mb-0">Priv: {{ weevely.privilege_level }}</p>
+                    {% endif %}
+                    {% if not weevely.os_info and not weevely.user %}
+                    <p class="text-xs text-muted mb-0">Not connected</p>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <p class="text-xs font-weight-bold mb-0">
+                      <i class="fas fa-calendar-alt"></i> Created:
+                      {{ weevely.created_at|replace('T', ' ')|truncate(19, True, '') if weevely.created_at }}
+                    </p>
+                    <p class="text-xs text-secondary mb-0">
+                      <i class="fas fa-clock"></i> Updated:
+                      {{ weevely.updated_at|replace('T', ' ')|truncate(19, True, '') if weevely.updated_at }}
+                    </p>
+                    {% if weevely.command_count > 0 %}
+                    <p class="text-xs text-info mb-0">
+                      <i class="fas fa-terminal"></i> Commands: {{ weevely.command_count }}
+                    </p>
+                    {% endif %}
+                  </td>
+                  <td class="align-middle">
+                    <div class="d-flex gap-1 flex-wrap">
+                      <!-- Generate Backdoor Button -->
+                      {% if weevely.status.name in ['CLOSED', 'ERROR'] %}
+                      <button class="btn btn-sm btn-outline-primary" title="Generate Backdoor"
+                        onclick="generateWeevelyBackdoor('{{weevely.connection_id}}')">
+                        <i class="fa fa-cog"></i> Generate
+                      </button>
+                      {% endif %}
+                      
+                      <!-- Connect/Test Button -->
+                      {% if weevely.status.name in ['DISCONNECTED', 'ERROR'] or 'Backdoor file:' in (weevely.notes or '') %}
+                      <button class="btn btn-sm btn-outline-success" title="Test Connection"
+                        onclick="testWeevelyConnection('{{weevely.connection_id}}')">
+                        <i class="fa fa-plug"></i> Connect
+                      </button>
+                      {% endif %}
+                      
+                      <!-- Terminal Button -->
+                      {% if weevely.status.name == 'CONNECTED' %}
+                      <button class="btn btn-sm btn-outline-info" title="Open Terminal"
+                        onclick="openWeevelyTerminal('{{weevely.connection_id}}')">
+                        <i class="fa fa-terminal"></i> Terminal
+                      </button>
+                      {% endif %}
+                      
+                      <!-- Download Backdoor -->
+                      {% if 'Backdoor file:' in (weevely.notes or '') %}
+                      <button class="btn btn-sm btn-outline-secondary" title="Download Backdoor"
+                        onclick="downloadWeevelyBackdoor('{{weevely.connection_id}}')">
+                        <i class="fa fa-download"></i> Download
+                      </button>
+                      {% endif %}
+                      
+                      <!-- View Details -->
+                      <button class="btn btn-sm btn-outline-info" title="View Details"
+                        onclick="viewWeevelyDetails('{{weevely.connection_id}}')">
+                        <i class="fa fa-eye"></i> View
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+
+                {% if not weevely_connections %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-4">
+                    <i class="fas fa-search fa-2x mb-2"></i>
+                    <p class="mb-0">No weevely connections found</p>
+                    <small>Click "Add weevely" to create your first connection</small>
+                  </td>
+                </tr>
+                {% endif %}
+
+                
+<!-- Weevely Management JavaScript -->
+<script>
+// Generate weevely backdoor
+function generateWeevelyBackdoor(weevelyId) {
+  if (!confirm('Generate weevely backdoor for this connection?')) return;
+  
+  const button = event.target;
+  const originalText = button.innerHTML;
+  button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generating...';
+  button.disabled = true;
+  
+  fetch(`/api/weevely/${weevelyId}/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'success') {
+      alert('Backdoor generated successfully!\n\nFile: ' + data.backdoor_path + '\nSize: ' + data.backdoor_size + ' bytes');
+      // Refresh the list
+      showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
+    } else {
+      alert('Error generating backdoor: ' + data.message);
+      console.error('Generation error:', data);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Network error: ' + error.message);
+  })
+  .finally(() => {
+    button.innerHTML = originalText;
+    button.disabled = false;
+  });
+}
+
+// Test weevely connection
+function testWeevelyConnection(weevelyId) {
+  const button = event.target;
+  const originalText = button.innerHTML;
+  button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Testing...';
+  button.disabled = true;
+  
+  fetch(`/api/weevely/${weevelyId}/connect`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'success') {
+      alert('Connection successful!\n\nSystem Info:\n' + data.system_info);
+      // Refresh the list
+      showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
+    } else {
+      alert('Connection failed: ' + data.message);
+      console.error('Connection error:', data);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Network error: ' + error.message);
+  })
+  .finally(() => {
+    button.innerHTML = originalText;
+    button.disabled = false;
+  });
+}
+
+// Open weevely terminal (placeholder)
+function openWeevelyTerminal(weevelyId) {
+  alert('Terminal feature will be implemented in the next version!');
+  // TODO: Implement terminal modal/page
+}
+
+// Download weevely backdoor (placeholder)
+function downloadWeevelyBackdoor(weevelyId) {
+  alert('Download feature will be implemented in the next version!');
+  // TODO: Implement file download
+}
+
+// View weevely details (placeholder)
+function viewWeevelyDetails(weevelyId) {
+  alert('Details view will be implemented in the next version!');
+  // TODO: Implement details modal
+}
+</script>

@@ -6,7 +6,7 @@ Copyright (c) 2019 - present AppSeed.us
 import datetime as dt
 from apps.managershell import blueprint
 from apps import db
-from apps.models import Targets, Incidents, Credentials, VulInTarget, Collections, CollectedFiles, VerificationResults
+from apps.models import Targets, VerificationResults
 from apps.authentication.models import Users
 from jinja2 import TemplateNotFound
 from flask_wtf import FlaskForm

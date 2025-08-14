@@ -318,6 +318,29 @@
         height: 40px;
         font-size: 16px;
       }
+
+      /* File manager responsive adjustments */
+      .col-md-8, .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+      }
+      
+      .col-md-4 {
+        margin-top: 20px;
+      }
+    }
+
+    @media (min-width: 992px) {
+      /* Adjust column sizes for larger screens */
+      .col-md-8 {
+        flex: 0 0 66.666667%;
+        max-width: 66.666667%;
+      }
+      
+      .col-md-4 {
+        flex: 0 0 33.333333%;
+        max-width: 33.333333%;
+      }
     }
   </style>
 </head>
@@ -326,24 +349,24 @@
   {% include "partials/header-statictical.html"%}
 
   <!-- thông tin các trường mình sẽ hiện ra ở đây ở đây-->
-  {% include "shells/add-shell.html"%}
+  {% include "weevely/add-weevely.html"%}
   
 
   <!--table hiển thị list Mục tiêu ở đây-->
   <div class="row my-3">
-    <div class="col-12">
+    <div class="col-md-8">
       <div class="card mb-4">
         <div class="card-header pb-0 p-3">
           <div class="row">
             <div class="col-6 d-flex align-items-center">
-              <h6 class="mb-0" style="margin-left: 20px !important ;">List_Shell</h6>
+              <h6 class="mb-0" style="margin-left: 20px !important ;">Weevely Connections</h6>
             </div>
 
             
 
             <div class="col-6 text-end" >
               <a class="btn bg-gradient-dark mb-0" id="btn-addshells" style="margin-right: 20px !important;"
-                ><i class="fas fa-plus"></i>&nbsp;&nbsp;Add shell</a
+                ><i class="fas fa-plus"></i>&nbsp;&nbsp;Add Weevely</a
               >
             </div>
           </div>
@@ -367,11 +390,7 @@
               <!-- Action Buttons Container -->
               <div class="action-buttons-container" style="margin-right: 20px !important;">
                 
-                <!-- Thêm nút Check Status -->
-                <button class="action-btn btn-sort" id="btn-check-status" title="Kiểm tra trạng thái website">
-                  <i class="fas fa-signal"></i>
-                  <span class="tooltip">Check Status</span>
-                </button>
+
 
                 <!-- Delete Button -->
                 <button class="action-btn btn-delete" id="btn-delete-selected" title="Delete shel">
@@ -434,7 +453,7 @@
                   <th
                     class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
                   >
-                    Websites
+                    Target & URL
                   </th>
                   <th
                     class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
@@ -444,12 +463,12 @@
                   <th
                     class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
                   >
-                    Shell Type
+                    Type & Config
                   </th>
                   <th
                     class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
                   >
-                    Uname 
+                    Environment
                   </th>
                   <th
                     class="text-uppercase text-secondary text-xxs font-weight-bolder text-center opacity-7 ps-2"
@@ -461,8 +480,8 @@
               </thead>
 
               <tbody id="shellTableBody">
-                <!--Hiển thị list shell ở đây-->
-                {% include "shells/partial-list-shell.html"%}
+                <!--Hiển thị list weevely ở đây-->
+                {% include "weevely/partial-list-weevely.html"%}
               </tbody>
             </table>
           </div>
@@ -518,23 +537,28 @@
         <!--Kết thúc row phân trang-->
       </div>
     </div>
+    
+    <!-- File Upload/Download Panel - Right Side -->
+    <div class="col-md-4">
+      {% include "weevely/partial-updown-file.html"%}
+    </div>
   </div>
 </div>
 <!-- Khởi tạo giá trị từ server -->
-<script>
-  // Khởi tạo totalPages từ server
+<script type="text/javascript">
+  // Khởi tạo totalPages từ server  
   {% if total_pages %}
-  var initialTotalPages = {{ total_pages }};
+    window.initialTotalPages = {{ total_pages }};
   {% else %}
-  var initialTotalPages = 1;
+    window.initialTotalPages = 1;
   {% endif %}
 </script>
 
 <!-- Script phân trang cũng như là tìm kiếm đều nằm ở đây, khá là quan trọng-->
 <script>
   let currentPage = 1;
-  let totalPages = initialTotalPages;
-  let visiblePages = 5;
+  let totalPages = window.initialTotalPages || 1;
+  let visiblePages = 5;  
   let currentSortType = "";
 
   function initPagination() {
@@ -545,7 +569,7 @@
   }
 
   function showContent(page, searchInput = "", sortType = "") {
-    let url = `/api/shells?page=${page}`;
+    let url = `/api/weevely?page=${page}`;
     if (searchInput.trim()) {
       url += `&search=${encodeURIComponent(searchInput.trim())}`;
     }
@@ -865,44 +889,6 @@ function updateSelectAllCheckbox() {
 }
 
 
-//verify 1 POC với nhiểu shell đã chọn
-document.getElementById('btn-verify-selected').addEventListener("click",function(){
-  const data = getCheckedshellIds();
-    if( data.length ==0 ){
-      alert('Please check the shell you want to Verify with POC.');
-      return ;
-    }
-    console.log(data); 
-    // Lấy thông tin modes từ API
-    
-    document.getElementById('selectedshellCount').textContent = window.checkedshellIds.length;
-    
-    // ... cập nhật các field khác
-    const modal = new bootstrap.Modal(document.getElementById('verifyPocWithshellsModal'));
-    modal.show();
-});
-
-//Chức năng Recon
-document.getElementById('btn-Recon-function').addEventListener("click",function(){
-  const data = getCheckedshellIds();
-    if( data.length == 0 ){
-      alert('Please check the shell you want to Reconnaissance.');
-      return ;
-    }    
-    
-    if(data.length >1) {
-      alert("Function only allowed with 1 shell")
-      return;
-    }
-
-    document.getElementById('reconScanLoading').style.display = 'none';
-    document.getElementById('reconScanResult').textContent += '\n[Data will be display in here]';
-
-    // ... cập nhật các field khác
-    const modal = new bootstrap.Modal(document.getElementById('reconshellsModal'));
-    modal.show();
-});
-
 //Xóa shell được chọn
 document.getElementById("btn-delete-selected").addEventListener("click", function(){
   if (confirm(`Are you sure you want to delete the selected shells?`)) {
@@ -917,7 +903,7 @@ document.getElementById("btn-delete-selected").addEventListener("click", functio
     let failed = [];
     ids.forEach(id => {
       $.ajax({
-        url: `/api/shells/${id}`,
+        url: `/api/weevely/${id}`,
         type: 'DELETE',
       })
       .done(resp => {

@@ -7,6 +7,7 @@ from apps import db
 from sqlalchemy.exc import SQLAlchemyError
 from apps.exceptions.exception import InvalidUsage
 import datetime as dt
+import math
 from sqlalchemy.orm import relationship
 from enum import Enum
 from sqlalchemy import or_, desc, asc
@@ -106,93 +107,6 @@ class PrivilegeLevel(Enum):
     HIGH = "high"
     ADMIN = "admin"
     ROOT = "root"
-
-
-class Incidents(db.Model):
-    __tablename__ = 'incidents'
-    
-    incident_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    incident_type = db.Column(db.Enum(IncidentType), nullable=False)
-    target_device = db.Column(db.String(255), nullable=True)
-    resolution_status = db.Column(db.Enum(ResolutionStatus), nullable=False, default=ResolutionStatus.OPEN)
-    impact_summary = db.Column(db.Text, nullable=True)
-    related_email_id = db.Column(db.String(255), nullable=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
-    
-    
-    
-    def __init__(self, incident_type, target_device=None, resolution_status=ResolutionStatus.OPEN, 
-                 impact_summary=None, related_email_id=None):
-        self.incident_type = incident_type
-        self.target_device = target_device
-        self.resolution_status = resolution_status
-        self.impact_summary = impact_summary
-        self.related_email_id = related_email_id
-    
-    def __repr__(self):
-        return f'<Incident {self.incident_id}: {self.incident_type.value}>'
-    
-    def to_dict(self):
-        return {
-            'incident_id': self.incident_id,
-            'incident_type': self.incident_type.value if self.incident_type else None,
-            'target_device': self.target_device,
-            'resolution_status': self.resolution_status.value if self.resolution_status else None,
-            'impact_summary': self.impact_summary,
-            'related_email_id': self.related_email_id,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
-    
-    @classmethod
-    def create_incident(cls, incident_type, target_device=None, impact_summary=None, related_email_id=None):
-        """Create a new incident"""
-        try:
-            incident = cls(
-                incident_type=incident_type,
-                target_device=target_device,
-                impact_summary=impact_summary,
-                related_email_id=related_email_id
-            )
-            db.session.add(incident)
-            db.session.commit()
-            return incident
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error creating incident: {str(e)}")
-    
-    @classmethod
-    def get_by_id(cls, incident_id):
-        """Get incident by ID"""
-        return cls.query.filter_by(incident_id=incident_id).first()
-    
-    @classmethod
-    def get_by_status(cls, status):
-        """Get incidents by resolution status"""
-        return cls.query.filter_by(resolution_status=status).all()
-    
-    def update(self, **kwargs):
-        """Update incident attributes"""
-        try:
-            for key, value in kwargs.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-            self.updated_at = dt.datetime.utcnow()
-            db.session.commit()
-            return self
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error updating incident: {str(e)}")
-    
-    def delete(self):
-        """Delete incident"""
-        try:
-            db.session.delete(self)
-            db.session.commit()
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error deleting incident: {str(e)}")
 
 
 class Targets(db.Model):
@@ -509,393 +423,6 @@ class Reports(db.Model):
             raise InvalidUsage(f"Error deleting report: {str(e)}")
 
 
-class Credentials(db.Model):
-    __tablename__ = 'credentials'
-    
-    credential_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(255), nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    server_id = db.Column(db.Integer, db.ForeignKey('targets.server_id'), nullable=False)
-    privilege_level = db.Column(db.Enum(PrivilegeLevel), nullable=False)
-    breach_date = db.Column(db.DateTime, nullable=True)
-    notes = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
-    
-    
-    def __init__(self, username, password_hash, server_id, privilege_level, 
-                 breach_date=None, notes=None):
-        self.username = username
-        self.password_hash = password_hash
-        self.server_id = server_id
-        self.privilege_level = privilege_level
-        self.breach_date = breach_date
-        self.notes = notes
-    
-    def __repr__(self):
-        return f'<Credential {self.credential_id}: {self.username}>'
-    
-    def to_dict(self):
-        return {
-            'credential_id': self.credential_id,
-            'username': self.username,
-            'password_hash': self.password_hash,
-            'server_id': self.server_id,
-            'privilege_level': self.privilege_level.value if self.privilege_level else None,
-            'breach_date': self.breach_date.isoformat() if self.breach_date else None,
-            'notes': self.notes,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
-    
-    @classmethod
-    def create_credential(cls, username, password_hash, server_id, privilege_level, **kwargs):
-        """Create a new credential"""
-        try:
-            # Validate target exists
-            target = Targets.get_by_id(server_id)
-            if not target:
-                raise InvalidUsage(f"Target with ID {server_id} not found")
-            
-            credential = cls(
-                username=username,
-                password_hash=password_hash,
-                server_id=server_id,
-                privilege_level=privilege_level,
-                **kwargs
-            )
-            db.session.add(credential)
-            db.session.commit()
-            return credential
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error creating credential: {str(e)}")
-    
-    @classmethod
-    def get_by_id(cls, credential_id):
-        """Get credential by ID"""
-        return cls.query.filter_by(credential_id=credential_id).first()
-    
-    @classmethod
-    def get_high_privilege_credentials(cls):
-        """Get all high privilege credentials"""
-        return cls.query.filter(
-            cls.privilege_level.in_([PrivilegeLevel.HIGH, PrivilegeLevel.ADMIN, PrivilegeLevel.ROOT])
-        ).all()
-    
-    def update(self, **kwargs):
-        """Update credential attributes"""
-        try:
-            for key, value in kwargs.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-            self.updated_at = dt.datetime.utcnow()
-            db.session.commit()
-            return self
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error updating credential: {str(e)}")
-    
-    def delete(self):
-        """Delete credential"""
-        try:
-            db.session.delete(self)
-            db.session.commit()
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error deleting credential: {str(e)}")
-
-
-class VulInTarget(db.Model):
-    __tablename__ = 'vul_in_target'
-    
-    id_vul_in_target = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    incident_id = db.Column(db.Integer, db.ForeignKey('incidents.incident_id'), nullable=False)
-    server_id = db.Column(db.Integer, db.ForeignKey('targets.server_id'), nullable=False)
-    attack_vector = db.Column(db.String(255), nullable=False)
-    detection_date = db.Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
-    resolution_status = db.Column(db.Enum(ResolutionStatus), nullable=False, default=ResolutionStatus.OPEN)
-    impact_summary = db.Column(db.Text, nullable=True)
-    related_email_id = db.Column(db.String(255), nullable=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
-    
-    
-    def __init__(self, incident_id, server_id, attack_vector, detection_date=None,
-                 resolution_status=ResolutionStatus.OPEN, impact_summary=None, related_email_id=None):
-        self.incident_id = incident_id
-        self.server_id = server_id
-        self.attack_vector = attack_vector
-        self.detection_date = detection_date or dt.datetime.utcnow()
-        self.resolution_status = resolution_status
-        self.impact_summary = impact_summary
-        self.related_email_id = related_email_id
-    
-    def __repr__(self):
-        return f'<VulInTarget {self.id_vul_in_target}: {self.attack_vector}>'
-    
-    def to_dict(self):
-        return {
-            'id_vul_in_target': self.id_vul_in_target,
-            'incident_id': self.incident_id,
-            'server_id': self.server_id,
-            'attack_vector': self.attack_vector,
-            'detection_date': self.detection_date.isoformat() if self.detection_date else None,
-            'resolution_status': self.resolution_status.value if self.resolution_status else None,
-            'impact_summary': self.impact_summary,
-            'related_email_id': self.related_email_id,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
-    
-    @classmethod
-    def create_vulnerability(cls, incident_id, server_id, attack_vector, **kwargs):
-        """Create a new vulnerability in target"""
-        try:
-            # Validate incident and target exist
-            incident = Incidents.get_by_id(incident_id)
-            target = Targets.get_by_id(server_id)
-            
-            if not incident:
-                raise InvalidUsage(f"Incident with ID {incident_id} not found")
-            if not target:
-                raise InvalidUsage(f"Target with ID {server_id} not found")
-            
-            vulnerability = cls(
-                incident_id=incident_id,
-                server_id=server_id,
-                attack_vector=attack_vector,
-                **kwargs
-            )
-            db.session.add(vulnerability)
-            db.session.commit()
-            return vulnerability
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error creating vulnerability: {str(e)}")
-    
-    @classmethod
-    def get_by_id(cls, id_vul_in_target):
-        """Get vulnerability by ID"""
-        return cls.query.filter_by(id_vul_in_target=id_vul_in_target).first()
-    
-    def update(self, **kwargs):
-        """Update vulnerability attributes"""
-        try:
-            for key, value in kwargs.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-            self.updated_at = dt.datetime.utcnow()
-            db.session.commit()
-            return self
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error updating vulnerability: {str(e)}")
-    
-    def delete(self):
-        """Delete vulnerability"""
-        try:
-            db.session.delete(self)
-            db.session.commit()
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error deleting vulnerability: {str(e)}")
-
-
-class Collections(db.Model):
-    """Model for Collections table"""
-    __tablename__ = 'collections'
-    
-    collection_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    server_id = db.Column(db.Integer, db.ForeignKey('targets.server_id'), nullable=False)
-    collected_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
-    folder_archive_path = db.Column(db.Text, nullable=True)
-    db_size_mb = db.Column(db.Float, nullable=True)
-    notes = db.Column(db.Text, nullable=True)
-    
-    
-    def __init__(self, server_id, folder_archive_path=None, db_size_mb=None, notes=None):
-        self.server_id = server_id
-        self.folder_archive_path = folder_archive_path
-        self.db_size_mb = db_size_mb
-        self.notes = notes
-    
-    def __repr__(self):
-        return f'<Collection {self.collection_id}: Server {self.server_id}>'
-    
-    def to_dict(self):
-        """Convert model to dictionary"""
-        return {
-            'collection_id': self.collection_id,
-            'server_id': self.server_id,
-            'collected_at': self.collected_at.isoformat() if self.collected_at else None,
-            'folder_archive_path': self.folder_archive_path,
-            'db_size_mb': self.db_size_mb,
-            'notes': self.notes,
-            'collected_files_count': len(self.collected_files) if self.collected_files else 0,
-            'target_hostname': self.target.hostname if self.target else None
-        }
-    
-    @classmethod
-    def create_collection(cls, server_id, folder_archive_path=None, db_size_mb=None, notes=None):
-        """Create a new collection"""
-        try:
-            # Validate target exists
-            target = Targets.get_by_id(server_id)
-            if not target:
-                raise InvalidUsage(f"Target with ID {server_id} not found")
-            
-            collection = cls(
-                server_id=server_id,
-                folder_archive_path=folder_archive_path,
-                db_size_mb=db_size_mb,
-                notes=notes
-            )
-            db.session.add(collection)
-            db.session.commit()
-            return collection
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error creating collection: {str(e)}")
-    
-    @classmethod
-    def get_by_id(cls, collection_id):
-        """Get collection by ID"""
-        return cls.query.filter_by(collection_id=collection_id).first()
-    
-    @classmethod
-    def get_by_server_id(cls, server_id):
-        """Get collections by server ID"""
-        return cls.query.filter_by(server_id=server_id).all()
-    
-    def update(self, **kwargs):
-        """Update collection attributes"""
-        try:
-            for key, value in kwargs.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-            db.session.commit()
-            return self
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error updating collection: {str(e)}")
-    
-    def delete(self):
-        """Delete collection and all associated files"""
-        try:
-            db.session.delete(self)
-            db.session.commit()
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error deleting collection: {str(e)}")
-
-
-class CollectedFiles(db.Model):
-    """Model for CollectedFiles table"""
-    __tablename__ = 'collected_files'
-    
-    file_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    collection_id = db.Column(db.Integer, db.ForeignKey('collections.collection_id'), nullable=False)
-    file_name = db.Column(db.String(255), nullable=False)
-    file_path = db.Column(db.Text, nullable=False)
-    file_archive_path = db.Column(db.Text, nullable=True)
-    file_size_kb = db.Column(db.Float, nullable=True)
-    file_type = db.Column(db.Enum(FileType), nullable=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
-    notes = db.Column(db.Text, nullable=True)
-    
-    
-    def __init__(self, collection_id, file_name, file_path, file_archive_path=None, 
-                 file_size_kb=None, file_type=None, notes=None):
-        self.collection_id = collection_id
-        self.file_name = file_name
-        self.file_path = file_path
-        self.file_archive_path = file_archive_path
-        self.file_size_kb = file_size_kb
-        self.file_type = file_type
-        self.notes = notes
-    
-    def __repr__(self):
-        return f'<CollectedFile {self.file_id}: {self.file_name}>'
-    
-    def to_dict(self):
-        """Convert model to dictionary"""
-        return {
-            'file_id': self.file_id,
-            'collection_id': self.collection_id,
-            'file_name': self.file_name,
-            'file_path': self.file_path,
-            'file_archive_path': self.file_archive_path,
-            'file_size_kb': self.file_size_kb,
-            'file_type': self.file_type.value if self.file_type else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'notes': self.notes
-        }
-    
-    @classmethod
-    def create_file(cls, collection_id, file_name, file_path, file_archive_path=None,
-                    file_size_kb=None, file_type=None, notes=None):
-        """Create a new collected file"""
-        try:
-            # Validate collection exists
-            collection = Collections.get_by_id(collection_id)
-            if not collection:
-                raise InvalidUsage(f"Collection with ID {collection_id} not found")
-            
-            collected_file = cls(
-                collection_id=collection_id,
-                file_name=file_name,
-                file_path=file_path,
-                file_archive_path=file_archive_path,
-                file_size_kb=file_size_kb,
-                file_type=file_type,
-                notes=notes
-            )
-            db.session.add(collected_file)
-            db.session.commit()
-            return collected_file
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error creating collected file: {str(e)}")
-    
-    @classmethod
-    def get_by_id(cls, file_id):
-        """Get collected file by ID"""
-        return cls.query.filter_by(file_id=file_id).first()
-    
-    @classmethod
-    def get_by_collection_id(cls, collection_id):
-        """Get all files in a collection"""
-        return cls.query.filter_by(collection_id=collection_id).all()
-    
-    @classmethod
-    def get_by_file_type(cls, file_type):
-        """Get all files of a specific type"""
-        return cls.query.filter_by(file_type=file_type).all()
-    
-    def update(self, **kwargs):
-        """Update collected file attributes"""
-        try:
-            for key, value in kwargs.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-            db.session.commit()
-            return self
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error updating collected file: {str(e)}")
-    
-    def delete(self):
-        """Delete collected file"""
-        try:
-            db.session.delete(self)
-            db.session.commit()
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise InvalidUsage(f"Error deleting collected file: {str(e)}")
-
-
-
 class VerificationResults(db.Model):
     """Model for storing verification results"""
     __tablename__ = 'verification_results'
@@ -1009,73 +536,20 @@ class VerificationResults(db.Model):
 class DatabaseUtils:
     """Utility class for common database operations"""
     
-    @staticmethod
-    def get_collection_with_files(collection_id):
-        """Get collection with all its files"""
-        collection = Collections.get_by_id(collection_id)
-        if not collection:
-            raise InvalidUsage(f"Collection with ID {collection_id} not found")
-        
-        return {
-            'collection': collection.to_dict(),
-            'files': [file.to_dict() for file in collection.collected_files]
-        }
-    
-    @staticmethod
-    def get_collections_summary():
-        """Get summary of all collections"""
-        collections = Collections.query.all()
-        summary = []
-        
-        for collection in collections:
-            files_count = len(collection.collected_files)
-            total_size_kb = sum(
-                file.file_size_kb for file in collection.collected_files 
-                if file.file_size_kb is not None
-            )
-            
-            summary.append({
-                'collection_id': collection.collection_id,
-                'server_id': collection.server_id,
-                'collected_at': collection.collected_at.isoformat(),
-                'files_count': files_count,
-                'total_size_kb': total_size_kb,
-                'total_size_mb': round(total_size_kb / 1024, 2) if total_size_kb > 0 else 0
-            })
-        
-        return summary
-    
-    @staticmethod
-    def search_files(query, file_type=None, collection_id=None):
-        """Search files by name with optional filters"""
-        search_query = CollectedFiles.query
-        
-        # Filter by file name
-        if query:
-            search_query = search_query.filter(
-                CollectedFiles.file_name.ilike(f'%{query}%')
-            )
-        
-        # Filter by file type
-        if file_type:
-            search_query = search_query.filter(CollectedFiles.file_type == file_type)
-        
-        # Filter by collection
-        if collection_id:
-            search_query = search_query.filter(CollectedFiles.collection_id == collection_id)
-        
-        return search_query.all()
+    # Note: Collection and CollectedFiles related methods have been removed
+    # as those models have been deleted from the system
+    pass
 
 
 
 #==============================================================================================
     #    _______
     #  /        \\
-    # |  ()  ()  |  <-- Reverse Shell
+    # |  ()  ()  |  <-- Reverse Shell and Webshell
     # |    __    |     Console
     #  \________/
     #    / || \
-    #   /__||__\     pwncat >>
+    #   /__||__\     pwncat && weevely>>
     #  |   ||   |
     #  |   ||   |     [CONNECTED]
     #  |___||___|
@@ -1393,3 +867,134 @@ class ShellCommand(db.Model):
         except SQLAlchemyError as e:
             db.session.rollback()
             raise InvalidUsage(f"Error completing shell command: {str(e)}")
+
+
+class DataFile(db.Model):
+    __tablename__ = 'data_files'
+    file_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    file_name = db.Column(db.String(255), nullable=False)
+    source_path = db.Column(db.String(500), nullable=False)
+    local_path = db.Column(db.String(500), nullable=False)
+    file_type = db.Column(db.String(100), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)
+    file_hash = db.Column(db.String(255), nullable=False)
+    connection_id = db.Column(db.String(255), db.ForeignKey('shell_connections.connection_id'), nullable=False)
+    file_created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    file_updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+
+    def __init__(self, file_name, source_path, local_path, file_type, file_size, file_hash, connection_id, file_created_at, file_updated_at):
+        self.file_name = file_name
+        self.source_path = source_path
+        self.local_path = local_path
+        self.file_type = file_type
+        self.file_size = file_size
+        self.file_hash = file_hash
+        self.connection_id = connection_id
+        self.file_created_at = file_created_at
+        self.file_updated_at = file_updated_at
+    
+    def __repr__(self):
+        return f'<DataFile {self.file_id}: {self.file_name}>'
+    
+    def to_dict(self):
+        return {
+            'file_id': self.file_id,
+            'file_name': self.file_name,
+            'source_path': self.source_path,
+            'local_path': self.local_path,
+            'file_type': self.file_type,
+            'file_size': self.file_size,
+            'file_size_readable': self.get_file_size_readable(),
+            'file_hash': self.file_hash,
+            'connection_id': self.connection_id,
+            'file_created_at': self.file_created_at.isoformat() if self.file_created_at else None,
+            'file_updated_at': self.file_updated_at.isoformat() if self.file_updated_at else None
+        }
+    
+    @classmethod
+    def create_file(cls, file_name, source_path, local_path, file_type, file_size, file_hash, connection_id):
+        """Create a new data file record"""
+        try:
+            data_file = cls(file_name, source_path, local_path, file_type, file_size, file_hash, connection_id)
+            db.session.add(data_file)
+            db.session.commit()
+            return data_file
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error creating data file: {str(e)}")
+    
+    @classmethod
+    def get_by_connection(cls, connection_id, limit=100):
+        """Get files for a specific connection"""
+        return cls.query.filter_by(connection_id=connection_id).order_by(desc(cls.file_created_at)).limit(limit).all()
+    
+    @classmethod
+    def get_by_file_hash(cls, file_hash):
+        """Get file by hash to check for duplicates"""
+        return cls.query.filter_by(file_hash=file_hash).first()
+    
+    @classmethod
+    def get_by_id(cls, file_id):
+        """Get file by ID"""
+        return cls.query.filter_by(file_id=file_id).first()
+
+    
+    def update_file_info(self, **kwargs):
+        """Update file information"""
+        try:
+            for key, value in kwargs.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+            
+            self.file_updated_at = dt.datetime.utcnow()
+            db.session.commit()
+            return self
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error updating file info: {str(e)}")
+    
+    def delete_file(self):
+        """Delete file record"""
+        try:
+            db.session.delete(self)
+            db.session.commit()
+            return True
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise InvalidUsage(f"Error deleting file record: {str(e)}")
+    
+    @classmethod
+    def search_files(cls, search_keyword=None, folder_type='upload', limit=100):
+        """Search files with filters"""
+        from sqlalchemy import or_, desc
+        
+        query = cls.query
+        
+        if search_keyword:
+            search_term = f"%{search_keyword}%"
+            query = query.filter(
+                or_(
+                    cls.file_name.ilike(search_term),
+                    cls.connection_id.ilike(search_term)
+                )
+            )
+        
+        # Lấy theo loại folder
+        query = query.filter_by(file_type=folder_type)
+        
+        return query.order_by(desc(cls.file_created_at)).limit(limit).all()
+    
+    def get_file_size_readable(self):
+        """Get human readable file size"""
+        bytes_size = self.file_size or 0
+        if bytes_size == 0:
+            return "0 B"
+        
+        try:
+            size_name = ["B", "KB", "MB", "GB", "TB"]
+            i = int(math.floor(math.log(bytes_size, 1024)))
+            p = math.pow(1024, i)
+            s = round(bytes_size / p, 2)
+            return f"{s} {size_name[i]}"
+        except (ValueError, OverflowError):
+            return f"{bytes_size} B" 

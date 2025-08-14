@@ -28,43 +28,8 @@
         <li class="nav-item mt-3">
           <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6 nav-section-title">Apps</h6>
         </li>
-
-        <li class="nav-item">
-          <a class="nav-link {% if segment == 'index_targets' %}active{% endif %}" href="{{ url_for('targets_blueprint.targets') }}">
-            <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
-                  style="width: 32px; height: 32px; overflow: hidden;">
-              <img src="{{ url_for('static', filename='assets/img/target.png') }}" 
-                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
-            </div>
-            <span class="nav-link-text ms-1">Targets</span>
-            <div class="nav-tooltip">Targets</div>
-          </a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link {% if segment == 'index-pocs' %}active{% endif %}" href="{{ url_for('home_blueprint.pocs') }}">
-            <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
-                  style="width: 32px; height: 32px; overflow: hidden;">
-              <img src="{{ url_for('static', filename='assets/img/pocs.png') }}" 
-                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
-            </div>
-            <span class="nav-link-text ms-1">POCs</span>
-            <div class="nav-tooltip">POCs</div>
-          </a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link {% if segment == 'index-shell' %}active{% endif %}" href="{{ url_for('managershell_blueprint.shells') }}">
-            <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
-                  style="width: 32px; height: 32px; overflow: hidden;">
-              <img src="{{ url_for('static', filename='assets/img/shells.png') }}" 
-                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
-            </div>
-            <span class="nav-link-text ms-1">Shells</span>
-            <div class="nav-tooltip">Shells</div>
-          </a>
-        </li>
-
+        
+        <!--thống kê cho toàn bộ hệ thống-->
         <li class="nav-item">
           <a class="nav-link {% if segment == 'dashboard' %}active{% endif %}" href="{{ url_for('home_blueprint.index') }}">
             <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
@@ -86,6 +51,60 @@
             <div class="nav-tooltip">Dashboard</div>
           </a>
         </li>
+
+        <!--danh sách các mục tiêu-->
+        <li class="nav-item">
+          <a class="nav-link {% if segment == 'index_targets' %}active{% endif %}" href="{{ url_for('targets_blueprint.targets') }}">
+            <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
+                  style="width: 32px; height: 32px; overflow: hidden;">
+              <img src="{{ url_for('static', filename='assets/img/target.png') }}" 
+                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
+            </div>
+            <span class="nav-link-text ms-1">Targets</span>
+            <div class="nav-tooltip">Targets</div>
+          </a>
+        </li>
+
+        <!--danh sách các POCs-->
+        <li class="nav-item">
+          <a class="nav-link {% if segment == 'index-pocs' %}active{% endif %}" href="{{ url_for('home_blueprint.pocs') }}">
+            <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
+                  style="width: 32px; height: 32px; overflow: hidden;">
+              <img src="{{ url_for('static', filename='assets/img/pocs.png') }}" 
+                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
+            </div>
+            <span class="nav-link-text ms-1">POCs</span>
+            <div class="nav-tooltip">POCs</div>
+          </a>
+        </li>
+
+        <!--danh sách các shells-->
+        <li class="nav-item">
+          <a class="nav-link {% if segment == 'index_shell' %}active{% endif %}" href="{{ url_for('managershell_blueprint.shells') }}">
+            <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
+                  style="width: 32px; height: 32px; overflow: hidden;">
+              <img src="{{ url_for('static', filename='assets/img/shells.png') }}" 
+                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
+            </div>
+            <span class="nav-link-text ms-1">Shells</span>
+            <div class="nav-tooltip">Shells</div>
+          </a>
+        </li>
+
+        <!--danh sách các weevely-->
+        <li class="nav-item">
+          <a class="nav-link {% if segment == 'index_weevely' %}active{% endif %}" href="{{ url_for('weevely_blueprint.weevely') }}">
+            <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center"
+                  style="width: 32px; height: 32px; overflow: hidden;">
+              <img src="{{ url_for('static', filename='assets/img/weevely-logo.svg') }}" 
+                   style="max-width: 100%; height: auto; display: block; object-fit: contain;">
+            </div>
+            <span class="nav-link-text ms-1">Weevely</span>
+            <div class="nav-tooltip">Weevely</div>
+          </a>
+        </li>
+
+        
 
         <li class="nav-item">
           <a class="nav-link {% if segment == 'dynamic_dt' %}active{% endif %}" href="{{ url_for('table_blueprint.dynamic_dt') }}">
@@ -343,17 +362,17 @@
 /* Sidebar collapsed state - TOÀN BỘ ĐEN */
 .sidenav.collapsed {
     width: 70px !important;
-    background: #1a1a1a !important;
+    background: #ffffff !important;
 }
 
 .sidenav.collapsed .sidenav-header {
-    background: #1a1a1a !important;
+    background: #ffffff !important;
     padding: 15px 5px !important;
     text-align: center;
 }
 
 .sidenav.collapsed .navbar-collapse {
-    background: #1a1a1a !important;
+    background: #ffffff !important;
 }
 
 .sidenav.collapsed .toggle-btn {

