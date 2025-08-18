@@ -540,30 +540,126 @@
 #fileContentDisplay {
   margin: 0;
   padding: 20px;
-  background: #282c34;
-  color: #abb2bf;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   border: none;
   border-radius: 0;
+  overflow-x: auto;
+  white-space: pre;
 }
 
 #fileContentCode {
-  color: #abb2bf;
+  color: #d4d4d4;
   background: transparent;
   padding: 0;
   margin: 0;
   font-family: inherit;
+  white-space: pre;
+  word-wrap: break-word;
 }
 
-/* Syntax highlighting colors */
-.php-tag { color: #c678dd; }
+/* Line numbers styling */
+.file-viewer-content {
+  position: relative;
+}
+
+/* Custom scrollbar for code */
+#fileContentDisplay::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#fileContentDisplay::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+#fileContentDisplay::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+#fileContentDisplay::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* Syntax highlighting colors - PHP */
+.php-tag { color: #c678dd; font-weight: bold; }
 .php-variable { color: #e06c75; }
 .php-string { color: #98c379; }
 .php-comment { color: #5c6370; font-style: italic; }
 .php-keyword { color: #c678dd; font-weight: bold; }
 .php-number { color: #d19a66; }
+
+/* JavaScript */
+.js-keyword { color: #c678dd; font-weight: bold; }
+.js-string { color: #98c379; }
+.js-number { color: #d19a66; }
+.js-comment { color: #5c6370; font-style: italic; }
+.js-literal { color: #56b6c2; font-weight: bold; }
+
+/* HTML */
+.html-tag { color: #e06c75; font-weight: bold; }
+.html-attr { color: #d19a66; }
+
+/* CSS */
+.css-property { color: #61afef; font-weight: bold; }
+.css-value { color: #98c379; }
+.css-color { color: #e06c75; }
+.css-comment { color: #5c6370; font-style: italic; }
+
+/* Python */
+.py-keyword { color: #c678dd; font-weight: bold; }
+.py-string { color: #98c379; }
+.py-number { color: #d19a66; }
+.py-comment { color: #5c6370; font-style: italic; }
+
+/* Java */
+.java-keyword { color: #c678dd; font-weight: bold; }
+.java-string { color: #98c379; }
+.java-number { color: #d19a66; }
+.java-comment { color: #5c6370; font-style: italic; }
+
+/* SQL */
+.sql-keyword { color: #61afef; font-weight: bold; }
+.sql-string { color: #98c379; }
+.sql-number { color: #d19a66; }
+.sql-comment { color: #5c6370; font-style: italic; }
+
+/* XML */
+.xml-tag { color: #e06c75; font-weight: bold; }
+.xml-attr { color: #d19a66; }
+.xml-comment { color: #5c6370; font-style: italic; }
+
+/* JSON */
+.json-key { color: #61afef; font-weight: bold; }
+.json-string { color: #98c379; }
+.json-number { color: #d19a66; }
+.json-literal { color: #56b6c2; font-weight: bold; }
+
+/* Bash */
+.bash-keyword { color: #c678dd; font-weight: bold; }
+.bash-string { color: #98c379; }
+.bash-comment { color: #5c6370; font-style: italic; }
+.bash-variable { color: #e06c75; }
+
+/* Markdown */
+.md-heading { color: #61afef; font-weight: bold; }
+.md-bold { color: #e06c75; font-weight: bold; }
+.md-italic { color: #d19a66; font-style: italic; }
+.md-code { color: #98c379; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; }
+.md-link { color: #56b6c2; text-decoration: underline; }
+
+/* Plain Text/Logs */
+.log-level { color: #e06c75; font-weight: bold; }
+.log-timestamp { color: #61afef; }
+.log-version { color: #98c379; }
+
+/* Generic */
+.generic-string { color: #98c379; }
+.generic-number { color: #d19a66; }
 
 /* File row double-click hint */
 .file-row {
@@ -1079,10 +1175,16 @@ function viewFileContent(fileId) {
         document.getElementById('viewerFileType').textContent = data.type.toUpperCase();
         document.getElementById('viewerFileLines').textContent = data.lines;
         
-        // Áp dụng syntax highlighting
+        // Xử lý nội dung file với syntax highlighting
         const contentElement = document.getElementById('fileContentCode');
-        const extension = data.filename.split('.').pop().toLowerCase();
-        contentElement.innerHTML = applySyntaxHighlighting(data.content, extension);
+        const content = data.content;
+        
+        // Xác định loại file để áp dụng syntax highlighting phù hợp
+        const fileExtension = data.filename.split('.').pop().toLowerCase();
+        const highlightedContent = applySyntaxHighlighting(content, fileExtension);
+        
+        contentElement.innerHTML = highlightedContent;
+        console.log(`[+] Content loaded for ${data.filename}`);
         
         // Hiển thị modal
         const modal = new bootstrap.Modal(document.getElementById('fileViewerModal'));
@@ -1097,39 +1199,182 @@ function viewFileContent(fileId) {
     });
 }
 
-// Apply basic syntax highlighting
-function applySyntaxHighlighting(content, extension) {
+// Hàm áp dụng syntax highlighting cho code
+function applySyntaxHighlighting(content, fileExtension) {
   if (!content) return '';
   
-  let highlighted = content;
+  // Escape HTML entities để tránh XSS
+  content = escapeHtml(content);
   
-  if (extension === 'php') {
-    // PHP syntax highlighting
-    highlighted = highlighted
-      .replace(/(&lt;\?php|\?&gt;)/g, '<span class="php-tag">$1</span>')
-      .replace(/(\$\w+)/g, '<span class="php-variable">$1</span>')
-      .replace(/(["'].*?["'])/g, '<span class="php-string">$1</span>')
-      .replace(/(\/\/.*$)/gm, '<span class="php-comment">$1</span>')
-      .replace(/\b(if|else|function|return|echo|isset|shell_exec|move_uploaded_file)\b/g, '<span class="php-keyword">$1</span>')
-      .replace(/\b(\d+)\b/g, '<span class="php-number">$1</span>');
-  } else if (extension === 'sql') {
-    // SQL syntax highlighting
-    highlighted = highlighted
-      .replace(/\b(CREATE|SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|TABLE|DATABASE|USE|PRIMARY|KEY|NOT|NULL|AUTO_INCREMENT|DEFAULT|CURRENT_TIMESTAMP)\b/gi, '<span class="php-keyword">$1</span>')
-      .replace(/(["'].*?["'])/g, '<span class="php-string">$1</span>')
-      .replace(/(--.*$)/gm, '<span class="php-comment">$1</span>')
-      .replace(/\b(\d+)\b/g, '<span class="php-number">$1</span>');
+  // Áp dụng syntax highlighting dựa trên loại file
+  switch (fileExtension) {
+    case 'php':
+      return highlightPHP(content);
+    case 'js':
+    case 'javascript':
+      return highlightJavaScript(content);
+    case 'html':
+    case 'htm':
+      return highlightHTML(content);
+    case 'css':
+      return highlightCSS(content);
+    case 'py':
+    case 'python':
+      return highlightPython(content);
+    case 'java':
+      return highlightJava(content);
+    case 'sql':
+      return highlightSQL(content);
+    case 'xml':
+      return highlightXML(content);
+    case 'json':
+      return highlightJSON(content);
+    case 'sh':
+    case 'bash':
+      return highlightBash(content);
+    case 'md':
+    case 'markdown':
+    case 'yml':
+      return highlightMarkdown(content);
+    case 'txt':
+    case 'log':
+      return highlightPlainText(content);
+    default:
+      return highlightGeneric(content);
   }
-  
-  // Escape HTML entities
-  highlighted = highlighted
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/&lt;span class=/g, '<span class=')
-    .replace(/&lt;\/span&gt;/g, '</span>');
-  
-  return highlighted;
 }
+
+// Highlight PHP
+function highlightPHP(content) {
+  return content
+    .replace(/(&lt;?php|&lt;?=)/g, '<span class="php-tag">$1</span>')
+    .replace(/(&lt;?php|&lt;?=)/g, '<span class="php-tag">$1</span>')
+    .replace(/\b(function|class|public|private|protected|static|const|var|echo|print|return|if|else|elseif|foreach|for|while|do|switch|case|break|continue|new|extends|implements|interface|abstract|final|namespace|use|as|require|include|require_once|include_once)\b/g, '<span class="php-keyword">$1</span>')
+    .replace(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, '<span class="php-variable">$$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;|'[^']*')/g, '<span class="php-string">$1</span>')
+    .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="php-number">$1</span>')
+    .replace(/(\/\*[\s\S]*?\*\/|\/\/.*)/g, '<span class="php-comment">$1</span>');
+}
+
+// Highlight JavaScript
+function highlightJavaScript(content) {
+  return content
+    .replace(/\b(function|var|let|const|if|else|for|while|do|switch|case|break|continue|return|new|class|extends|import|export|default|async|await|try|catch|finally|throw)\b/g, '<span class="js-keyword">$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;|'[^']*'|`[^`]*`)/g, '<span class="js-string">$1</span>')
+    .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="js-number">$1</span>')
+    .replace(/(\/\*[\s\S]*?\*\/|\/\/.*)/g, '<span class="js-comment">$1</span>')
+    .replace(/\b(true|false|null|undefined)\b/g, '<span class="js-literal">$1</span>');
+}
+
+// Highlight HTML
+function highlightHTML(content) {
+  return content
+    .replace(/(&lt;[^&]*&gt;)/g, '<span class="html-tag">$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;)/g, '<span class="html-attr">$1</span>')
+    .replace(/(&lt;\/[^&]*&gt;)/g, '<span class="html-tag">$1</span>');
+}
+
+// Highlight CSS
+function highlightCSS(content) {
+  return content
+    .replace(/([a-zA-Z-]+)(?=\s*:)/g, '<span class="css-property">$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;)/g, '<span class="css-value">$1</span>')
+    .replace(/(#[0-9a-fA-F]{3,6}|rgb\([^)]+\)|rgba\([^)]+\))/g, '<span class="css-color">$1</span>')
+    .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="css-comment">$1</span>');
+}
+
+// Highlight Python
+function highlightPython(content) {
+  return content
+    .replace(/\b(def|class|if|elif|else|for|while|try|except|finally|with|import|from|as|return|yield|raise|assert|pass|break|continue|global|nonlocal|lambda|True|False|None)\b/g, '<span class="py-keyword">$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;|'[^']*')/g, '<span class="py-string">$1</span>')
+    .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="py-number">$1</span>')
+    .replace(/(#.*)/g, '<span class="py-comment">$1</span>');
+}
+
+// Highlight Java
+function highlightJava(content) {
+  return content
+    .replace(/\b(public|private|protected|static|final|abstract|class|interface|extends|implements|new|if|else|for|while|do|switch|case|break|continue|return|try|catch|finally|throw|throws|import|package|synchronized|volatile|transient|native|strictfp)\b/g, '<span class="java-keyword">$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;|'[^']*')/g, '<span class="java-string">$1</span>')
+    .replace(/\b(\d+(?:\.\d+)?[fdl]?)\b/g, '<span class="java-number">$1</span>')
+    .replace(/(\/\*[\s\S]*?\*\/|\/\/.*)/g, '<span class="java-comment">$1</span>');
+}
+
+// Highlight SQL
+function highlightSQL(content) {
+  return content
+    .replace(/\b(SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TABLE|INDEX|PRIMARY|FOREIGN|KEY|REFERENCES|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP|BY|ORDER|HAVING|UNION|ALL|DISTINCT|AS|IN|NOT|AND|OR|IS|NULL|LIKE|BETWEEN|EXISTS|CASE|WHEN|THEN|ELSE|END)\b/gi, '<span class="sql-keyword">$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;|'[^']*')/g, '<span class="sql-string">$1</span>')
+    .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="sql-number">$1</span>')
+    .replace(/(--.*)/g, '<span class="sql-comment">$1</span>');
+}
+
+// Highlight XML
+function highlightXML(content) {
+  return content
+    .replace(/(&lt;[^&]*&gt;)/g, '<span class="xml-tag">$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;)/g, '<span class="xml-attr">$1</span>')
+    .replace(/(&lt;\/[^&]*&gt;)/g, '<span class="xml-tag">$1</span>')
+    .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="xml-comment">$1</span>');
+}
+
+// Highlight JSON
+function highlightJSON(content) {
+  return content
+    .replace(/(&quot;[^&quot;]*&quot;)(?=\s*:)/g, '<span class="json-key">$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;)/g, '<span class="json-string">$1</span>')
+    .replace(/\b(true|false|null)\b/g, '<span class="json-literal">$1</span>')
+    .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="json-number">$1</span>');
+}
+
+// Highlight Bash
+function highlightBash(content) {
+  return content
+    .replace(/\b(if|then|else|elif|fi|for|while|do|done|case|esac|function|local|export|source|echo|printf|read|exit|return|break|continue)\b/g, '<span class="bash-keyword">$1</span>')
+    .replace(/(&quot;[^&quot;]*&quot;|'[^']*')/g, '<span class="bash-string">$1</span>')
+    .replace(/(#.*)/g, '<span class="bash-comment">$1</span>')
+    .replace(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, '<span class="bash-variable">$$1</span>');
+}
+
+// Highlight Markdown
+function highlightMarkdown(content) {
+  return content
+    .replace(/^(#{1,6})\s+(.+)$/gm, '<span class="md-heading">$1 $2</span>')
+    .replace(/\*\*(.+?)\*\*/g, '<span class="md-bold">**$1**</span>')
+    .replace(/\*(.+?)\*/g, '<span class="md-italic">*$1*</span>')
+    .replace(/`([^`]+)`/g, '<span class="md-code">`$1`</span>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="md-link">[$1]($2)</span>');
+}
+
+// Highlight Plain Text
+function highlightPlainText(content) {
+  return content
+    .replace(/^(ERROR|WARN|INFO|DEBUG):/gm, '<span class="log-level">$1:</span>')
+    .replace(/\b(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\b/g, '<span class="log-timestamp">$1</span>')
+    .replace(/\b(\d+\.\d+\.\d+)\b/g, '<span class="log-version">$1</span>');
+}
+
+// Highlight Generic (cho các file không xác định)
+function highlightGeneric(content) {
+  return content
+    .replace(/(&quot;[^&quot;]*&quot;|'[^']*')/g, '<span class="generic-string">$1</span>')
+    .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="generic-number">$1</span>');
+}
+
+// Escape HTML để tránh XSS
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+
 
 // Copy file content to clipboard
 function copyFileContent() {

@@ -56,72 +56,6 @@ def list_file():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-def get_unique_filename(folder, filename):
-    name, ext = os.path.splitext(filename)
-    counter = 1
-    new_filename = filename
-
-    while os.path.exists(os.path.join(folder, new_filename)):
-        new_filename = f"{name}({counter}){ext}"
-        counter += 1
-
-    return new_filename
-
-#upload file lên server
-@blueprint.route('/api/weevely/upload-file', methods=['POST'])
-def upload_file_to_server():
-    try:
-        file = request.files['file']
-        if file and file.filename:
-            file_name = get_unique_filename(get_folder_file_upload(), file.filename)           
-            
-            # Lưu file trước
-            file.save(os.path.join(get_folder_file_upload(), file_name))            
-            
-            # Định nghĩa local_path trước khi sử dụng
-            local_path = os.path.join(get_folder_file_upload(), file_name)
-            
-            # Tính file size
-            file_size = os.path.getsize(local_path)  # Lấy size theo bytes
-            file_size_kb = file_size / 1024  # Chuyển sang KB
-            
-            # Tính hash SHA256
-            sha256_hash = hashlib.sha256()
-            with open(local_path, "rb") as f:
-                for chunk in iter(lambda: f.read(4096), b""):
-                    sha256_hash.update(chunk)
-            file_hash = sha256_hash.hexdigest()
-
-            source_path = ""
-            local_path_db = os.path.join('..', 'dataserver', 'uploads', file_name) # Đường dẫn để lưu vào DB
-            file_type = "upload"
-            shell_conn = ""
-            #datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
-            file_created_at = dt.datetime.utcnow() 
-            file_updated_at = dt.datetime.utcnow() 
-            
-            #Lưu file vào database
-            data_file = DataFile(
-                file_name=file_name,
-                source_path=source_path,
-                local_path=local_path_db,
-                file_type=file_type,
-                file_size=file_size_kb,
-                file_hash=file_hash,
-                connection_id=shell_conn,
-                file_created_at=file_created_at,
-                file_updated_at=file_updated_at
-            )   
-            print(f"[+] Data file: {data_file}")
-            db.session.add(data_file)
-            db.session.commit()
-
-            return jsonify({'status': '1', 'msg': 'File uploaded successfully', 'file_name': file.filename})
-        else:
-            return jsonify({'status': '-1', 'msg': 'No file provided'}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 #lấy tất cả thông tin về file đã download
 @blueprint.route('/api/weevely/list-file-download', methods=['GET'])
 def list_filedownload():
@@ -176,7 +110,76 @@ def list_fileupload():
     except Exception as e:
         return jsonify({'status': '0', 'error': str(e)}), 500
 
-#view one file in folder 
+
+
+def get_unique_filename(folder, filename):
+    name, ext = os.path.splitext(filename)
+    counter = 1
+    new_filename = filename
+
+    while os.path.exists(os.path.join(folder, new_filename)):
+        new_filename = f"{name}({counter}){ext}"
+        counter += 1
+
+    return new_filename
+
+#upload file lên server => OKKKKKKKKKKKKKKKKKKKKKKKKKKK
+@blueprint.route('/api/weevely/upload-file', methods=['POST'])
+def upload_file_to_server():
+    try:
+        file = request.files['file']
+        if file and file.filename:
+            file_name = get_unique_filename(get_folder_file_upload(), file.filename)           
+            
+            # Lưu file trước
+            file.save(os.path.join(get_folder_file_upload(), file_name))            
+            
+            # Định nghĩa local_path trước khi sử dụng
+            local_path = os.path.join(get_folder_file_upload(), file_name)
+            
+            # Tính file size
+            file_size = os.path.getsize(local_path)  # Lấy size theo bytes
+            file_size_kb = file_size / 1024  # Chuyển sang KB
+            
+            # Tính hash SHA256
+            sha256_hash = hashlib.sha256()
+            with open(local_path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    sha256_hash.update(chunk)
+            file_hash = sha256_hash.hexdigest()
+
+            source_path = ""
+            local_path_db = os.path.join('..', 'dataserver', 'uploads', file_name) # Đường dẫn để lưu vào DB
+            file_type = "upload"
+            shell_conn = ""
+            #datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+            file_created_at = dt.datetime.utcnow() 
+            file_updated_at = dt.datetime.utcnow() 
+            
+            #Lưu file vào database
+            data_file = DataFile(
+                file_name=file_name,
+                source_path=source_path,
+                local_path=local_path_db,
+                file_type=file_type,
+                file_size=file_size_kb,
+                file_hash=file_hash,
+                connection_id=shell_conn,
+                file_created_at=file_created_at,
+                file_updated_at=file_updated_at
+            )   
+            print(f"[+] Data file: {data_file}")
+            db.session.add(data_file)
+            db.session.commit()
+
+            return jsonify({'status': '1', 'msg': 'File uploaded successfully', 'file_name': file.filename})
+        else:
+            return jsonify({'status': '-1', 'msg': 'No file provided'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+#view one file có thể dùng chung được cho cả upload và download
 @blueprint.route('/api/weevely/view-file', methods=['GET'])
 def view_file():
     """View content of a specific file - can read any file type intelligently"""
@@ -311,7 +314,6 @@ def view_file():
                 })
             except Exception as e:
                 return jsonify({'error': f'Cannot read file content: {str(e)}'}), 500
-        
         # Xử lý archive files
         elif file_ext in archive_extensions:
             archive_info = f'[Archive File - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nArchive Details:\n- Format: {file_ext.upper()}\n- Compressed size: {file_size} bytes\n\nNote: This is a compressed archive file. Use download button to save it.'
@@ -443,13 +445,9 @@ def view_upload_file():
     """View content of an uploaded file by ID"""
     try:
         file_id = request.args.get('id')
-        if not file_id:
-            return jsonify({'error': 'File ID is required'}), 400
         
         # Lấy thông tin file từ database
         file_obj = DataFile.get_by_id(file_id)
-        if not file_obj:
-            return jsonify({'error': 'File not found'}), 404
         
         # Kiểm tra xem file có tồn tại trên disk không
         upload_folder = get_folder_file_upload()
@@ -459,13 +457,18 @@ def view_upload_file():
             return jsonify({'error': 'File not found on disk'}), 404
         
         # Kiểm tra xem file có phải là text file không
-        text_extensions = {'.txt', '.py', '.js', '.html', '.css', '.php', '.java', '.md', '.json', '.xml', '.sql', '.log', '.conf', '.ini', '.cfg'}
+        text_extensions = {
+                            '.txt', '.py', '.js', '.ts', '.jsx', '.tsx', '.html', '.htm', '.css', '.scss', '.sass',
+                            '.php', '.java', '.md', '.json', '.xml', '.sql', '.log', '.conf', '.ini', '.cfg',
+                            '.sh', '.bat', '.yml', '.yaml', '.rb', '.go', '.c', '.cpp', '.h', '.hpp', '.rs'
+                        }
         file_ext = os.path.splitext(file_obj.file_name)[1].lower()
         
         if file_ext in text_extensions:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
+                #print(f"[+] Content: {content}")
                 return jsonify({
                     'status': '1',
                     'filename': file_obj.file_name,
@@ -576,8 +579,8 @@ def download_upload_file():
         return jsonify({'error': str(e)}), 500
 
 #Xoa file
-@blueprint.route('/api/weevely/delete-file', methods=['DELETE'])
-def delete_file():
+@blueprint.route('/api/weevely/delete-download-file', methods=['DELETE'])
+def delete_download_file():
     """Delete a specific file"""
     try:
         filename = request.args.get('filename')
@@ -613,7 +616,7 @@ def delete_file():
         return jsonify({'error': str(e)}), 500
 
 #tải file về máy client
-@blueprint.route('/api/weevely/download-file', methods=['GET'])
+@blueprint.route('/api/weevely/download-download-file', methods=['GET'])
 def download_file():
     """Download a specific file"""
     try:

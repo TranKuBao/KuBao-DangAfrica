@@ -350,7 +350,7 @@
 
   <!-- thông tin các trường mình sẽ hiện ra ở đây ở đây-->
   {% include "weevely/add-weevely.html"%}
-  
+  {% include "weevely/add-weevely-payload.html"%}
 
   <!--table hiển thị list Mục tiêu ở đây-->
   <div class="row my-3">
@@ -362,12 +362,13 @@
               <h6 class="mb-0" style="margin-left: 20px !important ;">Weevely Connections</h6>
             </div>
 
-            
+      
 
             <div class="col-6 text-end" >
-              <a class="btn bg-gradient-dark mb-0" id="btn-addshells" style="margin-right: 20px !important;"
-                ><i class="fas fa-plus"></i>&nbsp;&nbsp;Add Weevely</a
-              >
+              <a class="btn bg-gradient-dark mb-0" id="btn-addshells" style="margin-right: 20px !important;">
+                <i class="fas fa-plus"></i>&nbsp;&nbsp;Add Weevely-Shell</a>
+                <a class="btn bg-gradient-dark mb-0" id="btn-createPayloadshells" style="margin-right: 20px !important;">
+                  <i class="fas fa-plus"></i>&nbsp;&nbsp;Add Weevely-Payload</a>
             </div>
           </div>
         </div>
@@ -723,7 +724,7 @@
       document.getElementById("btn-addshells").innerHTML ='<i class="fas fa-minus"></i>&nbsp;&nbsp;Hide Form';
     } else {
       document.getElementById("editshell-hidden").hidden = true;
-      document.getElementById("btn-addshells").innerHTML ='<i class="fas fa-plus"></i>&nbsp;&nbsp;Add shell';
+      document.getElementById("btn-addshells").innerHTML ='<i class="fas fa-plus"></i>&nbsp;&nbsp;Add Weevely-Shell';
     }
   }
   document.getElementById("btn-addshells").addEventListener("click", function (event) {
@@ -731,6 +732,22 @@
       console.log("Nút thêm shell đã được nhấn");
       on_off_addshell();
     });
+
+  function on_off_createPayloadshell() {
+    if (document.getElementById("createPayloadshell-hidden").hidden == true) {
+      document.getElementById("createPayloadshell-hidden").hidden = false;
+      document.getElementById("btn-createPayloadshells").innerHTML ='<i class="fas fa-minus"></i>&nbsp;&nbsp;Hide Form';
+    } else {
+      document.getElementById("createPayloadshell-hidden").hidden = true;
+      document.getElementById("btn-createPayloadshells").innerHTML ='<i class="fas fa-plus"></i>&nbsp;&nbsp;Add Weevely-Payload';
+    }
+  }  
+  document.getElementById("btn-createPayloadshells").addEventListener("click", function (event) {
+      event.preventDefault();
+      console.log("Nút thêm payload đã được nhấn");
+      on_off_createPayloadshell();
+    });
+
 
   // Custom Dropdown Functionality
   function toggleDropdown(dropdownId) {
