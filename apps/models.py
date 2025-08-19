@@ -878,11 +878,12 @@ class DataFile(db.Model):
     file_type = db.Column(db.String(100), nullable=False)
     file_size = db.Column(db.Integer, nullable=False)
     file_hash = db.Column(db.String(255), nullable=False)
+    password = db.Column(db.String(255), nullable=True)
     connection_id = db.Column(db.String(255), db.ForeignKey('shell_connections.connection_id'), nullable=False)
     file_created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
     file_updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
 
-    def __init__(self, file_name, source_path, local_path, file_type, file_size, file_hash, connection_id, file_created_at, file_updated_at):
+    def __init__(self, file_name, source_path, local_path, file_type, file_size, file_hash, connection_id, file_created_at, file_updated_at, password = ''):
         self.file_name = file_name
         self.source_path = source_path
         self.local_path = local_path
@@ -892,6 +893,7 @@ class DataFile(db.Model):
         self.connection_id = connection_id
         self.file_created_at = file_created_at
         self.file_updated_at = file_updated_at
+        self.password = password
     
     def __repr__(self):
         return f'<DataFile {self.file_id}: {self.file_name}>'
@@ -906,6 +908,7 @@ class DataFile(db.Model):
             'file_size': self.file_size,
             'file_size_readable': self.get_file_size_readable(),
             'file_hash': self.file_hash,
+            'password': self.password,
             'connection_id': self.connection_id,
             'file_created_at': self.file_created_at.isoformat() if self.file_created_at else None,
             'file_updated_at': self.file_updated_at.isoformat() if self.file_updated_at else None

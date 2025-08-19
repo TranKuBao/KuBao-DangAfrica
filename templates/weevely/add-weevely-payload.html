@@ -110,9 +110,27 @@
         }
 
         //call api to create weevely payload
-        fetch('/api/weevely/create-weevely-payload', {
-            method: 'POST',
-            body: JSON.stringify({ file_name, password }),
+        $.ajax({
+            url: '/api/weevely/create-weevely-payload',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ 'filename':file_name, 'password':password }),
+            success: function(response) {
+                if(response.status === '1') {
+                  //reload page
+                  refreshUploadFilesList();
+
+                  showAlertSuccess('Weevely Payload created successfully');
+                }
+                else {
+                  showAlertError('Failed to create Weevely Payload');
+                }
+                console.log(response);
+            },
+            error: function(error) {
+                showAlertError('Failed to create Weevely Payload');
+                console.log(error);
+            }
         });
     });
   </script>
