@@ -348,6 +348,9 @@
           <div class="col-md-2">
             <strong>Lines:</strong> <span id="viewerFileLines" class="text-success"></span>
           </div>
+          <div class="col-md-2">
+            <strong>Password:</strong> <span id="viewerFilePassword" class="text-danger"></span>
+          </div>
         </div>
         
         <!-- File content with syntax highlighting -->
@@ -1110,7 +1113,7 @@ function uploadSingleFile(file, index, total, callback) {
   const formData = new FormData();
   formData.append('file', file);
   
-  fetch('/api/weevely/upload-file', {
+  fetch('/api/dataserver/upload-file', {
     method: 'POST',
     body: formData
   })
@@ -1164,7 +1167,7 @@ function viewFileContent(fileId) {
   }
   
   // Gọi API để lấy nội dung file thực tế
-  fetch(`/api/weevely/view-upload-file?id=${fileIdNum}`)
+  fetch(`/api/dataserver/view-upload-file?id=${fileIdNum}`)
     .then(response => response.json())
     .then(data => {
       if (data.status === '1') {
@@ -1174,7 +1177,7 @@ function viewFileContent(fileId) {
         document.getElementById('viewerFileSize').textContent = data.size_readable || formatFileSize(data.size || 0);
         document.getElementById('viewerFileType').textContent = data.type.toUpperCase();
         document.getElementById('viewerFileLines').textContent = data.lines;
-        
+        document.getElementById('viewerFilePassword').textContent = data.password;
         // Xử lý nội dung file với syntax highlighting
         const contentElement = document.getElementById('fileContentCode');
         const content = data.content;
@@ -1447,7 +1450,7 @@ function refreshUploadFilesList() {
     `;
   }
   
-  fetch(`/api/weevely/list-file?folder=upload&search=${searchInput}`)
+  fetch(`/api/dataserver/list-file?folder=upload&search=${searchInput}`)
     .then(response => response.json())
     .then(data => {
       if (data.status === '1' && data.files && Array.isArray(data.files)) {
@@ -1475,7 +1478,7 @@ function refreshUploadFilesList() {
 
 // Refresh download files list from API
 function refreshDownloadFilesList() {
-  fetch('/api/weevely/list-file-download')
+  fetch('/api/dataserver/list-file-download')
     .then(response => response.json())
     .then(data => {
       if (data.files && Array.isArray(data.files)) {
@@ -1669,7 +1672,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const fileIdNum = fileInfo.id;
           
           if (fileIdNum) {
-            fetch(`/api/weevely/delete-upload-file?id=${fileIdNum}`, {
+            fetch(`/api/dataserver/delete-upload-file?id=${fileIdNum}`, {
               method: 'DELETE'
             })
             .then(response => response.json())
@@ -1745,7 +1748,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (fileIdNum) {
           // Tạo link download
-          const downloadUrl = `/api/weevely/download-upload-file?id=${fileIdNum}`;
+          const downloadUrl = `/api/dataserver/download-upload-file?id=${fileIdNum}`;
           const a = document.createElement('a');
           a.href = downloadUrl;
           a.download = fileInfo.name;

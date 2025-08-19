@@ -15,9 +15,9 @@ from apps.models import ShellConnection, ShellCommand, ShellStatus, ShellType, d
 from apps.exceptions.exception import InvalidUsage
 
 import datetime as dt
-
-# File extensions allowed for upload/download
-
+#############################################
+#dataserver upload/download
+##############################################
 def get_folder_file_upload():
     """Get upload folder path"""
     return os.path.join(current_app.root_path, '..', 'dataserver', 'uploads')
@@ -27,7 +27,7 @@ def get_folder_file_download():
     return os.path.join(current_app.root_path, '..', 'dataserver', 'downloads')
 
 #Chức năng download file và upload file lên server từ CLIENT request
-@blueprint.route('/api/weevely/list-file', methods=['GET'])
+@blueprint.route('/api/dataserver/list-file', methods=['GET'])
 def list_file():
     """List all files in the upload folder"""
     try:
@@ -57,7 +57,7 @@ def list_file():
         return jsonify({'error': str(e)}), 500
 
 #lấy tất cả thông tin về file đã download
-@blueprint.route('/api/weevely/list-file-download', methods=['GET'])
+@blueprint.route('/api/dataserver/list-file-download', methods=['GET'])
 def list_filedownload():
     """List all files in the download folder"""
     try:
@@ -82,7 +82,7 @@ def list_filedownload():
         return jsonify({'error': str(e)}), 500
 
 # Lấy danh sách file upload từ database
-@blueprint.route('/api/weevely/list-file-upload', methods=['GET'])
+@blueprint.route('/api/dataserver/list-file-upload', methods=['GET'])
 def list_fileupload():
     """List all uploaded files from database"""
     try:
@@ -124,7 +124,7 @@ def get_unique_filename(folder, filename):
     return new_filename
 
 #upload file lên server => OKKKKKKKKKKKKKKKKKKKKKKKKKKK
-@blueprint.route('/api/weevely/upload-file', methods=['POST'])
+@blueprint.route('/api/dataserver/upload-file', methods=['POST'])
 def upload_file_to_server():
     try:
         file = request.files['file']
@@ -180,7 +180,7 @@ def upload_file_to_server():
 
 
 #view one file có thể dùng chung được cho cả upload và download
-@blueprint.route('/api/weevely/view-file', methods=['GET'])
+@blueprint.route('/api/dataserver/view-file', methods=['GET'])
 def view_file():
     """View content of a specific file - can read any file type intelligently"""
     try:
@@ -204,6 +204,8 @@ def view_file():
         file_size = file_stat.st_size
         file_ext = os.path.splitext(filename)[1].lower()
         
+        password = DataFile.get_by_file_name(filename).password
+
         # Kiểm tra file size để tránh load file quá lớn
         MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB limit
         if file_size > MAX_FILE_SIZE:
@@ -214,7 +216,8 @@ def view_file():
                 'type': 'large_file',
                 'size': file_size,
                 'lines': 'N/A',
-                'warning': 'File too large to view'
+                'warning': 'File too large to view',
+                'password': password
             })
         
         # Định nghĩa các loại file và cách xử lý
@@ -246,7 +249,8 @@ def view_file():
                     'size_readable': f"{file_size / 1024:.2f} KB" if file_size < 1024*1024 else f"{file_size / (1024*1024):.2f} MB",
                     'lines': len(content.splitlines()),
                     'encoding': 'UTF-8',
-                    'file_type': 'Text File'
+                    'file_type': 'Text File',
+                    'password': password
                 })
             except UnicodeDecodeError:
                 # Thử với các encoding khác
@@ -264,7 +268,8 @@ def view_file():
                             'size_readable': f"{file_size / 1024:.2f} KB" if file_size < 1024*1024 else f"{file_size / (1024*1024):.2f} MB",
                             'lines': len(content.splitlines()),
                             'encoding': encoding,
-                            'file_type': 'Text File'
+                            'file_type': 'Text File',
+                            'password': password
                         })
                     except:
                         continue
@@ -286,7 +291,8 @@ def view_file():
                         'size': file_size,
                         'size_readable': f"{file_size / 1024:.2f} KB" if file_size < 1024*1024 else f"{file_size / (1024*1024):.2f} MB",
                         'lines': 'Binary',
-                        'file_type': 'Binary File (HEX View)'
+                        'file_type': 'Binary File (HEX View)',
+                        'password': password
                     })
                 except Exception as e:
                     return jsonify({'error': f'Cannot read file content: {str(e)}'}), 500
@@ -310,7 +316,8 @@ def view_file():
                     'size_readable': f"{file_size / (1024*1024):.2f} MB",
                     'lines': 'Binary Image',
                     'file_type': 'Image File',
-                    'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}'
+                    'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}',
+                    'password': password
                 })
             except Exception as e:
                 return jsonify({'error': f'Cannot read file content: {str(e)}'}), 500
@@ -327,7 +334,8 @@ def view_file():
                 'size_readable': f"{file_size / (1024*1024):.2f} MB",
                 'lines': 'Compressed Archive',
                 'file_type': 'Archive File',
-                'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}'
+                'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}',
+                'password': password
             })
         
         # Xử lý document files
@@ -343,7 +351,8 @@ def view_file():
                 'size_readable': f"{file_size / (1024*1024):.2f} MB",
                 'lines': 'Document',
                 'file_type': 'Document File',
-                'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}'
+                'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}',
+                'password': password
             })
         
         # Xử lý audio files
@@ -359,7 +368,8 @@ def view_file():
                 'size_readable': f"{file_size / (1024*1024):.2f} MB",
                 'lines': 'Audio',
                 'file_type': 'Audio File',
-                'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}'
+                'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}',
+                'password': password
             })
         
         # Xử lý video files
@@ -375,7 +385,8 @@ def view_file():
                 'size_readable': f"{file_size / (1024*1024):.2f} MB",
                 'lines': 'Video',
                 'file_type': 'Video File',
-                'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}'
+                'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}',
+                'password': password
             })
         
         # Xử lý các file khác (binary files)
@@ -399,7 +410,8 @@ def view_file():
                             'size': file_size,
                             'size_readable': f"{file_size / 1024:.2f} KB" if file_size < 1024*1024 else f"{file_size / (1024*1024):.2f} MB",
                             'lines': 'Unknown',
-                            'file_type': 'Text-like File'
+                            'file_type': 'Text-like File',
+                            'password': password
                         })
                 except Exception:
                     pass
@@ -420,7 +432,8 @@ def view_file():
                     'size_readable': f"{file_size / (1024*1024):.2f} MB",
                     'lines': 'Binary',
                     'file_type': 'Binary File',
-                    'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}'
+                    'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}',
+                    'password': password
                 })
                 
             except Exception as e:
@@ -433,14 +446,15 @@ def view_file():
                     'size_readable': f"{file_size / (1024*1024):.2f} MB",
                     'lines': 'Unknown',
                     'file_type': 'Unknown File Type',
-                    'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}'
+                    'download_url': f'/api/weevely/download-file?filename={filename}&folder={folder_type}',
+                    'password': password
                 })
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 # API để xem nội dung file upload từ database
-@blueprint.route('/api/weevely/view-upload-file', methods=['GET'])
+@blueprint.route('/api/dataserver/view-upload-file', methods=['GET'])
 def view_upload_file():
     """View content of an uploaded file by ID"""
     try:
@@ -463,7 +477,7 @@ def view_upload_file():
                             '.sh', '.bat', '.yml', '.yaml', '.rb', '.go', '.c', '.cpp', '.h', '.hpp', '.rs'
                         }
         file_ext = os.path.splitext(file_obj.file_name)[1].lower()
-        
+        password = file_obj.password
         if file_ext in text_extensions:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
@@ -478,7 +492,8 @@ def view_upload_file():
                     'size_readable': file_obj.get_file_size_readable(),
                     'lines': len(content.splitlines()),
                     'uploaded_at': file_obj.file_created_at.strftime('%Y-%m-%d %H:%M:%S') if file_obj.file_created_at else 'Unknown',
-                    'hash': file_obj.file_hash
+                    'hash': file_obj.file_hash,
+                    'password': password
                 })
             except UnicodeDecodeError:
                 # Thử với encoding khác
@@ -494,7 +509,8 @@ def view_upload_file():
                         'size_readable': file_obj.get_file_size_readable(),
                         'lines': len(content.splitlines()),
                         'uploaded_at': file_obj.file_created_at.strftime('%Y-%m-%d %H:%M:%S') if file_obj.file_created_at else 'Unknown',
-                        'hash': file_obj.file_hash
+                        'hash': file_obj.file_hash,
+                        'password': password
                     })
                 except:
                     return jsonify({'error': 'Cannot read file content'}), 500
@@ -510,14 +526,15 @@ def view_upload_file():
                 'size_readable': file_obj.get_file_size_readable(),
                 'lines': 'Binary',
                 'uploaded_at': file_obj.file_created_at.strftime('%Y-%m-%d %H:%M:%S') if file_obj.file_created_at else 'Unknown',
-                'hash': file_obj.file_hash
+                'hash': file_obj.file_hash,
+                'password': password
             })
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 # API để xóa file upload
-@blueprint.route('/api/weevely/delete-upload-file', methods=['DELETE'])
+@blueprint.route('/api/dataserver/delete-upload-file', methods=['DELETE'])
 def delete_upload_file():
     """Delete an uploaded file by ID"""
     try:
@@ -546,7 +563,7 @@ def delete_upload_file():
         return jsonify({'error': str(e)}), 500
 
 # API để download file upload
-@blueprint.route('/api/weevely/download-upload-file', methods=['GET'])
+@blueprint.route('/api/dataserver/download-upload-file', methods=['GET'])
 def download_upload_file():
     """Download an uploaded file by ID"""
     try:
@@ -579,7 +596,7 @@ def download_upload_file():
         return jsonify({'error': str(e)}), 500
 
 #Xoa file
-@blueprint.route('/api/weevely/delete-download-file', methods=['DELETE'])
+@blueprint.route('/api/dataserver/delete-download-file', methods=['DELETE'])
 def delete_download_file():
     """Delete a specific file"""
     try:
@@ -616,7 +633,7 @@ def delete_download_file():
         return jsonify({'error': str(e)}), 500
 
 #tải file về máy client
-@blueprint.route('/api/weevely/download-download-file', methods=['GET'])
+@blueprint.route('/api/dataserver/download-download-file', methods=['GET'])
 def download_file():
     """Download a specific file"""
     try:
@@ -763,7 +780,7 @@ def create_weevely_payload():
         print(f"[##] Error in create_weevely_payload: {str(e)}")
         return jsonify({'message': str(e)}), 500
 
-@blueprint.route('/api/add_weevely', methods=['POST'])
+@blueprint.route('/api/weevely/add-weevely', methods=['POST'])
 def add_weevely():
     """Add new weevely connection"""
     try:
@@ -771,13 +788,13 @@ def add_weevely():
         print(f"Add Weevely Data: {data}")
         
         if not data:
-            return jsonify({'status': '-1', 'message': 'No input data provided'}), 400
+            return jsonify({'status': '0', 'message': 'No input data provided'}), 400
         
         # Validate required fields
         required_fields = ['name', 'password', 'target_url']
         for field in required_fields:
             if not data.get(field):
-                return jsonify({'status': '-1', 'message': f'Field {field} is required'}), 400
+                return jsonify({'status': '0', 'message': f'Field {field} is required'}), 400
         
         # Generate unique ID
         connection_id = str(uuid.uuid4())
@@ -787,6 +804,8 @@ def add_weevely():
         target_ip = data.get('target_ip', '')
         notes = data.get('notes', '')
         
+        #print(f'{connection_id},{data["name"]},{data["target_url"]},{target_hostname},{target_ip},{data["password"]},{notes}')
+
         # Create weevely connection using ShellConnection with WEBSHELL type
         shell_conn = ShellConnection.create_connection(
             connection_id=connection_id,
@@ -796,6 +815,7 @@ def add_weevely():
             hostname=target_hostname,
             remote_ip=target_ip,
             status=ShellStatus.CLOSED,
+            password=data['password'],
             notes=f"Weevely Password: {data['password']}\n{notes}"
         )
         
@@ -808,7 +828,7 @@ def add_weevely():
         
     except Exception as e:
         print(f"Error in add_weevely: {str(e)}")
-        return jsonify({'status': '-1', 'message': 'Server error', 'details': str(e)}), 500
+        return jsonify({'message': 'Server error', 'details': str(e)}), 500
 
 @blueprint.route('/api/weevely/<weevely_id>', methods=['DELETE'])
 def delete_weevely(weevely_id):

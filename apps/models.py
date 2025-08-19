@@ -594,6 +594,7 @@ class ShellConnection(db.Model):
     user = db.Column(db.String(100), nullable=True)
     os_info = db.Column(db.String(255), nullable=True)
     privilege_level = db.Column(db.String(50), nullable=True)
+    password = db.Column(db.String(255), nullable=True)
     
     # Timing
     connect_time = db.Column(db.DateTime, nullable=True)
@@ -619,7 +620,7 @@ class ShellConnection(db.Model):
     commands = db.relationship('ShellCommand', backref='connection', lazy=True, cascade='all, delete-orphan')   
     def __init__(self, connection_id, name, shell_type, local_ip=None, local_port=None, 
                  remote_ip=None, remote_port=None, target_id=None, hostname=None, url=None, 
-                 status=ShellStatus.CLOSED, created_at=None, updated_at=None):
+                 status=ShellStatus.CLOSED, created_at=None, updated_at=None, password=None, notes=None):
         self.connection_id = connection_id
         self.name = name
         self.shell_type = shell_type
@@ -630,9 +631,11 @@ class ShellConnection(db.Model):
         self.target_id = target_id
         self.hostname = hostname
         self.url = url
+        self.password = password
         self.connect_time = dt.datetime.utcnow()
         self.last_active = dt.datetime.utcnow()
         self.status = status
+        self.notes = notes
         self.created_at = created_at
         self.updated_at = updated_at
     
@@ -664,6 +667,7 @@ class ShellConnection(db.Model):
             'process_id': self.process_id,
             'is_active': self.is_active,
             'notes': self.notes,
+            'password': self.password,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -941,7 +945,12 @@ class DataFile(db.Model):
         """Get file by ID"""
         return cls.query.filter_by(file_id=file_id).first()
 
+    @classmethod
+    def get_by_file_name(cls, file_name):
+        """Get file by name"""
+        return cls.query.filter_by(file_name=file_name).first()
     
+    @classmethod
     def update_file_info(self, **kwargs):
         """Update file information"""
         try:
