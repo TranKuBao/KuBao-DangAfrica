@@ -1,0 +1,101 @@
+<!-- Example: How to integrate Weevely Module Terminal in existing page -->
+
+{% extends "layouts/base.html" %}
+
+{% block title %} Weevely Management - Enhanced Terminal {% endblock %}
+
+{% block stylesheets %}
+<!-- Add any additional CSS if needed -->
+{% endblock stylesheets %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+  <!-- Existing Weevely List -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header pb-0">
+          <h6>Weevely Connections</h6>
+        </div>
+        <div class="card-body px-0 pt-0 pb-2">
+          <div class="table-responsive p-0">
+            <table class="table align-items-center mb-0">
+              <thead>
+                <tr>
+                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Connection</th>
+                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Status</th>
+                  <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Your existing weevely list goes here -->
+                {% include 'weevely/partial-list-weevely.html' %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Module Terminal Section -->
+  <div class="row">
+    <div class="col-12">
+      <!-- Include the complete module terminal -->
+      {% include 'weevely/partial-weevely-module-terminal.html' %}
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<!-- Your existing scripts -->
+
+<script>
+// Example: Auto-load terminal when clicking enhanced terminal button
+document.addEventListener('DOMContentLoaded', function() {
+    // Example initialization
+    console.log('Weevely Module Terminal loaded');
+    
+    // You can customize the behavior here
+    // For example, auto-show terminal if URL has parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const showTerminal = urlParams.get('terminal');
+    
+    if (showTerminal === 'true') {
+        WeevelyModuleTerminal.show();
+    }
+    
+    // Example: Load specific connection
+    const connectionId = urlParams.get('connection');
+    if (connectionId) {
+        WeevelyModuleTerminal.loadConnection(connectionId);
+    }
+});
+
+// Example: Custom function to enhance existing buttons
+function enhanceWeevelyButtons() {
+    // Find all terminal buttons and make them open the enhanced terminal
+    document.querySelectorAll('button[onclick*="openWeevelyTerminal"]').forEach(button => {
+        const onclick = button.getAttribute('onclick');
+        const weevelyId = onclick.match(/'([^']+)'/)?.[1];
+        
+        if (weevelyId) {
+            // Replace the onclick to use enhanced terminal
+            button.setAttribute('onclick', `WeevelyModuleTerminal.openTerminal('${weevelyId}')`);
+            
+            // Update button text and styling
+            button.innerHTML = '<i class="fa fa-terminal"></i> Enhanced Terminal';
+            button.classList.add('btn-gradient-info');
+            button.title = 'Open Enhanced Module Terminal';
+        }
+    });
+}
+
+// Call enhancement after DOM is loaded
+setTimeout(enhanceWeevelyButtons, 1000);
+</script>
+
+{% endblock javascripts %}

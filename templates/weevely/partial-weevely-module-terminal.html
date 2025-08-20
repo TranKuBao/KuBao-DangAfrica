@@ -1,0 +1,242 @@
+<!-- Main Weevely Module Terminal Partial -->
+<!-- Include this file in your main weevely page to enable module execution functionality -->
+
+<!-- Include the main terminal interface -->
+{% include 'weevely/weevely-module-terminal.html' %}
+
+<!-- Include all modals -->
+{% include 'weevely/weevely-modals.html' %}
+
+<!-- Include JavaScript functionality -->
+{% include 'weevely/weevely-module-scripts.html' %}
+
+<!-- Quick Include Script for existing pages -->
+<script>
+// Function to initialize weevely module terminal with connection data
+function initializeWeevelyModuleTerminal(weevelyData) {
+    if (weevelyData && weevelyData.url) {
+        document.getElementById('weevely_url').value = weevelyData.url;
+        appendToTerminal(`Loaded connection for: ${weevelyData.url}`, 'info');
+        
+        if (weevelyData.password) {
+            document.getElementById('weevely_password').value = weevelyData.password;
+            appendToTerminal('Password loaded from connection data', 'info');
+        }
+        
+        // Auto-test connection if requested
+        if (weevelyData.autoTest) {
+            setTimeout(() => {
+                testWeevelyConnection();
+            }, 1000);
+        }
+    }
+}
+
+// Function to show the terminal section (if it's hidden by default)
+function showWeevelyModuleTerminal() {
+    const terminalSection = document.querySelector('.container-fluid.py-4');
+    if (terminalSection) {
+        terminalSection.style.display = 'block';
+        terminalSection.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Function to populate terminal from existing weevely connection
+function loadWeevelyConnection(connectionId) {
+    // This should be called from the main weevely list to load connection details
+    // Implementation depends on your existing weevely connection data structure
+    
+    fetch(`/api/weevely/${connectionId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                initializeWeevelyModuleTerminal({
+                    url: data.weevely.url,
+                    password: data.weevely.password,
+                    autoTest: false
+                });
+                showWeevelyModuleTerminal();
+            }
+        })
+        .catch(error => {
+            console.error('Failed to load weevely connection:', error);
+            appendToTerminal(`Failed to load connection: ${error.message}`, 'error');
+        });
+}
+
+// Enhanced function to open weevely terminal from list
+function openWeevelyModuleTerminal(weevelyId) {
+    // Show the terminal section
+    showWeevelyModuleTerminal();
+    
+    // Load connection details if weevelyId is provided
+    if (weevelyId) {
+        loadWeevelyConnection(weevelyId);
+    }
+    
+    // Focus on URL input if empty
+    const urlInput = document.getElementById('weevely_url');
+    if (!urlInput.value) {
+        urlInput.focus();
+    }
+}
+
+// Integration helper for existing button clicks
+function enhanceExistingTerminalButtons() {
+    // Find existing terminal buttons and enhance them
+    const terminalButtons = document.querySelectorAll('[onclick*="openWeevelyTerminal"]');
+    terminalButtons.forEach(button => {
+        const originalOnclick = button.getAttribute('onclick');
+        const weevelyId = originalOnclick.match(/'([^']+)'/)?.[1];
+        
+        if (weevelyId) {
+            button.setAttribute('onclick', `openWeevelyModuleTerminal('${weevelyId}')`);
+            button.innerHTML = '<i class="fa fa-terminal"></i> Module Terminal';
+            button.title = 'Open Advanced Module Terminal';
+        }
+    });
+}
+
+// Auto-enhance buttons when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Small delay to ensure other scripts have loaded
+    setTimeout(() => {
+        enhanceExistingTerminalButtons();
+    }, 500);
+});
+
+// Export functions for external use
+window.WeevelyModuleTerminal = {
+    initialize: initializeWeevelyModuleTerminal,
+    show: showWeevelyModuleTerminal,
+    loadConnection: loadWeevelyConnection,
+    openTerminal: openWeevelyModuleTerminal
+};
+</script>
+
+<!-- Quick access floating button (optional) -->
+<style>
+.weevely-terminal-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+.weevely-terminal-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.weevely-terminal-fab.hidden {
+    transform: translateY(100px);
+    opacity: 0;
+}
+
+/* Hide terminal by default if needed */
+.weevely-module-terminal-container {
+    display: none;
+}
+
+.weevely-module-terminal-container.active {
+    display: block;
+}
+
+/* Responsive terminal */
+@media (max-width: 768px) {
+    .weevely-terminal-fab {
+        bottom: 10px;
+        right: 10px;
+        width: 50px;
+        height: 50px;
+    }
+}
+</style>
+
+<!-- Optional: Floating Action Button to quickly access terminal -->
+<button class="btn btn-primary weevely-terminal-fab" onclick="showWeevelyModuleTerminal()" title="Open Weevely Module Terminal">
+    <i class="fas fa-terminal fa-lg"></i>
+</button>
+
+<!-- Optional: Quick Status Bar -->
+<div id="weevely-status-bar" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white p-2" style="z-index: 999; display: none;">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <small>
+                    <i class="fas fa-terminal text-success"></i>
+                    Weevely Terminal: <span id="status-connection">Not Connected</span>
+                </small>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-light" onclick="showWeevelyModuleTerminal()">
+                    <i class="fas fa-external-link-alt"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-light" onclick="hideStatusBar()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Status bar management
+function showStatusBar() {
+    document.getElementById('weevely-status-bar').style.display = 'block';
+}
+
+function hideStatusBar() {
+    document.getElementById('weevely-status-bar').style.display = 'none';
+}
+
+function updateConnectionStatus(status) {
+    const statusElement = document.getElementById('status-connection');
+    if (statusElement) {
+        statusElement.textContent = status;
+    }
+}
+
+// Auto-show status bar when terminal is active
+let terminalActive = false;
+
+// Override some functions to update status
+const originalTestConnection = testWeevelyConnection;
+testWeevelyConnection = async function() {
+    showStatusBar();
+    updateConnectionStatus('Testing...');
+    await originalTestConnection();
+    terminalActive = true;
+};
+
+const originalUpdateStatus = updateStatus;
+updateStatus = function(status, type) {
+    originalUpdateStatus(status, type);
+    
+    if (terminalActive) {
+        let connectionStatus = 'Unknown';
+        switch (type) {
+            case 'success':
+                connectionStatus = status === 'Connected' ? 'Connected' : 'Command Success';
+                break;
+            case 'error':
+                connectionStatus = 'Error';
+                break;
+            case 'ready':
+                connectionStatus = 'Ready';
+                break;
+            default:
+                connectionStatus = status;
+        }
+        updateConnectionStatus(connectionStatus);
+    }
+};
+</script>

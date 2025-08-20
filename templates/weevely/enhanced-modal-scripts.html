@@ -1,0 +1,777 @@
+<!-- Enhanced Modal Scripts for Upload/Download and Cron functionality -->
+<script>
+// Global variables for enhanced functionality
+let currentWeevelyConnection = null;
+let cronDownloads = [];
+let fileSearchResults = [];
+
+// Show Upload/Download Modal
+function showUploadDownloadModal() {
+  const checkedIds = getCheckedshellIds();
+  if (checkedIds.length === 0) {
+    alert('Please select a weevely connection first');
+    return;
+  }
+  
+  if (checkedIds.length > 1) {
+    alert('Please select only one weevely connection');
+    return;
+  }
+  
+  const weevelyId = checkedIds[0];
+  
+  // Load connection details
+  fetch(`/api/weevely/${weevelyId}/details`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.weevely) {
+        currentWeevelyConnection = data.weevely;
+        document.getElementById('modal_connection_status').textContent = 
+          `Connected to: ${data.weevely.url}`;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('uploadDownloadModal'));
+        modal.show();
+      } else {
+        alert('Failed to load weevely connection details');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading weevely connection:', error);
+      alert('Error loading connection details');
+    });
+}
+
+// File Upload Functions
+function executeFileUpload() {
+  if (!currentWeevelyConnection) {
+    alert('No weevely connection selected');
+    return;
+  }
+  
+  const fileInput = document.getElementById('upload_file');
+  const targetPath = document.getElementById('upload_target_path').value;
+  const vector = document.getElementById('upload_vector').value;
+  
+  if (!fileInput.files[0]) {
+    alert('Please select a file to upload');
+    return;
+  }
+  
+  if (!targetPath) {
+    alert('Please specify target path');
+    return;
+  }
+  
+  const file = fileInput.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('target_path', targetPath);
+  formData.append('vector', vector);
+  formData.append('url', currentWeevelyConnection.url);
+  formData.append('password', currentWeevelyConnection.password);
+  
+  // Update UI
+  document.getElementById('upload_btn').disabled = true;
+  document.getElementById('upload_btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+  updateUploadProgress(0, 'Starting upload...');
+  
+  // Upload file
+  const xhr = new XMLHttpRequest();
+  
+  xhr.upload.addEventListener('progress', function(e) {
+    if (e.lengthComputable) {
+      const percentComplete = (e.loaded / e.total) * 100;
+      updateUploadProgress(percentComplete, `Uploading: ${Math.round(percentComplete)}%`);
+    }
+  });
+  
+  xhr.addEventListener('load', function() {
+    if (xhr.status === 200) {
+      try {
+        const response = JSON.parse(xhr.responseText);
+        if (response.success) {
+          updateUploadProgress(100, 'Upload completed successfully!');
+          document.getElementById('upload_status').className = 'alert alert-success';
+          document.getElementById('upload_status').innerHTML = 
+            `<i class="fas fa-check-circle"></i> File uploaded to: ${response.target_path}`;
+        } else {
+          updateUploadProgress(0, `Upload failed: ${response.error}`);
+          document.getElementById('upload_status').className = 'alert alert-danger';
+        }
+      } catch (e) {
+        updateUploadProgress(0, 'Upload failed: Invalid response');
+        document.getElementById('upload_status').className = 'alert alert-danger';
+      }
+    } else {
+      updateUploadProgress(0, `Upload failed: HTTP ${xhr.status}`);
+      document.getElementById('upload_status').className = 'alert alert-danger';
+    }
+    
+    // Reset button
+    document.getElementById('upload_btn').disabled = false;
+    document.getElementById('upload_btn').innerHTML = '<i class="fas fa-upload"></i> Start Upload';
+  });
+  
+  xhr.addEventListener('error', function() {
+    updateUploadProgress(0, 'Upload failed: Network error');
+    document.getElementById('upload_status').className = 'alert alert-danger';
+    document.getElementById('upload_btn').disabled = false;
+    document.getElementById('upload_btn').innerHTML = '<i class="fas fa-upload"></i> Start Upload';
+  });
+  
+  xhr.open('POST', '/api/weevely/upload-file');
+  xhr.send(formData);
+}
+
+function updateUploadProgress(percent, message) {
+  const progressBar = document.getElementById('upload_progress_bar');
+  progressBar.style.width = percent + '%';
+  progressBar.textContent = Math.round(percent) + '%';
+  
+  if (message) {
+    document.getElementById('upload_status').innerHTML = 
+      `<i class="fas fa-info-circle"></i> ${message}`;
+  }
+}
+
+// Web Download Functions
+function setWebDownloadUrl(url, path) {
+  document.getElementById('webdownload_url').value = url;
+  document.getElementById('webdownload_path').value = path;
+}
+
+function executeWebDownload() {
+  if (!currentWeevelyConnection) {
+    alert('No weevely connection selected');
+    return;
+  }
+  
+  const url = document.getElementById('webdownload_url').value;
+  const path = document.getElementById('webdownload_path').value;
+  const method = document.getElementById('webdownload_method').value;
+  const timeout = document.getElementById('webdownload_timeout').value;
+  const verify = document.getElementById('webdownload_verify').checked;
+  
+  if (!url || !path) {
+    alert('Please specify both URL and target path');
+    return;
+  }
+  
+  const payload = {
+    url: currentWeevelyConnection.url,
+    password: currentWeevelyConnection.password,
+    module_command: `:file_webdownload ${url} ${path}`,
+    timeout: parseInt(timeout)
+  };
+  
+  fetch('/api/weevely/execute-module', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(`Web download completed!\nFile saved to: ${path}`);
+      if (verify) {
+        // Verify download by checking file
+        setTimeout(() => checkDownloadProgress(path), 2000);
+      }
+    } else {
+      alert(`Web download failed: ${data.error}`);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Network error during web download');
+  });
+}
+
+function checkDownloadProgress(filePath = null) {
+  if (!currentWeevelyConnection) return;
+  
+  const path = filePath || document.getElementById('webdownload_path').value;
+  if (!path) {
+    alert('Please specify file path to check');
+    return;
+  }
+  
+  const payload = {
+    url: currentWeevelyConnection.url,
+    password: currentWeevelyConnection.password,
+    module_command: `:file_check ${path}`,
+    timeout: 30
+  };
+  
+  fetch('/api/weevely/execute-module', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(`File check result:\n${data.raw_output}`);
+    } else {
+      alert(`File check failed: ${data.error}`);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error checking file');
+  });
+}
+
+// File Download Functions
+function setDownloadPath(path) {
+  document.getElementById('download_remote_path').value = path;
+  
+  // Auto-generate local path
+  const filename = path.split('/').pop();
+  document.getElementById('download_local_path').value = `./downloads/${filename}`;
+}
+
+function executeFileDownload() {
+  if (!currentWeevelyConnection) {
+    alert('No weevely connection selected');
+    return;
+  }
+  
+  const remotePath = document.getElementById('download_remote_path').value;
+  const localPath = document.getElementById('download_local_path').value;
+  const vector = document.getElementById('download_vector').value;
+  const encoding = document.getElementById('download_encoding').value;
+  
+  if (!remotePath || !localPath) {
+    alert('Please specify both remote and local paths');
+    return;
+  }
+  
+  const payload = {
+    url: currentWeevelyConnection.url,
+    password: currentWeevelyConnection.password,
+    module_command: `:file_download -vector ${vector} ${remotePath} ${localPath}`,
+    timeout: 120
+  };
+  
+  fetch('/api/weevely/execute-module', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(`File download completed!\nRemote: ${remotePath}\nLocal: ${localPath}`);
+    } else {
+      alert(`File download failed: ${data.error}`);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error during file download');
+  });
+}
+
+// Cron Download Functions
+function updateCronOptions() {
+  const scheduleType = document.getElementById('cron_schedule_type').value;
+  const scheduleOptions = document.getElementById('cron_schedule_options');
+  const customCronGroup = document.getElementById('custom_cron_group');
+  
+  if (scheduleType === 'custom') {
+    scheduleOptions.style.display = 'none';
+    customCronGroup.style.display = 'block';
+  } else {
+    scheduleOptions.style.display = 'block';
+    customCronGroup.style.display = 'none';
+    
+    // Update delay label based on type
+    const delayInput = document.getElementById('cron_delay');
+    const delayLabel = delayInput.previousElementSibling;
+    
+    switch (scheduleType) {
+      case 'once':
+        delayLabel.textContent = 'Delay (minutes)';
+        delayInput.value = 5;
+        break;
+      case 'hourly':
+        delayLabel.textContent = 'Minute past hour';
+        delayInput.value = 0;
+        break;
+      case 'daily':
+        delayLabel.textContent = 'Hour (24h format)';
+        delayInput.value = 2;
+        break;
+      case 'weekly':
+        delayLabel.textContent = 'Day of week (0=Sunday)';
+        delayInput.value = 1;
+        break;
+    }
+  }
+}
+
+function addToCronDownload() {
+  const url = document.getElementById('webdownload_url').value;
+  const path = document.getElementById('webdownload_path').value;
+  
+  if (!url || !path) {
+    alert('Please specify URL and path first');
+    return;
+  }
+  
+  document.getElementById('cron_download_url').value = url;
+  document.getElementById('cron_target_path').value = path;
+  
+  // Switch to cron tab
+  const cronTab = document.getElementById('cron-tab');
+  cronTab.click();
+}
+
+function scheduleCronDownload() {
+  if (!currentWeevelyConnection) {
+    alert('No weevely connection selected');
+    return;
+  }
+  
+  const url = document.getElementById('cron_download_url').value;
+  const path = document.getElementById('cron_target_path').value;
+  const scheduleType = document.getElementById('cron_schedule_type').value;
+  const delay = document.getElementById('cron_delay').value;
+  const customCron = document.getElementById('custom_cron_expr').value;
+  const autoCleanup = document.getElementById('cron_auto_cleanup').checked;
+  
+  if (!url || !path) {
+    alert('Please specify URL and target path');
+    return;
+  }
+  
+  let cronExpression = '';
+  switch (scheduleType) {
+    case 'once':
+      cronExpression = `*/${delay} * * * *`; // Every N minutes
+      break;
+    case 'hourly':
+      cronExpression = `${delay} * * * *`; // Every hour at minute N
+      break;
+    case 'daily':
+      cronExpression = `0 ${delay} * * *`; // Daily at hour N
+      break;
+    case 'weekly':
+      cronExpression = `0 2 * * ${delay}`; // Weekly on day N at 2 AM
+      break;
+    case 'custom':
+      cronExpression = customCron;
+      break;
+  }
+  
+  const cronJob = {
+    id: Date.now().toString(),
+    url: url,
+    target_path: path,
+    cron_expression: cronExpression,
+    schedule_type: scheduleType,
+    auto_cleanup: autoCleanup,
+    weevely_connection: currentWeevelyConnection,
+    created_at: new Date().toISOString(),
+    status: 'active'
+  };
+  
+  // Save to backend
+  fetch('/api/weevely/cron-download', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cronJob)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      cronDownloads.push(cronJob);
+      refreshCronList();
+      alert('Cron download scheduled successfully!');
+      
+      // Clear form
+      document.getElementById('cron_download_url').value = '';
+      document.getElementById('cron_target_path').value = '';
+    } else {
+      alert(`Failed to schedule cron download: ${data.error}`);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error scheduling cron download');
+  });
+}
+
+function refreshCronList() {
+  if (!currentWeevelyConnection) return;
+  
+  fetch(`/api/weevely/cron-downloads?weevely_id=${currentWeevelyConnection.id}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        cronDownloads = data.cron_downloads || [];
+        displayCronList();
+      }
+    })
+    .catch(error => {
+      console.error('Error refreshing cron list:', error);
+    });
+}
+
+function displayCronList() {
+  const listContainer = document.getElementById('cron_downloads_list');
+  
+  if (cronDownloads.length === 0) {
+    listContainer.innerHTML = `
+      <div class="text-center text-muted">
+        <i class="fas fa-clock fa-2x mb-2"></i>
+        <p>No scheduled downloads</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const cronItems = cronDownloads.map(cron => `
+    <div class="card mb-2 ${cron.status === 'active' ? 'border-success' : 'border-secondary'}">
+      <div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <h6 class="mb-1">${cron.url}</h6>
+            <small class="text-muted">Target: ${cron.target_path}</small><br>
+            <small class="text-info">Schedule: ${cron.cron_expression} (${cron.schedule_type})</small>
+          </div>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-warning btn-sm" onclick="pauseCronDownload('${cron.id}')" 
+                    ${cron.status === 'paused' ? 'disabled' : ''}>
+              <i class="fas fa-pause"></i>
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="resumeCronDownload('${cron.id}')"
+                    ${cron.status === 'active' ? 'disabled' : ''}>
+              <i class="fas fa-play"></i>
+            </button>
+            <button class="btn btn-outline-danger btn-sm" onclick="deleteCronDownload('${cron.id}')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        <div class="mt-2">
+          <span class="badge ${cron.status === 'active' ? 'bg-success' : 'bg-secondary'}">${cron.status}</span>
+          <small class="text-muted ms-2">Created: ${new Date(cron.created_at).toLocaleString()}</small>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  
+  listContainer.innerHTML = cronItems;
+}
+
+function pauseCronDownload(cronId) {
+  updateCronStatus(cronId, 'paused');
+}
+
+function resumeCronDownload(cronId) {
+  updateCronStatus(cronId, 'active');
+}
+
+function deleteCronDownload(cronId) {
+  if (!confirm('Are you sure you want to delete this scheduled download?')) return;
+  
+  fetch(`/api/weevely/cron-download/${cronId}`, {
+    method: 'DELETE'
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      cronDownloads = cronDownloads.filter(cron => cron.id !== cronId);
+      displayCronList();
+    } else {
+      alert(`Failed to delete cron download: ${data.error}`);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error deleting cron download');
+  });
+}
+
+function updateCronStatus(cronId, status) {
+  fetch(`/api/weevely/cron-download/${cronId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: status })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      const cron = cronDownloads.find(c => c.id === cronId);
+      if (cron) {
+        cron.status = status;
+        displayCronList();
+      }
+    } else {
+      alert(`Failed to update cron status: ${data.error}`);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error updating cron status');
+  });
+}
+
+function pauseAllCrons() {
+  cronDownloads.forEach(cron => {
+    if (cron.status === 'active') {
+      pauseCronDownload(cron.id);
+    }
+  });
+}
+
+function clearAllCrons() {
+  if (!confirm('Are you sure you want to delete all scheduled downloads?')) return;
+  
+  cronDownloads.forEach(cron => {
+    deleteCronDownload(cron.id);
+  });
+}
+
+// File Search Results Functions
+function showFileSearchResults(results, searchParams) {
+  fileSearchResults = results;
+  
+  // Update search params display
+  document.getElementById('search_params_display').innerHTML = `
+    Path: <code>${searchParams.path}</code> | 
+    Pattern: <code>${searchParams.pattern}</code> | 
+    Type: <code>${searchParams.ftype}</code>
+  `;
+  
+  // Update count
+  document.getElementById('files_found_count').textContent = results.length;
+  
+  // Populate table
+  const tableBody = document.getElementById('search_results_table');
+  if (results.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No files found</td></tr>';
+  } else {
+    const rows = results.map((file, index) => `
+      <tr>
+        <td>
+          <input type="checkbox" class="file-select-checkbox" value="${index}" 
+                 onchange="updateFileSelectionCount()">
+        </td>
+        <td>
+          <code>${file.path}</code>
+          ${file.permissions ? `<br><small class="text-muted">${file.permissions}</small>` : ''}
+        </td>
+        <td>${file.permissions || 'N/A'}</td>
+        <td>${file.size ? formatFileSize(file.size) : 'N/A'}</td>
+        <td>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary btn-sm" onclick="quickReadFile('${file.path}')" title="Read File">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="quickDownloadFile('${file.path}')" title="Download">
+              <i class="fas fa-download"></i>
+            </button>
+            <button class="btn btn-outline-warning btn-sm" onclick="addFileToCron('${file.path}')" title="Schedule Download">
+              <i class="fas fa-clock"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    tableBody.innerHTML = rows;
+  }
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('fileSearchResultsModal'));
+  modal.show();
+}
+
+function toggleAllFileSelection() {
+  const selectAll = document.getElementById('select_all_files');
+  const checkboxes = document.querySelectorAll('.file-select-checkbox');
+  
+  checkboxes.forEach(cb => {
+    cb.checked = selectAll.checked;
+  });
+  
+  updateFileSelectionCount();
+}
+
+function updateFileSelectionCount() {
+  const checkedBoxes = document.querySelectorAll('.file-select-checkbox:checked');
+  const selectAll = document.getElementById('select_all_files');
+  const totalBoxes = document.querySelectorAll('.file-select-checkbox');
+  
+  // Update select all state
+  if (checkedBoxes.length === 0) {
+    selectAll.indeterminate = false;
+    selectAll.checked = false;
+  } else if (checkedBoxes.length === totalBoxes.length) {
+    selectAll.indeterminate = false;
+    selectAll.checked = true;
+  } else {
+    selectAll.indeterminate = true;
+    selectAll.checked = false;
+  }
+}
+
+function quickReadFile(filePath) {
+  if (!currentWeevelyConnection) return;
+  
+  // Use the weevely module terminal to read file
+  const command = `:file_read -vector file_get_contents ${filePath}`;
+  
+  executeWeevelyModule(command);
+  
+  // Close search results modal and show terminal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('fileSearchResultsModal'));
+  if (modal) modal.hide();
+  
+  showWeevelyModuleTerminal();
+}
+
+function quickDownloadFile(filePath) {
+  if (!currentWeevelyConnection) return;
+  
+  const filename = filePath.split('/').pop();
+  const localPath = `./downloads/${filename}`;
+  
+  const command = `:file_download -vector file_get_contents ${filePath} ${localPath}`;
+  
+  executeWeevelyModule(command);
+}
+
+function addFileToCron(filePath) {
+  // This would add a file to be downloaded periodically
+  // Implementation depends on your cron download system
+  alert(`Adding ${filePath} to cron downloads - feature coming soon!`);
+}
+
+function downloadSelectedFiles() {
+  const checkedBoxes = document.querySelectorAll('.file-select-checkbox:checked');
+  if (checkedBoxes.length === 0) {
+    alert('Please select files to download');
+    return;
+  }
+  
+  checkedBoxes.forEach(cb => {
+    const index = parseInt(cb.value);
+    const file = fileSearchResults[index];
+    if (file) {
+      quickDownloadFile(file.path);
+    }
+  });
+}
+
+function addSelectedToCron() {
+  const checkedBoxes = document.querySelectorAll('.file-select-checkbox:checked');
+  if (checkedBoxes.length === 0) {
+    alert('Please select files to schedule');
+    return;
+  }
+  
+  // Implementation for adding multiple files to cron
+  alert(`Adding ${checkedBoxes.length} files to cron downloads - feature coming soon!`);
+}
+
+function exportSearchResults() {
+  if (fileSearchResults.length === 0) {
+    alert('No search results to export');
+    return;
+  }
+  
+  const csvContent = [
+    ['File Path', 'Permissions', 'Size'].join(','),
+    ...fileSearchResults.map(file => [
+      `"${file.path}"`,
+      `"${file.permissions || ''}"`,
+      `"${file.size || ''}"`
+    ].join(','))
+  ].join('\n');
+  
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `file_search_results_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
+// Utility functions
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Initialize enhanced modals when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize cron options
+  updateCronOptions();
+  
+  // Override existing file search modal to show results
+  const originalShowFileSearchModal = window.showFileSearchModal;
+  window.showFileSearchModal = function() {
+    if (originalShowFileSearchModal) {
+      originalShowFileSearchModal();
+    }
+    
+    // Override the execute function to show results
+    const originalExecuteFileSearch = window.executeFileSearch;
+    window.executeFileSearch = function() {
+      const path = document.getElementById('modal_search_path').value || '/';
+      const pattern = document.getElementById('modal_search_pattern').value || '';
+      const ftype = document.getElementById('modal_file_type').value || 'f';
+      const vector = document.getElementById('modal_search_vector').value || 'sh_find';
+      
+      if (!currentWeevelyConnection) {
+        alert('No weevely connection selected');
+        return;
+      }
+      
+      const command = `:file_find -vector ${vector} -ftype ${ftype} ${path} ${pattern}`;
+      
+      // Execute the search
+      fetch('/api/weevely/execute-module', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: currentWeevelyConnection.url,
+          password: currentWeevelyConnection.password,
+          module_command: command,
+          timeout: 60
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.parsed_output && data.parsed_output.files) {
+          // Close search modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('fileSearchModal'));
+          if (modal) modal.hide();
+          
+          // Show results
+          showFileSearchResults(data.parsed_output.files, {
+            path: path,
+            pattern: pattern,
+            ftype: ftype,
+            vector: vector
+          });
+        } else {
+          alert(`File search failed: ${data.error || 'No results found'}`);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error during file search');
+      });
+    };
+  };
+});
+</script>

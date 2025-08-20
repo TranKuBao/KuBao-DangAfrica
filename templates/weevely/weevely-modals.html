@@ -1,0 +1,672 @@
+<!-- Weevely Module Modals -->
+
+<!-- File Search Modal -->
+<div class="modal fade" id="fileSearchModal" tabindex="-1" aria-labelledby="fileSearchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="fileSearchModalLabel">
+          <i class="fas fa-search"></i> File Search
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label">Search Path</label>
+              <input type="text" id="modal_search_path" class="form-control" value="/" placeholder="/path/to/search">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label">File Pattern</label>
+              <input type="text" id="modal_search_pattern" class="form-control" placeholder="*.php, *.txt, etc.">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label">File Type</label>
+              <select id="modal_file_type" class="form-control">
+                <option value="f">Files only</option>
+                <option value="d">Directories only</option>
+                <option value="">Both files and directories</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label">Search Vector</label>
+              <select id="modal_search_vector" class="form-control">
+                <option value="sh_find">sh_find (default)</option>
+                <option value="file_get_contents">file_get_contents</option>
+                <option value="fread">fread</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-primary" onclick="setSearchPattern('*.php')">PHP Files</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="setSearchPattern('*.js')">JS Files</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="setSearchPattern('*.txt')">Text Files</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="setSearchPattern('*.log')">Log Files</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="setSearchPattern('*.conf')">Config Files</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="executeFileSearch()">
+          <i class="fas fa-search"></i> Search Files
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- File Read Modal -->
+<div class="modal fade" id="fileReadModal" tabindex="-1" aria-labelledby="fileReadModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="fileReadModalLabel">
+          <i class="fas fa-file-alt"></i> Read File
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-8">
+            <div class="form-group">
+              <label class="form-label">File Path</label>
+              <input type="text" id="modal_file_path" class="form-control" placeholder="/path/to/file.txt">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="form-label">Read Vector</label>
+              <select id="modal_read_vector" class="form-control">
+                <option value="file_get_contents">file_get_contents</option>
+                <option value="fread">fread</option>
+                <option value="fopen">fopen</option>
+                <option value="file">file</option>
+                <option value="readfile">readfile</option>
+                <option value="base64">base64</option>
+                <option value="curl">curl</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-secondary" onclick="setFilePath('/etc/passwd')">passwd</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="setFilePath('/etc/hosts')">hosts</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="setFilePath('/var/log/apache2/access.log')">access.log</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="setFilePath('/var/www/html/index.php')">index.php</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="setFilePath('/proc/version')">version</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="executeFileRead()">
+          <i class="fas fa-file-alt"></i> Read File
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- File Operations Modal -->
+<div class="modal fade" id="fileOperationsModal" tabindex="-1" aria-labelledby="fileOperationsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="fileOperationsModalLabel">
+          <i class="fas fa-tools"></i> File Operations
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- File Operations Tabs -->
+        <ul class="nav nav-tabs" id="fileOpsTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="copy-tab" data-bs-toggle="tab" data-bs-target="#copy-pane" type="button" role="tab">
+              <i class="fas fa-copy"></i> Copy/Move
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#create-pane" type="button" role="tab">
+              <i class="fas fa-plus"></i> Create
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="delete-tab" data-bs-toggle="tab" data-bs-target="#delete-pane" type="button" role="tab">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="archive-tab" data-bs-toggle="tab" data-bs-target="#archive-pane" type="button" role="tab">
+              <i class="fas fa-archive"></i> Archive
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content mt-3" id="fileOpsTabContent">
+          <!-- Copy/Move Tab -->
+          <div class="tab-pane fade show active" id="copy-pane" role="tabpanel">
+            <div class="form-group">
+              <label class="form-label">Source Path</label>
+              <input type="text" id="source_path" class="form-control" placeholder="/path/to/source">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Destination Path</label>
+              <input type="text" id="dest_path" class="form-control" placeholder="/path/to/destination">
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-primary" onclick="executeFileCopy()">
+                <i class="fas fa-copy"></i> Copy
+              </button>
+              <button class="btn btn-warning" onclick="executeFileMove()">
+                <i class="fas fa-cut"></i> Move
+              </button>
+            </div>
+          </div>
+
+          <!-- Create Tab -->
+          <div class="tab-pane fade" id="create-pane" role="tabpanel">
+            <div class="form-group">
+              <label class="form-label">Directory Path</label>
+              <input type="text" id="mkdir_path" class="form-control" placeholder="/path/to/new/directory">
+            </div>
+            <button class="btn btn-success" onclick="executeFilemkdir()">
+              <i class="fas fa-folder-plus"></i> Create Directory
+            </button>
+          </div>
+
+          <!-- Delete Tab -->
+          <div class="tab-pane fade" id="delete-pane" role="tabpanel">
+            <div class="form-group">
+              <label class="form-label">Path to Delete</label>
+              <input type="text" id="delete_path" class="form-control" placeholder="/path/to/delete">
+            </div>
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle"></i>
+              <strong>Warning:</strong> This operation cannot be undone!
+            </div>
+            <button class="btn btn-danger" onclick="executeFileDelete()">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          </div>
+
+          <!-- Archive Tab -->
+          <div class="tab-pane fade" id="archive-pane" role="tabpanel">
+            <div class="form-group">
+              <label class="form-label">Archive Path</label>
+              <input type="text" id="archive_path" class="form-control" placeholder="/path/to/archive.tar.gz">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Files to Archive</label>
+              <input type="text" id="archive_files" class="form-control" placeholder="/path/to/files/*">
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-info" onclick="executeFileTar()">
+                <i class="fas fa-file-archive"></i> Create TAR
+              </button>
+              <button class="btn btn-info" onclick="executeFileGzip()">
+                <i class="fas fa-compress"></i> GZIP
+              </button>
+              <button class="btn btn-info" onclick="executeFileZip()">
+                <i class="fas fa-file-archive"></i> ZIP
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Batch Commands Modal -->
+<div class="modal fade" id="batchCommandsModal" tabindex="-1" aria-labelledby="batchCommandsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="batchCommandsModalLabel">
+          <i class="fas fa-list"></i> Batch Commands Editor
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Command Templates</h6>
+            <div class="list-group">
+              <button class="list-group-item list-group-item-action" onclick="addBatchCommand(':system_info')">
+                <i class="fas fa-info-circle"></i> System Information
+              </button>
+              <button class="list-group-item list-group-item-action" onclick="addBatchCommand(':procs_list')">
+                <i class="fas fa-tasks"></i> Process List
+              </button>
+              <button class="list-group-item list-group-item-action" onclick="addBatchCommand(':file_ls /')">
+                <i class="fas fa-folder"></i> List Root Directory
+              </button>
+              <button class="list-group-item list-group-item-action" onclick="addBatchCommand(':audit_phpconf')">
+                <i class="fas fa-shield-alt"></i> PHP Configuration Audit
+              </button>
+              <button class="list-group-item list-group-item-action" onclick="addBatchCommand(':net_ifconfig')">
+                <i class="fas fa-network-wired"></i> Network Interfaces
+              </button>
+              <button class="list-group-item list-group-item-action" onclick="addBatchCommand(':audit_filesystem')">
+                <i class="fas fa-hdd"></i> Filesystem Audit
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <h6>Batch Commands</h6>
+            <textarea id="batch_commands" class="form-control" rows="15" placeholder="Enter one command per line (e.g., :system_info)"></textarea>
+            <div class="mt-2">
+              <small class="text-muted">One command per line. Commands should start with ':'</small>
+            </div>
+            <div class="mt-3">
+              <label class="form-label">Delay between commands (seconds)</label>
+              <input type="number" id="batch_delay" class="form-control" value="0.5" min="0" max="10" step="0.1">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" onclick="clearBatchCommands()">
+          <i class="fas fa-eraser"></i> Clear
+        </button>
+        <button type="button" class="btn btn-primary" onclick="executeCustomBatchCommands()">
+          <i class="fas fa-play"></i> Execute Batch
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Result Details Modal -->
+<div class="modal fade" id="resultDetailsModal" tabindex="-1" aria-labelledby="resultDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resultDetailsModalLabel">
+          <i class="fas fa-chart-bar"></i> Command Result Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Result tabs -->
+        <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="parsed-tab" data-bs-toggle="tab" data-bs-target="#parsed-result" type="button" role="tab">
+              <i class="fas fa-code"></i> Parsed Output
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="raw-tab" data-bs-toggle="tab" data-bs-target="#raw-result" type="button" role="tab">
+              <i class="fas fa-file-code"></i> Raw Output
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="meta-tab" data-bs-toggle="tab" data-bs-target="#meta-result" type="button" role="tab">
+              <i class="fas fa-info"></i> Metadata
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content mt-3" id="resultTabContent">
+          <div class="tab-pane fade show active" id="parsed-result" role="tabpanel">
+            <pre id="parsed_output" class="bg-light p-3" style="max-height: 400px; overflow-y: auto;"></pre>
+          </div>
+          <div class="tab-pane fade" id="raw-result" role="tabpanel">
+            <pre id="raw_output" class="bg-dark text-light p-3" style="max-height: 400px; overflow-y: auto; font-family: monospace;"></pre>
+          </div>
+          <div class="tab-pane fade" id="meta-result" role="tabpanel">
+            <div id="meta_output" class="p-3"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" onclick="copyResultData('parsed')">
+          <i class="fas fa-copy"></i> Copy Parsed
+        </button>
+        <button type="button" class="btn btn-outline-secondary" onclick="copyResultData('raw')">
+          <i class="fas fa-copy"></i> Copy Raw
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Functions Script -->
+<script>
+// File Search Modal Functions
+function showFileSearchModal() {
+    const modal = new bootstrap.Modal(document.getElementById('fileSearchModal'));
+    modal.show();
+}
+
+function setSearchPattern(pattern) {
+    document.getElementById('modal_search_pattern').value = pattern;
+}
+
+function executeFileSearch() {
+    const path = document.getElementById('modal_search_path').value || '/';
+    const pattern = document.getElementById('modal_search_pattern').value || '';
+    const ftype = document.getElementById('modal_file_type').value || 'f';
+    const vector = document.getElementById('modal_search_vector').value || 'sh_find';
+    
+    const command = `:file_find -vector ${vector} -ftype ${ftype} ${path} ${pattern}`;
+    executeWeevelyModule(command);
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('fileSearchModal'));
+    modal.hide();
+}
+
+// File Read Modal Functions
+function showFileReadModal() {
+    const modal = new bootstrap.Modal(document.getElementById('fileReadModal'));
+    modal.show();
+}
+
+function setFilePath(path) {
+    document.getElementById('modal_file_path').value = path;
+}
+
+function executeFileRead() {
+    const filepath = document.getElementById('modal_file_path').value;
+    const vector = document.getElementById('modal_read_vector').value || 'file_get_contents';
+    
+    if (!filepath) {
+        alert('Please enter a file path');
+        return;
+    }
+    
+    const command = `:file_read -vector ${vector} ${filepath}`;
+    executeWeevelyModule(command);
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('fileReadModal'));
+    modal.hide();
+}
+
+// File Operations Modal Functions
+function showFileOperationsModal() {
+    const modal = new bootstrap.Modal(document.getElementById('fileOperationsModal'));
+    modal.show();
+}
+
+function executeFileCopy() {
+    const source = document.getElementById('source_path').value;
+    const dest = document.getElementById('dest_path').value;
+    
+    if (!source || !dest) {
+        alert('Please enter both source and destination paths');
+        return;
+    }
+    
+    executeWeevelyModule(`:file_cp ${source} ${dest}`);
+}
+
+function executeFileMove() {
+    const source = document.getElementById('source_path').value;
+    const dest = document.getElementById('dest_path').value;
+    
+    if (!source || !dest) {
+        alert('Please enter both source and destination paths');
+        return;
+    }
+    
+    executeWeevelyModule(`:file_mv ${source} ${dest}`);
+}
+
+function executeFileDelete() {
+    const path = document.getElementById('delete_path').value;
+    
+    if (!path) {
+        alert('Please enter a path to delete');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete: ${path}?`)) {
+        return;
+    }
+    
+    executeWeevelyModule(`:file_rm ${path}`);
+}
+
+function executeFilemkdir() {
+    const path = document.getElementById('mkdir_path').value;
+    
+    if (!path) {
+        alert('Please enter a directory path');
+        return;
+    }
+    
+    executeWeevelyModule(`:file_mkdir ${path}`);
+}
+
+function executeFileTar() {
+    const archive = document.getElementById('archive_path').value;
+    const files = document.getElementById('archive_files').value;
+    
+    if (!archive || !files) {
+        alert('Please enter archive path and files to archive');
+        return;
+    }
+    
+    executeWeevelyModule(`:file_tar -compress ${archive} ${files}`);
+}
+
+function executeFileGzip() {
+    const file = document.getElementById('archive_files').value;
+    
+    if (!file) {
+        alert('Please enter a file to compress');
+        return;
+    }
+    
+    executeWeevelyModule(`:file_gzip ${file}`);
+}
+
+function executeFileZip() {
+    const archive = document.getElementById('archive_path').value;
+    const files = document.getElementById('archive_files').value;
+    
+    if (!archive || !files) {
+        alert('Please enter archive path and files to archive');
+        return;
+    }
+    
+    executeWeevelyModule(`:file_zip ${archive} ${files}`);
+}
+
+// Batch Commands Modal Functions
+function showBatchModal() {
+    const modal = new bootstrap.Modal(document.getElementById('batchCommandsModal'));
+    modal.show();
+}
+
+function addBatchCommand(command) {
+    const textarea = document.getElementById('batch_commands');
+    const currentValue = textarea.value;
+    textarea.value = currentValue + (currentValue ? '\n' : '') + command;
+}
+
+function clearBatchCommands() {
+    document.getElementById('batch_commands').value = '';
+}
+
+function executeCustomBatchCommands() {
+    const commands = document.getElementById('batch_commands').value
+        .split('\n')
+        .map(cmd => cmd.trim())
+        .filter(cmd => cmd && cmd.startsWith(':'));
+    
+    const delay = parseFloat(document.getElementById('batch_delay').value) || 0.5;
+    
+    if (commands.length === 0) {
+        alert('Please enter at least one command');
+        return;
+    }
+    
+    // Execute batch commands using API
+    executeBatchCommandsAPI(commands, delay);
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('batchCommandsModal'));
+    modal.hide();
+}
+
+async function executeBatchCommandsAPI(commands, delay = 0.5) {
+    if (!validateConnection()) return;
+    
+    showLoading('Executing batch commands...');
+    appendToTerminal(`Starting batch execution of ${commands.length} commands...`, 'command');
+    
+    try {
+        const response = await fetch('/api/weevely/batch-execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                url: currentWeevelyConnection.url,
+                password: currentWeevelyConnection.password,
+                commands: commands,
+                delay: delay
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            appendToTerminal(`Batch execution completed`, 'success');
+            appendToTerminal(`Total: ${result.total_commands}, Success: ${result.successful_commands}, Failed: ${result.failed_commands}`, 'info');
+            appendToTerminal(`Total time: ${result.total_execution_time}s`, 'info');
+            
+            // Show detailed results in modal
+            showBatchResultsModal(result);
+            
+            updateStatus('Batch Complete', 'success');
+        } else {
+            appendToTerminal(`Batch execution failed: ${result.error}`, 'error');
+            updateStatus('Batch Failed', 'error');
+        }
+        
+    } catch (error) {
+        appendToTerminal(`Batch execution error: ${error.message}`, 'error');
+        updateStatus('Error', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Result Details Modal Functions
+function showResultDetailsModal(result) {
+    // Populate modal with result data
+    document.getElementById('parsed_output').textContent = JSON.stringify(result.parsed_output || {}, null, 2);
+    document.getElementById('raw_output').textContent = result.raw_output || 'No raw output';
+    
+    // Populate metadata
+    const metaHtml = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Execution Info</h6>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Command:</span>
+                        <code>${result.module_command || 'N/A'}</code>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Execution Time:</span>
+                        <span>${result.execution_time || 0}s</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Return Code:</span>
+                        <span class="${result.return_code === 0 ? 'text-success' : 'text-danger'}">${result.return_code || 'N/A'}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Status:</span>
+                        <span class="${result.success ? 'text-success' : 'text-danger'}">${result.success ? 'Success' : 'Failed'}</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Additional Info</h6>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Executed At:</span>
+                        <span>${result.executed_at ? new Date(result.executed_at * 1000).toLocaleString() : 'N/A'}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Attempt:</span>
+                        <span>${result.attempt || 1}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Has Error Output:</span>
+                        <span>${result.error_output ? 'Yes' : 'No'}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    `;
+    document.getElementById('meta_output').innerHTML = metaHtml;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('resultDetailsModal'));
+    modal.show();
+}
+
+function showBatchResultsModal(batchResult) {
+    // Format batch results for display
+    const parsedOutput = {
+        summary: {
+            total_commands: batchResult.total_commands,
+            successful_commands: batchResult.successful_commands,
+            failed_commands: batchResult.failed_commands,
+            total_execution_time: batchResult.total_execution_time
+        },
+        results: batchResult.results
+    };
+    
+    showResultDetailsModal({
+        module_command: 'Batch Execution',
+        execution_time: batchResult.total_execution_time,
+        return_code: batchResult.successful_commands === batchResult.total_commands ? 0 : 1,
+        success: batchResult.successful_commands > 0,
+        parsed_output: parsedOutput,
+        raw_output: batchResult.results.map(r => 
+            `Command: ${r.command}\n${r.result.raw_output || 'No output'}\n---\n`
+        ).join(''),
+        executed_at: Date.now() / 1000,
+        attempt: 1
+    });
+}
+
+function copyResultData(type) {
+    let content = '';
+    
+    if (type === 'parsed') {
+        content = document.getElementById('parsed_output').textContent;
+    } else if (type === 'raw') {
+        content = document.getElementById('raw_output').textContent;
+    }
+    
+    navigator.clipboard.writeText(content).then(() => {
+        appendToTerminal(`${type} result data copied to clipboard`, 'info');
+    });
+}
+</script>

@@ -1,0 +1,523 @@
+<!-- Weevely Module Terminal JavaScript -->
+<script>
+// Global variables
+let currentWeevelyConnection = {
+    url: '',
+    password: '',
+    timeout: 60
+};
+
+// Utility functions
+function showLoading(message = 'Executing command...') {
+    document.getElementById('loading_message').textContent = message;
+    document.getElementById('loading_overlay').classList.remove('d-none');
+    document.getElementById('execution_status').textContent = 'Running';
+    document.getElementById('execution_status').className = 'badge bg-warning';
+}
+
+function hideLoading() {
+    document.getElementById('loading_overlay').classList.add('d-none');
+}
+
+function updateStatus(status, type = 'success') {
+    const statusElement = document.getElementById('execution_status');
+    statusElement.textContent = status;
+    
+    const statusClasses = {
+        'success': 'badge bg-success',
+        'error': 'badge bg-danger', 
+        'warning': 'badge bg-warning',
+        'info': 'badge bg-info',
+        'ready': 'badge bg-secondary'
+    };
+    
+    statusElement.className = statusClasses[type] || 'badge bg-secondary';
+}
+
+function appendToTerminal(content, type = 'output') {
+    const terminal = document.getElementById('terminal_output');
+    const timestamp = new Date().toLocaleTimeString();
+    
+    let formattedContent = '';
+    
+    switch (type) {
+        case 'command':
+            formattedContent = `\n[${timestamp}] $ ${content}\n`;
+            break;
+        case 'success':
+            formattedContent = `\n[${timestamp}] ✓ ${content}\n`;
+            break;
+        case 'error':
+            formattedContent = `\n[${timestamp}] ✗ ERROR: ${content}\n`;
+            break;
+        case 'info':
+            formattedContent = `\n[${timestamp}] ℹ ${content}\n`;
+            break;
+        default:
+            formattedContent = content + '\n';
+    }
+    
+    terminal.innerHTML += formattedContent;
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+function clearTerminalOutput() {
+    document.getElementById('terminal_output').innerHTML = 'Terminal cleared...\n';
+    updateStatus('Ready', 'ready');
+}
+
+function copyTerminalOutput() {
+    const content = document.getElementById('terminal_output').textContent;
+    navigator.clipboard.writeText(content).then(() => {
+        appendToTerminal('Terminal output copied to clipboard', 'info');
+    });
+}
+
+// Connection management
+function getConnectionDetails() {
+    return {
+        url: document.getElementById('weevely_url').value.trim(),
+        password: document.getElementById('weevely_password').value.trim(),
+        timeout: parseInt(document.getElementById('command_timeout').value) || 60
+    };
+}
+
+function validateConnection() {
+    const conn = getConnectionDetails();
+    
+    if (!conn.url || !conn.url.startsWith('http')) {
+        appendToTerminal('Please enter a valid weevely URL', 'error');
+        return false;
+    }
+    
+    if (!conn.password) {
+        appendToTerminal('Please enter weevely password', 'error');
+        return false;
+    }
+    
+    currentWeevelyConnection = conn;
+    return true;
+}
+
+// API calls to backend
+async function executeWeevelyModule(moduleCommand, params = {}) {
+    if (!validateConnection()) return;
+    
+    showLoading(`Executing: ${moduleCommand}`);
+    appendToTerminal(moduleCommand, 'command');
+    
+    try {
+        const response = await fetch('/api/weevely/execute-module', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                url: currentWeevelyConnection.url,
+                password: currentWeevelyConnection.password,
+                module_command: moduleCommand,
+                timeout: currentWeevelyConnection.timeout,
+                ...params
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            appendToTerminal('Command executed successfully', 'success');
+            
+            // Display formatted output
+            if (result.parsed_output) {
+                appendToTerminal('=== PARSED OUTPUT ===');
+                appendToTerminal(JSON.stringify(result.parsed_output, null, 2));
+            }
+            
+            if (result.raw_output) {
+                appendToTerminal('=== RAW OUTPUT ===');
+                appendToTerminal(result.raw_output);
+            }
+            
+            // Display execution info
+            appendToTerminal(`Execution time: ${result.execution_time}s`, 'info');
+            updateStatus('Success', 'success');
+            
+        } else {
+            appendToTerminal(`Command failed: ${result.error}`, 'error');
+            if (result.error_output) {
+                appendToTerminal('=== ERROR OUTPUT ===');
+                appendToTerminal(result.error_output);
+            }
+            updateStatus('Failed', 'error');
+        }
+        
+    } catch (error) {
+        appendToTerminal(`Network error: ${error.message}`, 'error');
+        updateStatus('Error', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Quick command execution
+function executeQuickCommand(command) {
+    executeWeevelyModule(command);
+}
+
+// Test connection
+async function testWeevelyConnection() {
+    if (!validateConnection()) return;
+    
+    showLoading('Testing connection...');
+    appendToTerminal('Testing weevely connection...', 'command');
+    
+    try {
+        const response = await fetch('/api/weevely/test-connection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                url: currentWeevelyConnection.url,
+                password: currentWeevelyConnection.password,
+                timeout: currentWeevelyConnection.timeout
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            appendToTerminal('Connection test successful!', 'success');
+            appendToTerminal(`Response time: ${result.response_time}s`, 'info');
+            updateStatus('Connected', 'success');
+        } else {
+            appendToTerminal(`Connection failed: ${result.message}`, 'error');
+            updateStatus('Disconnected', 'error');
+        }
+        
+    } catch (error) {
+        appendToTerminal(`Connection test error: ${error.message}`, 'error');
+        updateStatus('Error', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Get session info
+async function getSessionInfo() {
+    if (!validateConnection()) return;
+    
+    showLoading('Getting session information...');
+    appendToTerminal('Retrieving session information...', 'command');
+    
+    try {
+        const response = await fetch('/api/weevely/session-info', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                url: currentWeevelyConnection.url,
+                password: currentWeevelyConnection.password
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            appendToTerminal('Session information retrieved', 'success');
+            appendToTerminal('=== SESSION INFO ===');
+            appendToTerminal(JSON.stringify(result.session_info, null, 2));
+            updateStatus('Info Retrieved', 'info');
+        } else {
+            appendToTerminal(`Failed to get session info: ${result.error}`, 'error');
+            updateStatus('Failed', 'error');
+        }
+        
+    } catch (error) {
+        appendToTerminal(`Session info error: ${error.message}`, 'error');
+        updateStatus('Error', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// File operations
+function listDirectory() {
+    const path = document.getElementById('current_path').value || '/';
+    executeWeevelyModule(`:file_ls ${path}`);
+}
+
+function changeDirectory(path) {
+    document.getElementById('current_path').value = path;
+    listDirectory();
+}
+
+// Shell operations
+function executeShellCommand() {
+    const command = document.getElementById('shell_command').value.trim();
+    if (!command) {
+        appendToTerminal('Please enter a shell command', 'error');
+        return;
+    }
+    
+    executeWeevelyModule(`:shell_sh ${command}`);
+    document.getElementById('shell_command').value = '';
+}
+
+function setShellCommand(command) {
+    document.getElementById('shell_command').value = command;
+}
+
+function executePHPCode() {
+    const code = document.getElementById('php_code').value.trim();
+    if (!code) {
+        appendToTerminal('Please enter PHP code', 'error');
+        return;
+    }
+    
+    executeWeevelyModule(`:shell_php ${code}`);
+    document.getElementById('php_code').value = '';
+}
+
+// Network operations
+function executeScan() {
+    const target = document.getElementById('scan_target').value.trim();
+    if (!target) {
+        appendToTerminal('Please enter a target to scan', 'error');
+        return;
+    }
+    
+    executeWeevelyModule(`:net_scan ${target}`);
+}
+
+function executeCurl() {
+    const url = document.getElementById('curl_url').value.trim();
+    if (!url) {
+        appendToTerminal('Please enter a URL to fetch', 'error');
+        return;
+    }
+    
+    executeWeevelyModule(`:net_curl ${url}`);
+}
+
+function executeWebDownload() {
+    const url = document.getElementById('download_url').value.trim();
+    const path = document.getElementById('save_path').value.trim();
+    
+    if (!url || !path) {
+        appendToTerminal('Please enter both URL and save path', 'error');
+        return;
+    }
+    
+    executeWeevelyModule(`:file_webdownload ${url} ${path}`);
+}
+
+// Custom commands
+function executeCustomCommand() {
+    const command = document.getElementById('custom_command').value.trim();
+    if (!command) {
+        appendToTerminal('Please enter a weevely command', 'error');
+        return;
+    }
+    
+    const fullCommand = command.startsWith(':') ? command : `:${command}`;
+    executeWeevelyModule(fullCommand);
+    document.getElementById('custom_command').value = '';
+}
+
+function setCustomCommand(command) {
+    document.getElementById('custom_command').value = command;
+}
+
+// Batch execution
+async function executeBatchCommands() {
+    const batchCommands = [
+        ':system_info',
+        ':procs_list',
+        ':file_ls /',
+        ':audit_phpconf'
+    ];
+    
+    if (!validateConnection()) return;
+    
+    showLoading('Executing batch commands...');
+    appendToTerminal('Starting batch execution...', 'command');
+    
+    try {
+        const response = await fetch('/api/weevely/batch-execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                url: currentWeevelyConnection.url,
+                password: currentWeevelyConnection.password,
+                commands: batchCommands,
+                delay: 0.5
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            appendToTerminal(`Batch execution completed`, 'success');
+            appendToTerminal(`Total: ${result.total_commands}, Success: ${result.successful_commands}, Failed: ${result.failed_commands}`, 'info');
+            appendToTerminal(`Total time: ${result.total_execution_time}s`, 'info');
+            
+            // Display individual results
+            appendToTerminal('=== BATCH RESULTS ===');
+            result.results.forEach(r => {
+                const status = r.result.success ? '✓' : '✗';
+                appendToTerminal(`${status} ${r.command}`);
+                if (r.result.raw_output) {
+                    appendToTerminal(r.result.raw_output);
+                }
+                appendToTerminal('---');
+            });
+            
+            updateStatus('Batch Complete', 'success');
+        } else {
+            appendToTerminal(`Batch execution failed: ${result.error}`, 'error');
+            updateStatus('Batch Failed', 'error');
+        }
+        
+    } catch (error) {
+        appendToTerminal(`Batch execution error: ${error.message}`, 'error');
+        updateStatus('Error', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Modal functions (placeholders for future implementation)
+function showFileSearchModal() {
+    // TODO: Implement file search modal
+    const path = prompt('Enter search path:', '/');
+    const pattern = prompt('Enter file pattern (e.g., *.php):', '*.php');
+    
+    if (path && pattern) {
+        executeWeevelyModule(`:file_find -vector sh_find -ftype f ${path} ${pattern}`);
+    }
+}
+
+function showFileReadModal() {
+    // TODO: Implement file read modal
+    const filepath = prompt('Enter file path to read:', '/etc/passwd');
+    
+    if (filepath) {
+        executeWeevelyModule(`:file_read -vector file_get_contents ${filepath}`);
+    }
+}
+
+function showFileOperationsModal() {
+    // TODO: Implement file operations modal
+    appendToTerminal('File operations modal coming soon...', 'info');
+}
+
+function showBatchModal() {
+    // TODO: Implement batch commands editor modal
+    appendToTerminal('Batch commands editor coming soon...', 'info');
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default values if available
+    // TODO: Load from weevely connection data if available
+    
+    appendToTerminal('Weevely Module Terminal initialized', 'info');
+    appendToTerminal('Configure connection details and select modules to begin', 'info');
+});
+
+// Auto-save connection details
+document.getElementById('weevely_url').addEventListener('change', function() {
+    localStorage.setItem('weevely_last_url', this.value);
+});
+
+document.getElementById('weevely_password').addEventListener('change', function() {
+    // Note: Consider security implications of storing passwords
+    // localStorage.setItem('weevely_last_password', this.value);
+});
+
+// Load saved connection details
+window.addEventListener('load', function() {
+    const savedUrl = localStorage.getItem('weevely_last_url');
+    if (savedUrl) {
+        document.getElementById('weevely_url').value = savedUrl;
+    }
+});
+</script>
+
+<!-- Additional CSS for better terminal styling -->
+<style>
+#terminal_output {
+    background-color: #1a1a1a !important;
+    color: #00ff00;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #333;
+    overflow-x: auto;
+}
+
+#terminal_output::-webkit-scrollbar {
+    width: 8px;
+}
+
+#terminal_output::-webkit-scrollbar-track {
+    background: #2a2a2a;
+}
+
+#terminal_output::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+#terminal_output::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #f97316 !important;
+}
+
+.card.border {
+    border: 1px solid #e2e8f0 !important;
+}
+
+.btn-group-vertical .btn {
+    text-align: left;
+}
+
+#loading_overlay {
+    backdrop-filter: blur(3px);
+}
+
+.font-monospace {
+    font-family: 'Courier New', Consolas, monospace !important;
+}
+
+/* Custom scrollbar for better terminal appearance */
+.card-body {
+    scrollbar-width: thin;
+    scrollbar-color: #555 #2a2a2a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .btn-group-vertical {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .d-flex.gap-2.flex-wrap {
+        gap: 0.5rem !important;
+    }
+    
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+</style>

@@ -351,6 +351,9 @@
   <!-- thông tin các trường mình sẽ hiện ra ở đây ở đây-->
   {% include "weevely/add-weevely.html"%}
   {% include "weevely/add-weevely-payload.html"%}
+  
+  <!-- Enhanced Modals for Upload/Download and Cron -->
+  {% include "weevely/enhanced-modals.html"%}
 
   <!--table hiển thị list Mục tiêu ở đây-->
   <div class="row my-3">
@@ -391,7 +394,29 @@
               <!-- Action Buttons Container -->
               <div class="action-buttons-container" style="margin-right: 20px !important;">
                 
+                <!-- Thêm nút Check Status -->
+                <button class="action-btn btn-sort" id="btn-check-status" title="Kiểm tra trạng thái website">
+                  <i class="fas fa-signal"></i>
+                  <span class="tooltip">Check Status</span>
+                </button>
 
+                <!-- File Search Button -->
+                <button class="action-btn btn-info" onclick="enhancedFileSearch()" title="Search Files">
+                  <i class="fas fa-search"></i>
+                  <span class="tooltip">Search Files</span>
+                </button>
+                
+                <!-- File Read Button -->
+                <button class="action-btn btn-verify" onclick="enhancedFileRead()" title="Read File">
+                  <i class="fas fa-file-alt"></i>
+                  <span class="tooltip">Read File</span>
+                </button>
+                
+                <!-- Upload/Download Button -->
+                <button class="action-btn btn-info" onclick="showUploadDownloadModal()" title="Upload/Download">
+                  <i class="fas fa-upload"></i>
+                  <span class="tooltip">Upload/Download</span>
+                </button>
 
                 <!-- Delete Button -->
                 <button class="action-btn btn-delete" id="btn-delete-selected" title="Delete shel">
@@ -542,6 +567,32 @@
     <!-- File Upload/Download Panel - Right Side -->
     <div class="col-md-4">
       {% include "weevely/partial-updown-file.html"%}
+    </div>
+  </div>
+
+  <!-- Enhanced Weevely Module Terminal Section -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">
+            <i class="fas fa-terminal text-primary"></i>
+            Advanced Weevely Module Terminal
+          </h6>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-primary" onclick="showWeevelyModuleTerminal()" id="toggle-terminal-btn">
+              <i class="fas fa-chevron-down"></i> Show Terminal
+            </button>
+            <button class="btn btn-sm btn-outline-info" onclick="loadSelectedWeevelyConnection()">
+              <i class="fas fa-plug"></i> Load Selected
+            </button>
+          </div>
+        </div>
+        <div class="card-body" id="weevely-terminal-container" style="display: none;">
+          <!-- Include the complete weevely module terminal -->
+          {% include 'weevely/partial-weevely-module-terminal.html' %}
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -949,6 +1000,161 @@ document.getElementById("btn-delete-selected").addEventListener("click", functio
 
 });
 
+// Enhanced Weevely Integration Functions
+function showWeevelyModuleTerminal() {
+  const container = document.getElementById('weevely-terminal-container');
+  const toggleBtn = document.getElementById('toggle-terminal-btn');
+  
+  if (container.style.display === 'none') {
+    container.style.display = 'block';
+    toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Hide Terminal';
+    // Scroll to terminal
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    container.style.display = 'none';
+    toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Show Terminal';
+  }
+}
+
+function loadSelectedWeevelyConnection() {
+  const checkedIds = getCheckedshellIds();
+  if (checkedIds.length === 0) {
+    alert('Please select a weevely connection first');
+    return;
+  }
+  
+  if (checkedIds.length > 1) {
+    alert('Please select only one weevely connection');
+    return;
+  }
+  
+  const weevelyId = checkedIds[0];
+  
+  // Load weevely connection details and populate terminal
+  fetch(`/api/weevely/${weevelyId}/details`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.weevely) {
+        // Show terminal if hidden
+        showWeevelyModuleTerminal();
+        
+        // Initialize terminal with connection data
+        setTimeout(() => {
+          if (typeof WeevelyModuleTerminal !== 'undefined') {
+            WeevelyModuleTerminal.initialize({
+              url: data.weevely.url,
+              password: data.weevely.password,
+              autoTest: false
+            });
+          } else {
+            // Fallback: populate fields manually
+            document.getElementById('weevely_url').value = data.weevely.url || '';
+            document.getElementById('weevely_password').value = data.weevely.password || '';
+            appendToTerminal(`Loaded connection: ${data.weevely.url}`, 'info');
+          }
+        }, 500);
+      } else {
+        alert('Failed to load weevely connection details');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading weevely connection:', error);
+      alert('Error loading connection details');
+    });
+}
+
+// Enhanced status check for weevely connections
+function enhancedStatusCheck() {
+  const checkedIds = getCheckedshellIds();
+  if (checkedIds.length === 0) {
+    alert('Please select weevely connections to check status');
+    return;
+  }
+  
+  checkedIds.forEach(async (weevelyId) => {
+    try {
+      const response = await fetch(`/api/weevely/${weevelyId}/test-connection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      const statusSpan = document.querySelector(`[data-weevely-id="${weevelyId}"] .badge`);
+      
+      if (statusSpan) {
+        if (result.success) {
+          statusSpan.className = 'badge bg-gradient-success ms-1';
+          statusSpan.textContent = 'CONNECTED';
+        } else {
+          statusSpan.className = 'badge bg-gradient-danger ms-1';
+          statusSpan.textContent = 'FAILED';
+        }
+      }
+    } catch (error) {
+      console.error(`Error checking status for ${weevelyId}:`, error);
+    }
+  });
+}
+
+// File Search Enhancement
+function enhancedFileSearch() {
+  const checkedIds = getCheckedshellIds();
+  if (checkedIds.length === 0) {
+    alert('Please select a weevely connection first');
+    return;
+  }
+  
+  if (checkedIds.length > 1) {
+    alert('Please select only one weevely connection for file search');
+    return;
+  }
+  
+  // Show terminal and open file search modal
+  showWeevelyModuleTerminal();
+  setTimeout(() => {
+    loadSelectedWeevelyConnection();
+    setTimeout(() => {
+      if (typeof showFileSearchModal !== 'undefined') {
+        showFileSearchModal();
+      }
+    }, 1000);
+  }, 500);
+}
+
+// File Read Enhancement
+function enhancedFileRead() {
+  const checkedIds = getCheckedshellIds();
+  if (checkedIds.length === 0) {
+    alert('Please select a weevely connection first');
+    return;
+  }
+  
+  if (checkedIds.length > 1) {
+    alert('Please select only one weevely connection for file reading');
+    return;
+  }
+  
+  // Show terminal and open file read modal
+  showWeevelyModuleTerminal();
+  setTimeout(() => {
+    loadSelectedWeevelyConnection();
+    setTimeout(() => {
+      if (typeof showFileReadModal !== 'undefined') {
+        showFileReadModal();
+      }
+    }, 1000);
+  }, 500);
+}
+
+// Override the existing check status button
+document.addEventListener('DOMContentLoaded', function() {
+  const checkStatusBtn = document.getElementById('btn-check-status');
+  if (checkStatusBtn) {
+    checkStatusBtn.removeAttribute('onclick');
+    checkStatusBtn.addEventListener('click', enhancedStatusCheck);
+  }
+});
+
 </script>
 
 {% endblock content %} {% block extra_js %}
@@ -956,6 +1162,9 @@ document.getElementById("btn-delete-selected").addEventListener("click", functio
 
 
 
+
+<!-- Include Enhanced Modal Scripts -->
+{% include "weevely/enhanced-modal-scripts.html"%}
 
 <script src="{{ url_for('static', filename='assets/js/plugins/chartjs.min.js') }}"></script>
 

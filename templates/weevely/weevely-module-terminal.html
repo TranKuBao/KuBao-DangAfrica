@@ -1,0 +1,409 @@
+<!-- Weevely Module Terminal Interface -->
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="mb-0">
+                <i class="fas fa-terminal text-info"></i>
+                Weevely Module Terminal
+              </h5>
+              <p class="text-sm text-muted mb-0">Execute advanced weevely modules and commands</p>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-success" onclick="testWeevelyConnection()">
+                <i class="fas fa-plug"></i> Test Connection
+              </button>
+              <button class="btn btn-sm btn-outline-info" onclick="getSessionInfo()">
+                <i class="fas fa-info-circle"></i> Session Info
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="clearTerminalOutput()">
+                <i class="fas fa-eraser"></i> Clear
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <!-- Connection Settings -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label class="form-label text-sm font-weight-bold">Weevely URL</label>
+                <input type="url" id="weevely_url" class="form-control" 
+                       placeholder="https://target.com/backdoor.php"
+                       value="">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="form-label text-sm font-weight-bold">Password</label>
+                <input type="password" id="weevely_password" class="form-control" 
+                       placeholder="Enter weevely password">
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label class="form-label text-sm font-weight-bold">Timeout (s)</label>
+                <input type="number" id="command_timeout" class="form-control" 
+                       value="60" min="10" max="300">
+              </div>
+            </div>
+          </div>
+
+          <!-- Module Categories -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="nav-wrapper position-relative">
+                <ul class="nav nav-pills nav-fill p-1" role="tablist">
+                  <li class="nav-item">
+                    <a class="nav-link mb-0 px-0 py-1 active" data-bs-toggle="tab" href="#file-ops" role="tab">
+                      <i class="fas fa-folder"></i> File Operations
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#system-info" role="tab">
+                      <i class="fas fa-server"></i> System Info
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#shell-ops" role="tab">
+                      <i class="fas fa-terminal"></i> Shell Operations
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#network-ops" role="tab">
+                      <i class="fas fa-network-wired"></i> Network
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#custom-cmd" role="tab">
+                      <i class="fas fa-code"></i> Custom Command
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Module Content -->
+          <div class="tab-content">
+            <!-- File Operations Tab -->
+            <div class="tab-pane fade show active" id="file-ops" role="tabpanel">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6>File Management</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="btn-group-vertical w-100" role="group">
+                        <button class="btn btn-outline-primary mb-2" onclick="executeQuickCommand(':file_ls /')">
+                          <i class="fas fa-list"></i> List Root Directory
+                        </button>
+                        <button class="btn btn-outline-primary mb-2" onclick="showFileSearchModal()">
+                          <i class="fas fa-search"></i> Find Files
+                        </button>
+                        <button class="btn btn-outline-primary mb-2" onclick="showFileReadModal()">
+                          <i class="fas fa-file-alt"></i> Read File
+                        </button>
+                        <button class="btn btn-outline-primary mb-2" onclick="showFileOperationsModal()">
+                          <i class="fas fa-tools"></i> File Operations
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6>Directory Navigation</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="form-group">
+                        <label class="form-label text-sm">Current Path</label>
+                        <div class="input-group">
+                          <input type="text" id="current_path" class="form-control" value="/" placeholder="/path/to/directory">
+                          <button class="btn btn-outline-secondary" onclick="listDirectory()">
+                            <i class="fas fa-folder-open"></i> List
+                          </button>
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-sm btn-outline-info" onclick="changeDirectory('/var/www')">
+                          <i class="fas fa-globe"></i> Web Root
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="changeDirectory('/tmp')">
+                          <i class="fas fa-folder"></i> /tmp
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="changeDirectory('/etc')">
+                          <i class="fas fa-cog"></i> /etc
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="changeDirectory('/home')">
+                          <i class="fas fa-home"></i> /home
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- System Info Tab -->
+            <div class="tab-pane fade" id="system-info" role="tabpanel">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6>System Information</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="btn-group-vertical w-100" role="group">
+                        <button class="btn btn-outline-success mb-2" onclick="executeQuickCommand(':system_info')">
+                          <i class="fas fa-info-circle"></i> System Info
+                        </button>
+                        <button class="btn btn-outline-success mb-2" onclick="executeQuickCommand(':system_extensions')">
+                          <i class="fas fa-puzzle-piece"></i> PHP Extensions
+                        </button>
+                        <button class="btn btn-outline-success mb-2" onclick="executeQuickCommand(':procs_list')">
+                          <i class="fas fa-tasks"></i> Running Processes
+                        </button>
+                        <button class="btn btn-outline-success mb-2" onclick="executeQuickCommand(':net_ifconfig')">
+                          <i class="fas fa-network-wired"></i> Network Interfaces
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6>Security Audit</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="btn-group-vertical w-100" role="group">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeQuickCommand(':audit_phpconf')">
+                          <i class="fas fa-shield-alt"></i> PHP Configuration
+                        </button>
+                        <button class="btn btn-outline-warning mb-2" onclick="executeQuickCommand(':audit_filesystem')">
+                          <i class="fas fa-hdd"></i> Filesystem Audit
+                        </button>
+                        <button class="btn btn-outline-warning mb-2" onclick="executeQuickCommand(':audit_suidsgid')">
+                          <i class="fas fa-user-shield"></i> SUID/SGID Files
+                        </button>
+                        <button class="btn btn-outline-warning mb-2" onclick="executeQuickCommand(':audit_etcpasswd')">
+                          <i class="fas fa-users"></i> /etc/passwd Analysis
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Shell Operations Tab -->
+            <div class="tab-pane fade" id="shell-ops" role="tabpanel">
+              <div class="row">
+                <div class="col-12">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6>Execute Shell Commands</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="form-group">
+                        <label class="form-label text-sm">Shell Command</label>
+                        <div class="input-group">
+                          <input type="text" id="shell_command" class="form-control" 
+                                 placeholder="ls -la, whoami, ps aux, etc..."
+                                 onkeypress="if(event.key === 'Enter') executeShellCommand()">
+                          <button class="btn btn-success" onclick="executeShellCommand()">
+                            <i class="fas fa-play"></i> Execute
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="d-flex gap-2 flex-wrap mb-3">
+                            <button class="btn btn-sm btn-outline-primary" onclick="setShellCommand('whoami')">whoami</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="setShellCommand('id')">id</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="setShellCommand('pwd')">pwd</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="setShellCommand('uname -a')">uname -a</button>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="d-flex gap-2 flex-wrap mb-3">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="setShellCommand('ps aux')">ps aux</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="setShellCommand('netstat -tulpn')">netstat</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="setShellCommand('df -h')">df -h</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="setShellCommand('cat /etc/passwd')">passwd</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- PHP Code Execution -->
+                      <div class="form-group">
+                        <label class="form-label text-sm">PHP Code</label>
+                        <div class="input-group">
+                          <textarea id="php_code" class="form-control" rows="3" 
+                                    placeholder="echo phpinfo(); // PHP code to execute"></textarea>
+                          <button class="btn btn-warning" onclick="executePHPCode()">
+                            <i class="fab fa-php"></i> Execute PHP
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Network Operations Tab -->
+            <div class="tab-pane fade" id="network-ops" role="tabpanel">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6>Network Tools</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="form-group">
+                        <label class="form-label text-sm">Target Host/IP</label>
+                        <div class="input-group mb-3">
+                          <input type="text" id="scan_target" class="form-control" placeholder="192.168.1.1 or domain.com">
+                          <button class="btn btn-primary" onclick="executeScan()">
+                            <i class="fas fa-search"></i> Scan
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div class="form-group">
+                        <label class="form-label text-sm">URL to Fetch</label>
+                        <div class="input-group mb-3">
+                          <input type="url" id="curl_url" class="form-control" placeholder="https://example.com">
+                          <button class="btn btn-info" onclick="executeCurl()">
+                            <i class="fas fa-download"></i> Fetch
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6>File Transfer</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="form-group">
+                        <label class="form-label text-sm">Download from URL</label>
+                        <div class="input-group mb-3">
+                          <input type="url" id="download_url" class="form-control" placeholder="https://example.com/file.txt">
+                          <input type="text" id="save_path" class="form-control" placeholder="/tmp/file.txt">
+                          <button class="btn btn-success" onclick="executeWebDownload()">
+                            <i class="fas fa-cloud-download-alt"></i> Download
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom Command Tab -->
+            <div class="tab-pane fade" id="custom-cmd" role="tabpanel">
+              <div class="row">
+                <div class="col-12">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6>Custom Weevely Command</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="form-group">
+                        <label class="form-label text-sm">Weevely Command</label>
+                        <div class="input-group">
+                          <span class="input-group-text">:</span>
+                          <input type="text" id="custom_command" class="form-control" 
+                                 placeholder="file_ls /var/www or system_info"
+                                 onkeypress="if(event.key === 'Enter') executeCustomCommand()">
+                          <button class="btn btn-primary" onclick="executeCustomCommand()">
+                            <i class="fas fa-play"></i> Execute
+                          </button>
+                        </div>
+                        <small class="text-muted">Enter weevely module command without the leading colon (:)</small>
+                      </div>
+
+                      <div class="row">
+                        <div class="col-md-6">
+                          <h6 class="text-sm font-weight-bold mb-2">Common Commands:</h6>
+                          <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-sm btn-outline-dark" onclick="setCustomCommand('system_info')">system_info</button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="setCustomCommand('file_ls /')">file_ls /</button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="setCustomCommand('procs_list')">procs_list</button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="setCustomCommand('audit_phpconf')">audit_phpconf</button>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <h6 class="text-sm font-weight-bold mb-2">Batch Commands:</h6>
+                          <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-success" onclick="executeBatchCommands()">
+                              <i class="fas fa-list"></i> Execute Batch
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="showBatchModal()">
+                              <i class="fas fa-edit"></i> Edit Batch
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Terminal Output -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div class="card bg-dark">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                  <h6 class="mb-0">
+                    <i class="fas fa-terminal text-success"></i>
+                    Terminal Output
+                  </h6>
+                  <div>
+                    <span id="execution_status" class="badge bg-secondary">Ready</span>
+                    <button class="btn btn-sm btn-outline-light ms-2" onclick="copyTerminalOutput()">
+                      <i class="fas fa-copy"></i> Copy
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body p-3" style="min-height: 300px;">
+                  <div id="terminal_output" class="text-light font-monospace" style="white-space: pre-wrap; overflow-y: auto; max-height: 400px;">
+                    Welcome to Weevely Module Terminal
+                    Enter connection details above and select modules to execute...
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading_overlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" style="background: rgba(0,0,0,0.7); z-index: 9999;">
+  <div class="d-flex justify-content-center align-items-center h-100">
+    <div class="text-center text-white">
+      <div class="spinner-border text-light mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <h5 id="loading_message">Executing command...</h5>
+    </div>
+  </div>
+</div>

@@ -8,13 +8,48 @@ import uuid
 import subprocess
 import hashlib
 import math
+import json
+import tempfile
 from datetime import datetime
-from flask import render_template, jsonify, request, current_app
+from flask import render_template, jsonify, request, current_app, send_file
+from werkzeug.utils import secure_filename
 from apps.weevely import blueprint
 from apps.models import ShellConnection, ShellCommand, ShellStatus, ShellType, db, DataFile
 from apps.exceptions.exception import InvalidUsage
+from apps.weevely.module_executor import WeevelyModuleExecutor, WeevelyPayloadGenerator
 
 import datetime as dt
+
+# Initialize global executor
+try:
+    executor = WeevelyModuleExecutor()
+    payload_generator = WeevelyPayloadGenerator()
+except Exception as e:
+    print(f"Warning: Failed to initialize WeevelyModuleExecutor: {e}")
+    executor = None
+    payload_generator = None
+
+# Global storage for cron downloads (in production, use Redis or database)
+cron_downloads = {}
+
+def extract_password_from_notes(notes):
+    """Extract password from notes field"""
+    if not notes:
+        return None
+    try:
+        # Try to parse as JSON first
+        if notes.startswith('{'):
+            data = json.loads(notes)
+            return data.get('password')
+        # Fallback: look for password in text
+        lines = notes.split('\n')
+        for line in lines:
+            if 'password:' in line.lower():
+                return line.split(':', 1)[1].strip()
+        return None
+    except:
+        return None
+
 #############################################
 #dataserver upload/download
 ##############################################
@@ -1154,6 +1189,394 @@ def get_available_modules():
         
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ==========================================
+# ENHANCED API ENDPOINTS FOR GUI INTEGRATION
+# ==========================================
+
+@blueprint.route('/api/weevely/<weevely_id>/details', methods=['GET'])
+def get_weevely_details(weevely_id):
+    """Get weevely connection details for terminal"""
+    try:
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'success': False, 'error': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        
+        return jsonify({
+            'success': True,
+            'weevely': {
+                'id': shell_conn.connection_id,
+                'url': shell_conn.url,
+                'password': password,
+                'name': shell_conn.name,
+                'status': shell_conn.status.name,
+                'created_at': shell_conn.created_at.isoformat() if shell_conn.created_at else None
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error getting weevely details: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/execute-module', methods=['POST'])
+def execute_weevely_module():
+    """Execute weevely module command"""
+    try:
+        if not executor:
+            return jsonify({
+                'success': False,
+                'error': 'WeevelyModuleExecutor not initialized'
+            }), 500
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        url = data.get('url')
+        password = data.get('password')
+        module_command = data.get('module_command')
+        timeout = data.get('timeout', 60)
+        retries = data.get('retries', 1)
+        
+        if not all([url, password, module_command]):
+            return jsonify({
+                'success': False,
+                'error': 'Missing required parameters: url, password, module_command'
+            }), 400
+        
+        # Execute module
+        result = executor.execute_module(url, password, module_command, timeout, retries)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error executing module: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/test-connection', methods=['POST'])
+def test_weevely_connection():
+    """Test weevely connection"""
+    try:
+        if not executor:
+            return jsonify({
+                'success': False,
+                'error': 'WeevelyModuleExecutor not initialized'
+            }), 500
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        url = data.get('url')
+        password = data.get('password')
+        timeout = data.get('timeout', 10)
+        
+        if not all([url, password]):
+            return jsonify({
+                'success': False,
+                'error': 'Missing required parameters: url, password'
+            }), 400
+        
+        # Test connection
+        result = executor.test_connection(url, password, timeout)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error testing connection: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/<weevely_id>/test-connection', methods=['POST'])
+def test_weevely_connection_by_id(weevely_id):
+    """Test weevely connection by ID"""
+    try:
+        if not executor:
+            return jsonify({
+                'success': False,
+                'error': 'WeevelyModuleExecutor not initialized'
+            }), 500
+        
+        shell_conn = ShellConnection.get_by_id(weevely_id)
+        if not shell_conn:
+            return jsonify({'success': False, 'error': 'Weevely not found'}), 404
+        
+        password = extract_password_from_notes(shell_conn.notes)
+        if not password:
+            return jsonify({'success': False, 'error': 'Password not found'}), 400
+        
+        # Test connection
+        result = executor.test_connection(shell_conn.url, password, 10)
+        
+        # Update status in database if needed
+        if result['success']:
+            shell_conn.status = ShellStatus.CONNECTED
+        else:
+            shell_conn.status = ShellStatus.DISCONNECTED
+        
+        shell_conn.last_active = datetime.now()
+        db.session.commit()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error testing connection by ID: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/batch-execute', methods=['POST'])
+def batch_execute_weevely():
+    """Execute multiple weevely commands in batch"""
+    try:
+        if not executor:
+            return jsonify({
+                'success': False,
+                'error': 'WeevelyModuleExecutor not initialized'
+            }), 500
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        url = data.get('url')
+        password = data.get('password')
+        commands = data.get('commands', [])
+        delay = data.get('delay', 0.5)
+        
+        if not all([url, password]) or not commands:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required parameters: url, password, commands'
+            }), 400
+        
+        # Execute batch
+        result = executor.batch_execute(url, password, commands, delay)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error executing batch: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/session-info', methods=['POST'])
+def get_weevely_session_info():
+    """Get comprehensive session information"""
+    try:
+        if not executor:
+            return jsonify({
+                'success': False,
+                'error': 'WeevelyModuleExecutor not initialized'
+            }), 500
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        url = data.get('url')
+        password = data.get('password')
+        
+        if not all([url, password]):
+            return jsonify({
+                'success': False,
+                'error': 'Missing required parameters: url, password'
+            }), 400
+        
+        # Get session info
+        session_info = executor.get_session_info(url, password)
+        
+        return jsonify({
+            'success': True,
+            'session_info': session_info
+        })
+        
+    except Exception as e:
+        print(f"Error getting session info: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/upload-file', methods=['POST'])
+def upload_file_to_target():
+    """Upload file to target server via weevely"""
+    try:
+        if not executor:
+            return jsonify({
+                'success': False,
+                'error': 'WeevelyModuleExecutor not initialized'
+            }), 500
+        
+        # Get form data
+        url = request.form.get('url')
+        password = request.form.get('password')
+        target_path = request.form.get('target_path')
+        vector = request.form.get('vector', 'file_put_contents')
+        
+        if not all([url, password, target_path]):
+            return jsonify({
+                'success': False,
+                'error': 'Missing required parameters'
+            }), 400
+        
+        # Get uploaded file
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'No file uploaded'
+            }), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'No file selected'
+            }), 400
+        
+        # Save file temporarily
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(tempfile.gettempdir(), filename)
+        file.save(temp_path)
+        
+        try:
+            # Upload via weevely
+            upload_command = f":file_upload -vector {vector} {temp_path} {target_path}"
+            result = executor.execute_module(url, password, upload_command, 120)
+            
+            # Clean up temp file
+            os.remove(temp_path)
+            
+            if result['success']:
+                return jsonify({
+                    'success': True,
+                    'target_path': target_path,
+                    'file_size': os.path.getsize(temp_path) if os.path.exists(temp_path) else 0,
+                    'message': 'File uploaded successfully'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': result.get('error', 'Upload failed')
+                })
+                
+        except Exception as e:
+            # Clean up temp file on error
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise e
+        
+    except Exception as e:
+        print(f"Error uploading file: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ==========================================
+# CRON DOWNLOAD MANAGEMENT
+# ==========================================
+
+@blueprint.route('/api/weevely/cron-download', methods=['POST'])
+def create_cron_download():
+    """Create a scheduled download job"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        # Validate required fields
+        required_fields = ['id', 'url', 'target_path', 'cron_expression', 'weevely_connection']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        # Store cron job (in production, save to database)
+        cron_id = data['id']
+        cron_downloads[cron_id] = {
+            'id': cron_id,
+            'url': data['url'],
+            'target_path': data['target_path'],
+            'cron_expression': data['cron_expression'],
+            'schedule_type': data.get('schedule_type', 'custom'),
+            'auto_cleanup': data.get('auto_cleanup', True),
+            'weevely_connection': data['weevely_connection'],
+            'created_at': data.get('created_at', datetime.now().isoformat()),
+            'status': data.get('status', 'active'),
+            'last_run': None,
+            'next_run': None,
+            'run_count': 0
+        }
+        
+        return jsonify({
+            'success': True,
+            'cron_id': cron_id,
+            'message': 'Cron download scheduled successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error creating cron download: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/cron-downloads', methods=['GET'])
+def get_cron_downloads():
+    """Get all cron downloads for a weevely connection"""
+    try:
+        weevely_id = request.args.get('weevely_id')
+        
+        # Filter by weevely_id if provided
+        filtered_crons = []
+        for cron in cron_downloads.values():
+            if not weevely_id or cron['weevely_connection'].get('id') == weevely_id:
+                filtered_crons.append(cron)
+        
+        return jsonify({
+            'success': True,
+            'cron_downloads': filtered_crons
+        })
+        
+    except Exception as e:
+        print(f"Error getting cron downloads: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/cron-download/<cron_id>', methods=['PATCH'])
+def update_cron_download(cron_id):
+    """Update cron download status"""
+    try:
+        if cron_id not in cron_downloads:
+            return jsonify({'success': False, 'error': 'Cron download not found'}), 404
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        # Update allowed fields
+        allowed_fields = ['status', 'auto_cleanup']
+        for field in allowed_fields:
+            if field in data:
+                cron_downloads[cron_id][field] = data[field]
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cron download updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error updating cron download: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/cron-download/<cron_id>', methods=['DELETE'])
+def delete_cron_download(cron_id):
+    """Delete cron download"""
+    try:
+        if cron_id not in cron_downloads:
+            return jsonify({'success': False, 'error': 'Cron download not found'}), 404
+        
+        del cron_downloads[cron_id]
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cron download deleted successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error deleting cron download: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @blueprint.route('/<weevely_id>/quick-scan', methods=['POST'])
 def quick_scan(weevely_id):
