@@ -17,7 +17,7 @@ from apps.weevely import blueprint
 from apps.models import ShellConnection, ShellCommand, ShellStatus, ShellType, db, DataFile
 from apps.exceptions.exception import InvalidUsage
 from apps.weevely.module_executor import WeevelyModuleExecutor, WeevelyPayloadGenerator
-
+import time
 import datetime as dt
 
 # Initialize global executor
@@ -1302,7 +1302,7 @@ def test_weevely_connection_by_id(weevely_id):
         if not shell_conn:
             return jsonify({'success': False, 'error': 'Weevely not found'}), 404
         
-        password = extract_password_from_notes(shell_conn.notes)
+        password = shell_conn.password
         if not password:
             return jsonify({'success': False, 'error': 'Password not found'}), 400
         

@@ -178,19 +178,41 @@ class WeevelyModuleExecutor:
             Dict chứa kết quả test connection
         """
         try:
+            print(f"[+] Weevely test connection: {url}, {password}, {timeout}")
             result = self.execute_module(url, password, ":system_info", timeout)
             
-            if result['success']:
-                return {
-                    'success': True,
-                    'message': 'Connection successful',
-                    'response_time': result['execution_time']
-                }
+            #print(f"[+] Result: {result}")
+            parsed_data = result.get('parsed_output', {}) if isinstance(result, dict) else {}
+            has_info = bool(parsed_data.get('info')) if isinstance(parsed_data, dict) else False
+            ok_status = parsed_data.get('status') == 'ok' if isinstance(parsed_data, dict) else False
+
+            if result['success'] or (has_info and ok_status):
+                # Prefer parsed info when available
+                system_info = parsed_data.get('info', {}) if ok_status else {}
+                if system_info['whoami'] != None or system_info['os'] != None or system_info['php_version'] != None:
+                    return {
+                        'success': True,
+                        'message': 'Connection successful',
+                        'response_time': result.get('execution_time'),
+                        'data': system_info,
+                        #'raw_result': result #debug
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'message': 'Connection failed',
+                        'error': result.get('error', 'Unknown error'),
+                        'data': parsed_data.get('info') if isinstance(parsed_data, dict) else None,
+                        #'raw_result': result #debug
+                    }
             else:
+                # Still include any parsed data for troubleshooting
                 return {
                     'success': False,
                     'message': 'Connection failed',
-                    'error': result.get('error', 'Unknown error')
+                    'error': result.get('error', 'Unknown error'),
+                    'data': parsed_data.get('info') if isinstance(parsed_data, dict) else None,
+                    #'raw_result': result #debug
                 }
                 
         except Exception as e:
@@ -261,7 +283,9 @@ class WeevelyModuleExecutor:
                         'execution_time': execution_time,
                         'return_code': result.returncode,
                         'error': error_msg,
-                        'attempt': attempt + 1
+                        'attempt': attempt + 1,
+                        # Still try to parse useful data even if error indicators were found
+                        'parsed_output': self._parse_module_output(module_command, result.stdout, result.stderr)
                     }
                 
                 return {
@@ -271,7 +295,7 @@ class WeevelyModuleExecutor:
                     'error_output': result.stderr,
                     'execution_time': execution_time,
                     'return_code': result.returncode,
-                    'parsed_output': self._parse_module_output(module_command, result.stdout),
+                    'parsed_output': self._parse_module_output(module_command, result.stdout, result.stderr),
                     'executed_at': time.time(),
                     'attempt': attempt + 1
                 }
@@ -529,6 +553,237 @@ class WeevelyModuleExecutor:
         content = content.rstrip('\n')
         
         return content
+
+    def _parse_module_output(self, module_command: str, raw_output: str, error_output: str = "") -> Dict:
+        """
+        Parse module output based on command type
+        
+        Args:
+            module_command: The executed module command
+            raw_output: Raw output from weevely
+            error_output: Error output (sometimes contains actual data)
+            
+        Returns:
+            Dict containing parsed output
+        """
+        try:
+            # Use error_output if raw_output is empty (weevely sometimes outputs to stderr)
+            output_to_parse = raw_output if raw_output.strip() else error_output
+            
+            # Clean the output first
+            cleaned_output = self._clean_file_content(output_to_parse)
+            
+            # Parse based on command type
+            if ':system_info' in module_command:
+                print(f"[+] Đang phân tích dữ liệu output System info: .....")
+                return self._parse_system_info(cleaned_output)
+            elif ':file_ls' in module_command:
+                print(f"[+] Đang phân tích dữ liệu output File listing: .....")
+                return self._parse_file_listing(cleaned_output)
+            elif ':procs_list' in module_command:
+                print(f"[+] Đang phân tích dữ liệu output Process list: .....")
+                return self._parse_process_list(cleaned_output)
+            elif ':audit_phpconf' in module_command:
+                print(f"[+] Đang phân tích dữ liệu output PHP config: .....")
+                return self._parse_php_config(cleaned_output)
+            elif ':file_find' in module_command:
+                print(f"[+] Đang phân tích dữ liệu output File find: .....")
+                return self._parse_file_find(cleaned_output)
+            elif ':shell_sh' in module_command:
+                return self._parse_shell_output(cleaned_output)
+            else:
+                # Generic parsing for unknown commands
+                return {
+                    'type': 'generic',
+                    'content': cleaned_output,
+                    'lines': cleaned_output.split('\n') if cleaned_output else [],
+                    'line_count': len(cleaned_output.split('\n')) if cleaned_output else 0
+                }
+                
+        except Exception as e:
+            self.logger.warning(f"Error parsing module output: {str(e)}")
+            return {
+                'type': 'unparsed',
+                'content': raw_output,
+                'parse_error': str(e)
+            }
+    
+    def _parse_system_info(self, output: str) -> Dict[str, Any]:
+        """Parse system info output từ weevely :system_info (gọn trong 1 hàm)"""
+        # default values
+        info = {
+            'document_root': None,
+            'pwd': None,
+            'script_folder': None,
+            'script': None,
+            'php_self': None,
+            'whoami': None,
+            'hostname': None,
+            'open_basedir': None,
+            'disable_functions': None,
+            'safe_mode': False,
+            'uname': None,
+            'os': None,
+            'client_ip': None,
+            'server_name': None,
+            'max_execution_time': None,
+            'php_version': None
+        }
+
+        lines = [l.rstrip("\n") for l in output.splitlines()]
+
+        errors = []
+        for l in lines:
+            ls = l.strip()
+            if not ls.startswith("|") and ls and ("error" in ls.lower() or "404" in ls):
+                errors.append(ls)
+
+        for line in lines:
+            ls = line.strip()
+            if not ls.startswith("|") or "+" in ls or "-" in ls:
+                continue
+            # Match pattern: | key | value |
+            m = re.match(r"^\|\s*([^|]+?)\s*\|\s*(.*?)\s*\|$", ls)
+            if not m:
+                continue
+            key, value = m.groups()
+            key, value = key.strip(), value.strip()
+
+            # ép kiểu ngay trong hàm
+            low = value.lower()
+            if low in ("none", ""):
+                parsed_val = None
+            elif low == "false":
+                parsed_val = False
+            elif low == "true":
+                parsed_val = True
+            elif re.fullmatch(r"-?\d+", value):
+                try:
+                    parsed_val = int(value)
+                except ValueError:
+                    parsed_val = value
+            else:
+                parsed_val = value
+
+            if key in info:
+                info[key] = parsed_val
+
+        # hậu xử lý disable_functions → list nếu có csv
+        if isinstance(info.get('disable_functions'), str) and "," in info['disable_functions']:
+            parts = [p.strip() for p in info['disable_functions'].split(",") if p.strip()]
+            info['disable_functions'] = parts or None
+
+        # max_execution_time đảm bảo int hoặc None
+        if info.get('max_execution_time') is not None and not isinstance(info['max_execution_time'], int):
+            try:
+                info['max_execution_time'] = int(str(info['max_execution_time']))
+            except Exception:
+                info['max_execution_time'] = None
+
+        ok = not errors
+        status = "ok" if ok else "unavailable"
+
+        return {
+            "ok": ok,
+            "status": status,
+            "errors": errors or None,
+            "info": info,
+            "raw_content": output
+        }
+
+    def _parse_file_listing(self, output: str) -> Dict:
+        """Parse file listing output"""
+        files = []
+        directories = []
+        
+        lines = output.split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Try to detect if it's a directory or file
+            if line.startswith('d'):
+                directories.append(line)
+            elif line.startswith('-'):
+                files.append(line)
+            elif '/' in line:
+                # Simple path detection
+                if line.endswith('/'):
+                    directories.append(line)
+                else:
+                    files.append(line)
+        
+        return {
+            'type': 'file_listing',
+            'files': files,
+            'directories': directories,
+            'total_files': len(files),
+            'total_directories': len(directories),
+            'raw_content': output
+        }
+    
+    def _parse_process_list(self, output: str) -> Dict:
+        """Parse process list output"""
+        processes = []
+        lines = output.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('PID'):
+                continue
+            
+            parts = line.split()
+            if len(parts) >= 2:
+                processes.append({
+                    'pid': parts[0],
+                    'command': ' '.join(parts[1:]) if len(parts) > 1 else 'Unknown'
+                })
+        
+        return {
+            'type': 'process_list',
+            'processes': processes,
+            'process_count': len(processes),
+            'raw_content': output
+        }
+    
+    def _parse_php_config(self, output: str) -> Dict:
+        """Parse PHP configuration output"""
+        config = {}
+        lines = output.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if '=' in line:
+                key, value = line.split('=', 1)
+                config[key.strip()] = value.strip()
+        
+        return {
+            'type': 'php_config',
+            'config': config,
+            'config_count': len(config),
+            'raw_content': output
+        }
+    
+    def _parse_file_find(self, output: str) -> Dict:
+        """Parse file find output"""
+        files = self._parse_file_list(output)
+        return {
+            'type': 'file_find',
+            'files': files,
+            'file_count': len(files),
+            'raw_content': output
+        }
+    
+    def _parse_shell_output(self, output: str) -> Dict:
+        """Parse shell command output"""
+        return {
+            'type': 'shell_output',
+            'content': output,
+            'lines': output.split('\n'),
+            'line_count': len(output.split('\n')),
+            'raw_content': output
+        }
 
     # Các methods khác giữ nguyên nhưng thêm logging và error handling tốt hơn
     def get_session_info(self, url: str, password: str) -> Dict:

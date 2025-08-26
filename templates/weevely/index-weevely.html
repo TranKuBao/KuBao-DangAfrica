@@ -395,7 +395,7 @@
               <div class="action-buttons-container" style="margin-right: 20px !important;">
                 
                 <!-- Thêm nút Check Status -->
-                <button class="action-btn btn-sort" id="btn-check-status" title="Kiểm tra trạng thái website">
+                <button class="action-btn btn-sort" id="btn-check-status" onclick="enhancedStatusCheck()" title="Kiểm tra trạng thái website">
                   <i class="fas fa-signal"></i>
                   <span class="tooltip">Check Status</span>
                 </button>
@@ -459,6 +459,8 @@
             <div class="col-6 text-end"><!--có thể thêm cái nút vô đây--></div>
           </div>
         </div>
+
+        <!--bắt đầu table hiển thị list weevely-->
         <div class="card-body px-0 pt-0 pb-2">
           <div class="table-responsive p-0">
             <table class="table align-items-center mb-0">
@@ -1063,38 +1065,7 @@ function loadSelectedWeevelyConnection() {
     });
 }
 
-// Enhanced status check for weevely connections
-function enhancedStatusCheck() {
-  const checkedIds = getCheckedshellIds();
-  if (checkedIds.length === 0) {
-    alert('Please select weevely connections to check status');
-    return;
-  }
-  
-  checkedIds.forEach(async (weevelyId) => {
-    try {
-      const response = await fetch(`/api/weevely/${weevelyId}/test-connection`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const result = await response.json();
-      const statusSpan = document.querySelector(`[data-weevely-id="${weevelyId}"] .badge`);
-      
-      if (statusSpan) {
-        if (result.success) {
-          statusSpan.className = 'badge bg-gradient-success ms-1';
-          statusSpan.textContent = 'CONNECTED';
-        } else {
-          statusSpan.className = 'badge bg-gradient-danger ms-1';
-          statusSpan.textContent = 'FAILED';
-        }
-      }
-    } catch (error) {
-      console.error(`Error checking status for ${weevelyId}:`, error);
-    }
-  });
-}
+
 
 // File Search Enhancement
 function enhancedFileSearch() {
@@ -1146,15 +1117,40 @@ function enhancedFileRead() {
   }, 500);
 }
 
-// Override the existing check status button
-document.addEventListener('DOMContentLoaded', function() {
-  const checkStatusBtn = document.getElementById('btn-check-status');
-  if (checkStatusBtn) {
-    checkStatusBtn.removeAttribute('onclick');
-    checkStatusBtn.addEventListener('click', enhancedStatusCheck);
-  }
-});
 
+// Enhanced status check for weevely connections
+function enhancedStatusCheck() {
+    const checkedIds = getCheckedshellIds();
+    if (checkedIds.length === 0) {
+      alert('Please select weevely connections to check status');
+      return;
+    }
+    
+    checkedIds.forEach(async (weevelyId) => {
+      try {
+        const response = await fetch(`/api/weevely/${weevelyId}/test-connection`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        const statusSpan = document.querySelector(`[data-weevely-id="${weevelyId}"] .badge`);
+        
+        if (statusSpan) {
+          if (result.success) {
+            statusSpan.className = 'badge bg-gradient-success ms-1';
+            statusSpan.textContent = 'CONNECTED';
+          } else {
+            statusSpan.className = 'badge bg-gradient-danger ms-1';
+            statusSpan.textContent = 'FAILED';
+          }
+        }
+      } catch (error) {
+        console.error(`Error checking status for ${weevelyId}:`, error);
+      }
+    });
+  }
+ 
 </script>
 
 {% endblock content %} {% block extra_js %}
