@@ -365,9 +365,6 @@
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyFileContent()">
                   <i class="fas fa-copy me-1"></i>Copy
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="downloadFileContent()">
-                  <i class="fas fa-download me-1"></i>Download
-                </button>
               </div>
             </div>
           </div>
@@ -1178,6 +1175,7 @@ function viewFileContent(fileId) {
         document.getElementById('viewerFileType').textContent = data.type.toUpperCase();
         document.getElementById('viewerFileLines').textContent = data.lines;
         document.getElementById('viewerFilePassword').textContent = data.password;
+        document.getElementById('saveFileBtn').setAttribute("onclick",`downloadFileContent("${data.file_id}")`) ;
         // Xử lý nội dung file với syntax highlighting
         const contentElement = document.getElementById('fileContentCode');
         const content = data.content;
@@ -1201,7 +1199,61 @@ function viewFileContent(fileId) {
       alert('Error loading file content. Please try again.');
     });
 }
+async function downloadFileContent(fileId) {
+  const url = `/api/dataserver/download-upload-file?id=${encodeURIComponent(fileId)}`;
 
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    // 1) Thử lấy filename từ Content-Disposition
+    let filename = null;
+    const dispo = res.headers.get('Content-Disposition');
+    if (dispo) {
+      const m = /filename\*?=(?:UTF-8'')?("?)([^";]+)\1/i.exec(dispo);
+      if (m && m[2]) filename = decodeURIComponent(m[2]);
+    }
+
+    // 2) Fallback: lấy từ DOM data-file-info (nếu có)
+    if (!filename) {
+      const sel = `[data-file-id="${fileId}"]`;
+      const row = document.querySelector(sel);
+      if (row) {
+        try {
+          const info = JSON.parse(row.getAttribute('data-file-info') || '{}');
+          filename = info.name || info.filename || null;
+        } catch (_) { /* ignore */ }
+      }
+    }
+
+    // 3) Fallback cuối
+    if (!filename) filename = `file_${fileId}`;
+
+    // Tải blob và trigger download
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(blobUrl);
+
+    if (typeof showToast === 'function') {
+      showToast(`Downloaded ${filename}`, 'success');
+    }
+  } catch (err) {
+    console.error('Download failed:', err);
+    if (typeof showToast === 'function') {
+      showToast(`Download failed for id=${fileId}: ${String(err)}`, 'error');
+    } else {
+      alert(`Download failed: ${String(err)}`);
+    }
+  }
+}
 // Hàm áp dụng syntax highlighting cho code
 function applySyntaxHighlighting(content, fileExtension) {
   if (!content) return '';
@@ -1391,23 +1443,6 @@ function copyFileContent() {
   });
 }
 
-// Download file content
-function downloadFileContent() {
-  const fileName = document.getElementById('viewerFileName').textContent;
-  const content = document.getElementById('fileContentCode').textContent;
-  
-  const blob = new Blob([content], { type: 'text/plain' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
-  
-  showToast(`Downloaded: ${fileName}`, 'success');
-}
 
 // Simple toast notification
 function showToast(message, type = 'info') {

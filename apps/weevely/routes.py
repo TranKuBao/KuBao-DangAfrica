@@ -238,13 +238,14 @@ def view_file():
         file_stat = os.stat(file_path)
         file_size = file_stat.st_size
         file_ext = os.path.splitext(filename)[1].lower()
-        
+        file_obj = DataFile.get_by_file_name(filename)
         password = DataFile.get_by_file_name(filename).password
 
         # Kiểm tra file size để tránh load file quá lớn
         MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB limit
         if file_size > MAX_FILE_SIZE:
             return jsonify({
+                'file_id': file_obj.file_id,
                 'status': '1',
                 'filename': filename,
                 'content': f'[File too large to view]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nFile is too large to display. Please download it instead.',
@@ -276,6 +277,7 @@ def view_file():
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 return jsonify({
+                    'file_id': file_obj.file_id,
                     'status': '1',
                     'filename': filename,
                     'content': content,
@@ -295,6 +297,7 @@ def view_file():
                         with open(file_path, 'r', encoding=encoding) as f:
                             content = f.read()
                         return jsonify({
+                            'file_id': file_obj.file_id,
                             'status': '1',
                             'filename': filename,
                             'content': content,
@@ -319,6 +322,7 @@ def view_file():
                     hex_display = '\n'.join(hex_lines)
                     
                     return jsonify({
+                        'file_id': file_obj.file_id,
                         'status': '1',
                         'filename': filename,
                         'content': f'[Binary file - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nFirst 1KB in HEX:\n{hex_display}',
@@ -343,6 +347,7 @@ def view_file():
                 image_info = f'[Image File - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nImage Details:\n- Format: {file_ext.upper()}\n- Header (hex): {header.hex()[:32]}...\n\nNote: This is a binary image file. Use download button to save it.'
                 
                 return jsonify({
+                    'file_id': file_obj.file_id,
                     'status': '1',
                     'filename': filename,
                     'content': image_info,
@@ -361,6 +366,7 @@ def view_file():
             archive_info = f'[Archive File - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nArchive Details:\n- Format: {file_ext.upper()}\n- Compressed size: {file_size} bytes\n\nNote: This is a compressed archive file. Use download button to save it.'
             
             return jsonify({
+                'file_id': file_obj.file_id,
                 'status': '1',
                 'filename': filename,
                 'content': archive_info,
@@ -378,6 +384,7 @@ def view_file():
             doc_info = f'[Document File - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nDocument Details:\n- Format: {file_ext.upper()}\n- Size: {file_size} bytes\n\nNote: This is a document file. Use download button to save it.'
             
             return jsonify({
+                'file_id': file_obj.file_id,
                 'status': '1',
                 'filename': filename,
                 'content': doc_info,
@@ -395,6 +402,7 @@ def view_file():
             audio_info = f'[Audio File - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nAudio Details:\n- Format: {file_ext.upper()}\n- Size: {file_size} bytes\n\nNote: This is an audio file. Use download button to save it.'
             
             return jsonify({
+                'file_id': file_obj.file_id,
                 'status': '1',
                 'filename': filename,
                 'content': audio_info,
@@ -412,6 +420,7 @@ def view_file():
             video_info = f'[Video File - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nVideo Details:\n- Format: {file_ext.upper()}\n- Size: {file_size} bytes\n\nNote: This is a video file. Use download button to save it.'
             
             return jsonify({
+                'file_id': file_obj.file_id,
                 'status': '1',
                 'filename': filename,
                 'content': video_info,
@@ -438,6 +447,7 @@ def view_file():
                     printable_chars = sum(1 for c in text_content if c.isprintable() or c in '\n\r\t')
                     if printable_chars / len(text_content) > 0.7:
                         return jsonify({
+                            'file_id': file_obj.file_id,
                             'status': '1',
                             'filename': filename,
                             'content': f'[Text-like file - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nContent (first 512 bytes):\n{text_content}',
@@ -459,6 +469,7 @@ def view_file():
                 binary_info = f'[Binary File - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nBinary Analysis:\n- File type: Unknown binary\n- First 512 bytes in HEX:\n{hex_display}\n\nNote: This is a binary file. Use download button to save it.'
                 
                 return jsonify({
+                    'file_id': file_obj.file_id,
                     'status': '1',
                     'filename': filename,
                     'content': binary_info,
@@ -473,6 +484,7 @@ def view_file():
                 
             except Exception as e:
                 return jsonify({
+                    'file_id': file_obj.file_id,
                     'status': '1',
                     'filename': filename,
                     'content': f'[Unknown File Type - {file_ext.upper()}]\n\nFile Information:\n- Name: {filename}\n- Size: {file_size} bytes\n- Type: {file_ext.upper()}\n- Modified: {datetime.fromtimestamp(file_stat.st_mtime)}\n\nError reading file: {str(e)}\n\nNote: Cannot read this file type. Use download button to save it.',
@@ -519,6 +531,7 @@ def view_upload_file():
                     content = f.read()
                 #print(f"[+] Content: {content}")
                 return jsonify({
+                    'file_id': file_obj.file_id,
                     'status': '1',
                     'filename': file_obj.file_name,
                     'content': content,
@@ -536,6 +549,7 @@ def view_upload_file():
                     with open(file_path, 'r', encoding='latin-1') as f:
                         content = f.read()
                     return jsonify({
+                        'file_id': file_obj.file_id,
                         'status': '1',
                         'filename': file_obj.file_name,
                         'content': content,
@@ -553,6 +567,7 @@ def view_upload_file():
             # Binary file
             file_stat = os.stat(file_path)
             return jsonify({
+                'file_id': file_obj.file_id,
                 'status': '1',
                 'filename': file_obj.file_name,
                 'content': f'[Binary file - {file_ext.upper()}]\n\nFile Information:\n- Name: {file_obj.file_name}\n- Size: {file_obj.get_file_size_readable()}\n- Type: {file_ext.upper()}\n- Uploaded: {file_obj.file_created_at.strftime("%Y-%m-%d %H:%M:%S") if file_obj.file_created_at else "Unknown"}\n- Hash: {file_obj.file_hash}',
