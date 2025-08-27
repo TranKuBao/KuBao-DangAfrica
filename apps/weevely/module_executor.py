@@ -271,6 +271,10 @@ class WeevelyModuleExecutor:
                     env=os.environ.copy()  # Preserve environment
                 )
                 execution_time = time.time() - start_time
+                # Clean outputs for consistent downstream use
+                cleaned_stdout = self._clean_file_content(result.stdout or "")
+                cleaned_stderr = self._clean_file_content(result.stderr or "")
+                combined_output = cleaned_stdout + ("\n" + cleaned_stderr if cleaned_stderr else "")
                 
                 # Check for common error patterns
                 if result.returncode != 0 or self._has_error_indicators(result.stdout, result.stderr):
@@ -280,12 +284,15 @@ class WeevelyModuleExecutor:
                         'module_command': module_command,
                         'raw_output': result.stdout,
                         'error_output': result.stderr,
+                        'clean_stdout': cleaned_stdout,
+                        'clean_stderr': cleaned_stderr,
+                        'combined_output': combined_output,
                         'execution_time': execution_time,
                         'return_code': result.returncode,
                         'error': error_msg,
                         'attempt': attempt + 1,
                         # Still try to parse useful data even if error indicators were found
-                        'parsed_output': self._parse_module_output(module_command, result.stdout, result.stderr)
+                        'parsed_output': self._parse_module_output(module_command, cleaned_stdout, cleaned_stderr)
                     }
                 
                 return {
@@ -293,9 +300,12 @@ class WeevelyModuleExecutor:
                     'module_command': module_command,
                     'raw_output': result.stdout,
                     'error_output': result.stderr,
+                    'clean_stdout': cleaned_stdout,
+                    'clean_stderr': cleaned_stderr,
+                    'combined_output': combined_output,
                     'execution_time': execution_time,
                     'return_code': result.returncode,
-                    'parsed_output': self._parse_module_output(module_command, result.stdout, result.stderr),
+                    'parsed_output': self._parse_module_output(module_command, cleaned_stdout, cleaned_stderr),
                     'executed_at': time.time(),
                     'attempt': attempt + 1
                 }
@@ -688,39 +698,24 @@ class WeevelyModuleExecutor:
             "status": status,
             "errors": errors or None,
             "info": info,
-            "raw_content": output
+            #"raw_content": output
         }
 
     def _parse_file_listing(self, output: str) -> Dict:
         """Parse file listing output"""
-        files = []
-        directories = []
+        lists = []
         
         lines = output.split('\n')
         for line in lines:
             line = line.strip()
             if not line:
                 continue
-                
-            # Try to detect if it's a directory or file
-            if line.startswith('d'):
-                directories.append(line)
-            elif line.startswith('-'):
-                files.append(line)
-            elif '/' in line:
-                # Simple path detection
-                if line.endswith('/'):
-                    directories.append(line)
-                else:
-                    files.append(line)
-        
+            lists.append(line)
         return {
             'type': 'file_listing',
-            'files': files,
-            'directories': directories,
-            'total_files': len(files),
-            'total_directories': len(directories),
-            'raw_content': output
+            'lists': lists,
+            'total_F': len(lists)
+            #'raw_content': output
         }
     
     def _parse_process_list(self, output: str) -> Dict:

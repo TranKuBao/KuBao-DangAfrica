@@ -13,10 +13,10 @@
               <p class="text-sm text-muted mb-0">Execute advanced weevely modules and commands</p>
             </div>
             <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-outline-success" onclick="testWeevelyConnection()">
+              <button class="btn btn-sm btn-outline-success" onclick="executeModuleWithDisplay(':system_info')">
                 <i class="fas fa-plug"></i> Test Connection
               </button>
-              <button class="btn btn-sm btn-outline-info" onclick="getSessionInfo()">
+              <button class="btn btn-sm btn-outline-info" onclick="executeModuleWithDisplay(':system_info')">
                 <i class="fas fa-info-circle"></i> Session Info
               </button>
               <button class="btn btn-sm btn-outline-secondary" onclick="clearTerminalOutput()">
@@ -100,7 +100,7 @@
                     </div>
                     <div class="card-body">
                       <div class="btn-group-vertical w-100" role="group">
-                        <button class="btn btn-outline-primary mb-2" onclick="executeQuickCommand(':file_ls /')">
+                        <button class="btn btn-outline-primary mb-2" onclick="executeWeevelyModule(':file_ls /')">
                           <i class="fas fa-list"></i> List Root Directory
                         </button>
                         <button class="btn btn-outline-primary mb-2" onclick="showFileSearchModal()">
@@ -161,16 +161,16 @@
                     </div>
                     <div class="card-body">
                       <div class="btn-group-vertical w-100" role="group">
-                        <button class="btn btn-outline-success mb-2" onclick="executeQuickCommand(':system_info')">
+                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(':system_info')">
                           <i class="fas fa-info-circle"></i> System Info
                         </button>
-                        <button class="btn btn-outline-success mb-2" onclick="executeQuickCommand(':system_extensions')">
+                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(':system_extensions')">
                           <i class="fas fa-puzzle-piece"></i> PHP Extensions
                         </button>
-                        <button class="btn btn-outline-success mb-2" onclick="executeQuickCommand(':procs_list')">
+                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(':procs_list')">
                           <i class="fas fa-tasks"></i> Running Processes
                         </button>
-                        <button class="btn btn-outline-success mb-2" onclick="executeQuickCommand(':net_ifconfig')">
+                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(':net_ifconfig')">
                           <i class="fas fa-network-wired"></i> Network Interfaces
                         </button>
                       </div>
@@ -184,16 +184,16 @@
                     </div>
                     <div class="card-body">
                       <div class="btn-group-vertical w-100" role="group">
-                        <button class="btn btn-outline-warning mb-2" onclick="executeQuickCommand(':audit_phpconf')">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_phpconf')">
                           <i class="fas fa-shield-alt"></i> PHP Configuration
                         </button>
-                        <button class="btn btn-outline-warning mb-2" onclick="executeQuickCommand(':audit_filesystem')">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_filesystem')">
                           <i class="fas fa-hdd"></i> Filesystem Audit
                         </button>
-                        <button class="btn btn-outline-warning mb-2" onclick="executeQuickCommand(':audit_suidsgid')">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_suidsgid')">
                           <i class="fas fa-user-shield"></i> SUID/SGID Files
                         </button>
-                        <button class="btn btn-outline-warning mb-2" onclick="executeQuickCommand(':audit_etcpasswd')">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_etcpasswd')">
                           <i class="fas fa-users"></i> /etc/passwd Analysis
                         </button>
                       </div>
@@ -218,7 +218,7 @@
                           <input type="text" id="shell_command" class="form-control" 
                                  placeholder="ls -la, whoami, ps aux, etc..."
                                  onkeypress="if(event.key === 'Enter') executeShellCommand()">
-                          <button class="btn btn-success" onclick="executeShellCommand()">
+                          <button class="btn btn成功" onclick="executeModuleWithDisplay(':shell_sh ' + document.getElementById('shell_command').value)">
                             <i class="fas fa-play"></i> Execute
                           </button>
                         </div>
@@ -249,7 +249,7 @@
                         <div class="input-group">
                           <textarea id="php_code" class="form-control" rows="3" 
                                     placeholder="echo phpinfo(); // PHP code to execute"></textarea>
-                          <button class="btn btn-warning" onclick="executePHPCode()">
+                          <button class="btn btn-warning" onclick="executeModuleWithDisplay('shell_php ' + document.getElementById('php_code').value)">
                             <i class="fab fa-php"></i> Execute PHP
                           </button>
                         </div>
@@ -273,7 +273,7 @@
                         <label class="form-label text-sm">Target Host/IP</label>
                         <div class="input-group mb-3">
                           <input type="text" id="scan_target" class="form-control" placeholder="192.168.1.1 or domain.com">
-                          <button class="btn btn-primary" onclick="executeScan()">
+                          <button class="btn btn-primary" onclick="executeModuleWithDisplay('net_scan ' + document.getElementById('scan_target').value)">
                             <i class="fas fa-search"></i> Scan
                           </button>
                         </div>
@@ -283,7 +283,7 @@
                         <label class="form-label text-sm">URL to Fetch</label>
                         <div class="input-group mb-3">
                           <input type="url" id="curl_url" class="form-control" placeholder="https://example.com">
-                          <button class="btn btn-info" onclick="executeCurl()">
+                          <button class="btn btn-info" onclick="executeModuleWithDisplay('net_curl ' + document.getElementById('curl_url').value)">
                             <i class="fas fa-download"></i> Fetch
                           </button>
                         </div>
@@ -329,7 +329,7 @@
                           <input type="text" id="custom_command" class="form-control" 
                                  placeholder="file_ls /var/www or system_info"
                                  onkeypress="if(event.key === 'Enter') executeCustomCommand()">
-                          <button class="btn btn-primary" onclick="executeCustomCommand()">
+                          <button class="btn btn-primary" onclick="executeModuleWithDisplay(':' + document.getElementById('custom_command').value)">
                             <i class="fas fa-play"></i> Execute
                           </button>
                         </div>
@@ -340,10 +340,10 @@
                         <div class="col-md-6">
                           <h6 class="text-sm font-weight-bold mb-2">Common Commands:</h6>
                           <div class="d-flex gap-2 flex-wrap">
-                            <button class="btn btn-sm btn-outline-dark" onclick="setCustomCommand('system_info')">system_info</button>
-                            <button class="btn btn-sm btn-outline-dark" onclick="setCustomCommand('file_ls /')">file_ls /</button>
-                            <button class="btn btn-sm btn-outline-dark" onclick="setCustomCommand('procs_list')">procs_list</button>
-                            <button class="btn btn-sm btn-outline-dark" onclick="setCustomCommand('audit_phpconf')">audit_phpconf</button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="executeModuleWithDisplay(':system_info')">system_info</button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="executeModuleWithDisplay(':file_ls /')">file_ls /</button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="executeModuleWithDisplay(':procs_list')">procs_list</button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="executeModuleWithDisplay(':audit_phpconf')">audit_phpconf</button>
                           </div>
                         </div>
                         <div class="col-md-6">
@@ -364,7 +364,7 @@
               </div>
             </div>
           </div>
-
+          
           <!-- Terminal Output -->
           <div class="row mt-4">
             <div class="col-12">
@@ -378,6 +378,9 @@
                     <span id="execution_status" class="badge bg-secondary">Ready</span>
                     <button class="btn btn-sm btn-outline-light ms-2" onclick="copyTerminalOutput()">
                       <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button class="btn btn-sm btn-outline-light ms-2" onclick="toggleDataDisplay()">
+                      <i class="fas fa-chart-bar"></i> Toggle Data View
                     </button>
                   </div>
                 </div>

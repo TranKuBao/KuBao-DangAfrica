@@ -8,11 +8,39 @@ let currentWeevelyConnection = {
 };
 
 // Utility functions
+async function fetchJsonSafe(input, init) {
+    const res = await fetch(input, init);
+    const contentType = res.headers.get('content-type') || '';
+    const text = await res.text();
+    let json = null;
+    if (contentType.includes('application/json')) {
+        try { json = JSON.parse(text); } catch (e) { /* leave json null */ }
+    }
+    return { ok: res.ok, status: res.status, headers: res.headers, json, text };
+}
+
 function showLoading(message = 'Executing command...') {
     document.getElementById('loading_message').textContent = message;
     document.getElementById('loading_overlay').classList.remove('d-none');
     document.getElementById('execution_status').textContent = 'Running';
     document.getElementById('execution_status').className = 'badge bg-warning';
+}
+
+// Toggle data display
+function toggleDataDisplay() {
+    const dataDisplay = document.getElementById('weevely-data-display');
+    const button = event.target.closest('button');
+    const icon = button.querySelector('i');
+    
+    if (dataDisplay.style.display === 'none') {
+        dataDisplay.style.display = 'block';
+        icon.className = 'fas fa-eye-slash';
+        button.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Data View';
+    } else {
+        dataDisplay.style.display = 'none';
+        icon.className = 'fas fa-chart-bar';
+        button.innerHTML = '<i class="fas fa-chart-bar"></i> Show Data View';
+    }
 }
 
 function hideLoading() {
@@ -82,6 +110,65 @@ function getConnectionDetails() {
     };
 }
 
+// Enhanced module execution with beautiful data display
+function executeModuleWithDisplay(moduleCommand) {
+    if (!validateConnection()) {
+        return;
+    }
+    
+    const conn = getConnectionDetails();
+    showLoading('Executing module...');
+    
+    // Call backend API
+    fetchJsonSafe('/api/weevely/execute-module', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            url: conn.url,
+            password: conn.password,
+            module_command: moduleCommand,
+            timeout: conn.timeout
+        })
+    })
+    .then(({ ok, json, text, status }) => {
+        hideLoading();
+        const result = json;
+        if (!ok || !result) {
+            updateStatus('Failed', 'error');
+            appendToTerminal(`HTTP ${status}: ${text.substring(0, 400)}`, 'error');
+            return;
+        }
+        if (result.success) {
+            updateStatus('Success', 'success');
+            // Display data in beautiful format
+            if (typeof displayWeevelyData === 'function') {
+                displayWeevelyData(result, moduleCommand);
+            }
+            // Also show in terminal
+            appendToTerminal(`Module executed successfully: ${moduleCommand}`, 'success');
+            const stderrText = result.clean_stderr || result.error_output || '';
+            const stdoutText = result.clean_stdout || result.raw_output || '';
+            const content = stderrText || stdoutText || '';
+            appendToTerminal('=== STDERR OUTPUT ===');
+            appendToTerminal(content || 'No output', content ? 'output' : 'info');
+        } else {
+            updateStatus('Failed', 'error');
+            appendToTerminal(`Module execution failed: ${result.error}`, 'error');
+            // Still try to display any parsed data
+            if (typeof displayWeevelyData === 'function') {
+                displayWeevelyData(result, moduleCommand);
+            }
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        updateStatus('Error', 'error');
+        appendToTerminal(`Network error: ${error.message}`, 'error');
+    });
+}
+
 function validateConnection() {
     const conn = getConnectionDetails();
     
@@ -107,7 +194,7 @@ async function executeWeevelyModule(moduleCommand, params = {}) {
     appendToTerminal(moduleCommand, 'command');
     
     try {
-        const response = await fetch('/api/weevely/execute-module', {
+        const { ok, json, text, status } = await fetchJsonSafe('/api/weevely/execute-module', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -121,21 +208,21 @@ async function executeWeevelyModule(moduleCommand, params = {}) {
             })
         });
         
-        const result = await response.json();
+        if (!ok || !json) {
+            appendToTerminal(`HTTP ${status}: ${text.substring(0, 400)}`, 'error');
+            updateStatus('Failed', 'error');
+            return;
+        }
+        const result = json;
         
         if (result.success) {
             appendToTerminal('Command executed successfully', 'success');
             
-            // Display formatted output
-            if (result.parsed_output) {
-                appendToTerminal('=== PARSED OUTPUT ===');
-                appendToTerminal(JSON.stringify(result.parsed_output, null, 2));
-            }
-            
-            if (result.raw_output) {
-                appendToTerminal('=== RAW OUTPUT ===');
-                appendToTerminal(result.raw_output);
-            }
+            const stderrText = result.clean_stderr || result.error_output || '';
+            const stdoutText = result.clean_stdout || result.raw_output || '';
+            const content = stderrText || stdoutText || '';
+            appendToTerminal('=== STDERR OUTPUT ===');
+            appendToTerminal(content || 'No output', content ? 'output' : 'info');
             
             // Display execution info
             appendToTerminal(`Execution time: ${result.execution_time}s`, 'info');
@@ -158,11 +245,6 @@ async function executeWeevelyModule(moduleCommand, params = {}) {
     }
 }
 
-// Quick command execution
-function executeQuickCommand(command) {
-    executeWeevelyModule(command);
-}
-
 // Test connection
 async function testWeevelyConnection() {
     if (!validateConnection()) return;
@@ -171,7 +253,7 @@ async function testWeevelyConnection() {
     appendToTerminal('Testing weevely connection...', 'command');
     
     try {
-        const response = await fetch('/api/weevely/test-connection', {
+        const { ok, json, text, status } = await fetchJsonSafe('/api/weevely/test-connection', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -182,8 +264,12 @@ async function testWeevelyConnection() {
                 timeout: currentWeevelyConnection.timeout
             })
         });
-        
-        const result = await response.json();
+        if (!ok || !json) {
+            appendToTerminal(`HTTP ${status}: ${text.substring(0, 400)}`, 'error');
+            updateStatus('Disconnected', 'error');
+            return;
+        }
+        const result = json;
         
         if (result.success) {
             appendToTerminal('Connection test successful!', 'success');
@@ -210,7 +296,7 @@ async function getSessionInfo() {
     appendToTerminal('Retrieving session information...', 'command');
     
     try {
-        const response = await fetch('/api/weevely/session-info', {
+        const { ok, json, text, status } = await fetchJsonSafe('/api/weevely/session-info', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -220,8 +306,12 @@ async function getSessionInfo() {
                 password: currentWeevelyConnection.password
             })
         });
-        
-        const result = await response.json();
+        if (!ok || !json) {
+            appendToTerminal(`HTTP ${status}: ${text.substring(0, 400)}`, 'error');
+            updateStatus('Failed', 'error');
+            return;
+        }
+        const result = json;
         
         if (result.success) {
             appendToTerminal('Session information retrieved', 'success');
@@ -344,7 +434,7 @@ async function executeBatchCommands() {
     appendToTerminal('Starting batch execution...', 'command');
     
     try {
-        const response = await fetch('/api/weevely/batch-execute', {
+        const { ok, json, text, status } = await fetchJsonSafe('/api/weevely/batch-execute', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -356,8 +446,12 @@ async function executeBatchCommands() {
                 delay: 0.5
             })
         });
-        
-        const result = await response.json();
+        if (!ok || !json) {
+            appendToTerminal(`HTTP ${status}: ${text.substring(0, 400)}`, 'error');
+            updateStatus('Batch Failed', 'error');
+            return;
+        }
+        const result = json;
         
         if (result.success) {
             appendToTerminal(`Batch execution completed`, 'success');
@@ -426,6 +520,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     appendToTerminal('Weevely Module Terminal initialized', 'info');
     appendToTerminal('Configure connection details and select modules to begin', 'info');
+    
+    // Initialize data display
+    console.log('Weevely Data Display initialized');
+    
+    // Include the data display template
+    if (typeof displayWeevelyData === 'undefined') {
+        console.log('Loading Weevely Data Display scripts...');
+        // The template should be included via [include] in the main template
+    }
+    
+    // Hide data display initially
+    const dataDisplay = document.getElementById('weevely-data-display');
+    if (dataDisplay) {
+        dataDisplay.style.display = 'none';
+    }
 });
 
 // Auto-save connection details
