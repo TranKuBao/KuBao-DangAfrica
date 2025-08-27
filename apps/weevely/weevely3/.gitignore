@@ -1,0 +1,18 @@
+# Local venv and caches inside embedded weevely
+env/
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs and temp
+*.log
+*.tmp
+*.swp
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
