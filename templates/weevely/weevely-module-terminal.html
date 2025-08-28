@@ -83,6 +83,11 @@
                       <i class="fas fa-code"></i> Custom Command
                     </a>
                   </li>
+                  <li class="nav-item">
+                    <a class="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#cron-jobs" role="tab" id="cron-jobs-tab">
+                      <i class="fas fa-clock"></i> Cron Jobs
+                    </a>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -167,10 +172,10 @@
                         <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(':system_extensions')">
                           <i class="fas fa-puzzle-piece"></i> PHP Extensions
                         </button>
-                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(':procs_list')">
+                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(`:shell_sh 'ps -aux'`)">
                           <i class="fas fa-tasks"></i> Running Processes
                         </button>
-                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(':net_ifconfig')">
+                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(`:shell_sh 'ifconfig'`)">
                           <i class="fas fa-network-wired"></i> Network Interfaces
                         </button>
                       </div>
@@ -190,7 +195,7 @@
                         <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_filesystem')">
                           <i class="fas fa-hdd"></i> Filesystem Audit
                         </button>
-                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_suidsgid')">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_suidsgid /')">
                           <i class="fas fa-user-shield"></i> SUID/SGID Files
                         </button>
                         <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_etcpasswd')">
@@ -218,7 +223,7 @@
                           <input type="text" id="shell_command" class="form-control" 
                                  placeholder="ls -la, whoami, ps aux, etc..."
                                  onkeypress="if(event.key === 'Enter') executeShellCommand()">
-                          <button class="btn btn成功" onclick="executeModuleWithDisplay(':shell_sh ' + document.getElementById('shell_command').value)">
+                          <button class="btn btn成功" onclick="executeShellCommand()">
                             <i class="fas fa-play"></i> Execute
                           </button>
                         </div>
@@ -249,7 +254,7 @@
                         <div class="input-group">
                           <textarea id="php_code" class="form-control" rows="3" 
                                     placeholder="echo phpinfo(); // PHP code to execute"></textarea>
-                          <button class="btn btn-warning" onclick="executeModuleWithDisplay('shell_php ' + document.getElementById('php_code').value)">
+                          <button class="btn btn-warning" onclick="executeModuleWithDisplay(':shell_php ' + document.getElementById('php_code').value)">
                             <i class="fab fa-php"></i> Execute PHP
                           </button>
                         </div>
@@ -272,8 +277,8 @@
                       <div class="form-group">
                         <label class="form-label text-sm">Target Host/IP</label>
                         <div class="input-group mb-3">
-                          <input type="text" id="scan_target" class="form-control" placeholder="192.168.1.1 or domain.com">
-                          <button class="btn btn-primary" onclick="executeModuleWithDisplay('net_scan ' + document.getElementById('scan_target').value)">
+                          <input type="text" id="scan_target" class="form-control" placeholder="192.168.1.1 10-8080 (IP Port-Check_Open)">
+                          <button class="btn btn-primary" onclick="executeModuleWithDisplay(':net_scan ' + document.getElementById('scan_target').value)">
                             <i class="fas fa-search"></i> Scan
                           </button>
                         </div>
@@ -283,7 +288,7 @@
                         <label class="form-label text-sm">URL to Fetch</label>
                         <div class="input-group mb-3">
                           <input type="url" id="curl_url" class="form-control" placeholder="https://example.com">
-                          <button class="btn btn-info" onclick="executeModuleWithDisplay('net_curl ' + document.getElementById('curl_url').value)">
+                          <button class="btn btn-info" onclick="executeModuleWithDisplay(':net_curl ' + document.getElementById('curl_url').value)">
                             <i class="fas fa-download"></i> Fetch
                           </button>
                         </div>
@@ -305,6 +310,82 @@
                           <button class="btn btn-success" onclick="executeWebDownload()">
                             <i class="fas fa-cloud-download-alt"></i> Download
                           </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cron Jobs Tab -->
+            <div class="tab-pane fade" id="cron-jobs" role="tabpanel">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6>Create Cron Job</h6>
+                    </div>
+                    <div class="card-body">
+                      <form id="createCronJobFormTerminal">
+                        <div class="form-group mb-3">
+                          <label class="form-label text-sm">Job Name *</label>
+                          <input type="text" id="cron_job_name_terminal" class="form-control" placeholder="e.g., Daily Backup" required>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                          <label class="form-label text-sm">Description</label>
+                          <textarea id="cron_job_description_terminal" class="form-control" rows="2" placeholder="Job description..."></textarea>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                          <label class="form-label text-sm">Cron Expression *</label>
+                          <input type="text" id="cron_expression_terminal" class="form-control" placeholder="*/5 * * * * (every 5 minutes)" required>
+                          <small class="form-text text-muted">
+                            Format: Minute Hour Day Month DayOfWeek<br>
+                            Examples: */5 * * * * (every 5 min), 0 */6 * * * (every 6 hours)
+                          </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                          <label class="form-label text-sm">Job Type *</label>
+                          <select id="cron_job_type_terminal" class="form-control" onchange="updateJobTypeFieldsTerminal()" required>
+                            <option value="">Select Job Type</option>
+                            <option value="file_operation">File Operation</option>
+                            <option value="command">Command Execution</option>
+                            <option value="download">File Download</option>
+                            <option value="upload">File Upload</option>
+                          </select>
+                        </div>
+                        
+                        <!-- Dynamic fields based on job type -->
+                        <div id="job_type_fields_terminal">
+                          <!-- Fields will be populated by JavaScript -->
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                          <i class="fas fa-save"></i> Create Cron Job
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <div class="card border">
+                    <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                      <h6>Manage Cron Jobs</h6>
+                      <button class="btn btn-sm btn-outline-primary" onclick="refreshCronJobsTerminal()">
+                        <i class="fas fa-sync"></i> Refresh
+                      </button>
+                    </div>
+                    <div class="card-body">
+                      <div id="cronJobsListTerminal">
+                        <!-- Cron jobs will be loaded here -->
+                        <div class="text-center text-muted">
+                          <i class="fas fa-clock fa-2x mb-2"></i>
+                          <p>No cron jobs found</p>
+                          <small>Create a cron job to get started</small>
                         </div>
                       </div>
                     </div>
@@ -410,3 +491,294 @@
     </div>
   </div>
 </div>
+
+<!-- Cron Jobs JavaScript Functions -->
+<script>
+// Initialize cron jobs form
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('createCronJobFormTerminal');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            createCronJobTerminal();
+        });
+    }
+});
+
+function updateJobTypeFieldsTerminal() {
+    const jobType = document.getElementById('cron_job_type_terminal').value;
+    const fieldsContainer = document.getElementById('job_type_fields_terminal');
+    
+    let fieldsHTML = '';
+    
+    switch(jobType) {
+        case 'file_operation':
+            fieldsHTML = `
+                <div class="form-group mb-3">
+                    <label class="form-label text-sm">Operation *</label>
+                    <select id="file_operation_terminal" class="form-control" required>
+                        <option value="">Select Operation</option>
+                        <option value="copy">Copy File</option>
+                        <option value="move">Move File</option>
+                        <option value="delete">Delete File</option>
+                        <option value="mkdir">Create Directory</option>
+                    </select>
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label text-sm">Source Path *</label>
+                    <input type="text" id="file_source_terminal" class="form-control" placeholder="/path/to/source" required>
+                </div>
+                <div class="form-group mb-3" id="file_dest_group_terminal" style="display: none;">
+                    <label class="form-label text-sm">Destination Path *</label>
+                    <input type="text" id="file_destination_terminal" class="form-control" placeholder="/path/to/destination">
+                </div>
+            `;
+            break;
+            
+        case 'command':
+            fieldsHTML = `
+                <div class="form-group mb-3">
+                    <label class="form-label text-sm">Command *</label>
+                    <input type="text" id="command_text_terminal" class="form-control" placeholder=":system_info" required>
+                    <small class="form-text text-muted">Weevely command starting with ':'</small>
+                </div>
+            `;
+            break;
+            
+        case 'download':
+            fieldsHTML = `
+                <div class="form-group mb-3">
+                    <label class="form-label text-sm">Target Path *</label>
+                    <input type="text" id="download_path_terminal" class="form-control" placeholder="/path/to/file" required>
+                    <small class="form-text text-muted">File path on target server to download</small>
+                </div>
+            `;
+            break;
+            
+        case 'upload':
+            fieldsHTML = `
+                <div class="form-group mb-3">
+                    <label class="form-label text-sm">Source Path *</label>
+                    <input type="text" id="upload_source_terminal" class="form-control" placeholder="/local/path" required>
+                    <small class="form-text text-muted">Local file path to upload</small>
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label text-sm">Target Path *</label>
+                    <input type="text" id="upload_target_terminal" class="form-control" placeholder="/remote/path" required>
+                    <small class="form-text text-muted">Remote file path on target server</small>
+                </div>
+            `;
+            break;
+    }
+    
+    fieldsContainer.innerHTML = fieldsHTML;
+    
+    // Add event listener for file operation destination field
+    if (jobType === 'file_operation') {
+        setTimeout(() => {
+            const operationSelect = document.getElementById('file_operation_terminal');
+            const destGroup = document.getElementById('file_dest_group_terminal');
+            if (operationSelect && destGroup) {
+                operationSelect.addEventListener('change', function() {
+                    if (['copy', 'move'].includes(this.value)) {
+                        destGroup.style.display = 'block';
+                        document.getElementById('file_destination_terminal').required = true;
+                    } else {
+                        destGroup.style.display = 'none';
+                        document.getElementById('file_destination_terminal').required = false;
+                    }
+                });
+            }
+        }, 100);
+    }
+}
+
+function refreshCronJobsTerminal() {
+    const container = document.getElementById('cronJobsListTerminal');
+    container.innerHTML = '<div class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading cron jobs...</div>';
+    
+    // Get current weevely connection ID from terminal
+    const weevelyUrl = document.getElementById('weevely_url').value;
+    const weevelyPassword = document.getElementById('weevely_password').value;
+    
+    if (!weevelyUrl || !weevelyPassword) {
+        container.innerHTML = '<div class="text-center text-warning">Please configure weevely connection first</div>';
+        return;
+    }
+    
+    // For now, show all cron jobs (in future, filter by connection)
+    fetch('/api/weevely/cron-jobs')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.cron_jobs.length > 0) {
+                displayCronJobsTerminal(data.cron_jobs);
+            } else {
+                container.innerHTML = '<div class="text-center text-muted">No cron jobs found</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading cron jobs:', error);
+            container.innerHTML = '<div class="text-center text-danger">Error loading cron jobs</div>';
+        });
+}
+
+function displayCronJobsTerminal(cronJobs) {
+    const container = document.getElementById('cronJobsListTerminal');
+    
+    let html = '';
+    cronJobs.forEach(job => {
+        const statusClass = job.is_active ? 'success' : 'secondary';
+        const statusText = job.is_active ? 'Active' : 'Inactive';
+        
+        html += `
+            <div class="card mb-2">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1 text-sm">${job.name}</h6>
+                            <p class="mb-1 text-muted small">${job.description || 'No description'}</p>
+                            <div class="d-flex gap-2 text-muted small">
+                                <span><i class="fas fa-clock"></i> ${job.cron_expression}</span>
+                                <span><i class="fas fa-tag"></i> ${job.job_type}</span>
+                                <span class="badge bg-${statusClass}">${statusText}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-outline-success" onclick="executeCronJobNowTerminal(${job.id})" title="Execute Now">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="toggleCronJobTerminal(${job.id})" title="Toggle Status">
+                                <i class="fas fa-toggle-${job.is_active ? 'on' : 'off'}"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function createCronJobTerminal() {
+    const formData = {
+        name: document.getElementById('cron_job_name_terminal').value,
+        description: document.getElementById('cron_job_description_terminal').value,
+        cron_expression: document.getElementById('cron_expression_terminal').value,
+        timezone: 'UTC', // Default timezone
+        job_type: document.getElementById('cron_job_type_terminal').value,
+        weevely_connection_id: null // Will be set based on current connection
+    };
+    
+    // Get job-specific data
+    switch(formData.job_type) {
+        case 'file_operation':
+            formData.job_data = JSON.stringify({
+                operation: document.getElementById('file_operation_terminal').value,
+                source: document.getElementById('file_source_terminal').value,
+                destination: document.getElementById('file_destination_terminal')?.value || null
+            });
+            break;
+            
+        case 'command':
+            formData.job_data = JSON.stringify({
+                command: document.getElementById('command_text_terminal').value
+            });
+            break;
+            
+        case 'download':
+            formData.job_data = JSON.stringify({
+                target_path: document.getElementById('download_path_terminal').value
+            });
+            break;
+            
+        case 'upload':
+            formData.job_data = JSON.stringify({
+                source_path: document.getElementById('upload_source_terminal').value,
+                target_path: document.getElementById('upload_target_terminal').value
+            });
+            break;
+    }
+    
+    // Validate required fields
+    if (!formData.name || !formData.cron_expression || !formData.job_type) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Create cron job
+    fetch('/api/weevely/cron-jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            appendToTerminal(`Cron job "${formData.name}" created successfully!`, 'success');
+            // Reset form
+            document.getElementById('createCronJobFormTerminal').reset();
+            document.getElementById('job_type_fields_terminal').innerHTML = '';
+            // Refresh jobs list
+            refreshCronJobsTerminal();
+        } else {
+            appendToTerminal(`Error creating cron job: ${data.error}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating cron job:', error);
+        appendToTerminal(`Error creating cron job: ${error.message}`, 'error');
+    });
+}
+
+function executeCronJobNowTerminal(jobId) {
+    if (!confirm('Execute this cron job now?')) return;
+    
+    fetch(`/api/weevely/cron-jobs/${jobId}/execute`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                appendToTerminal(`Cron job executed successfully!`, 'success');
+                refreshCronJobsTerminal();
+            } else {
+                appendToTerminal(`Error executing cron job: ${data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error executing cron job:', error);
+            appendToTerminal(`Error executing cron job: ${error.message}`, 'error');
+        });
+}
+
+function toggleCronJobTerminal(jobId) {
+    fetch(`/api/weevely/cron-jobs/${jobId}/toggle`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                appendToTerminal(`Cron job ${data.message}`, 'info');
+                refreshCronJobsTerminal();
+            } else {
+                appendToTerminal(`Error: ${data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error toggling cron job:', error);
+            appendToTerminal(`Error toggling cron job: ${error.message}`, 'error');
+        });
+}
+
+// Function to load cron jobs for specific weevely connection
+function loadWeevelyCronJobs(weevelyId, weevelyName) {
+    appendToTerminal(`Loading cron jobs for ${weevelyName}...`, 'info');
+    
+    // Switch to cron jobs tab
+    const cronTab = document.getElementById('cron-jobs-tab');
+    if (cronTab) {
+        cronTab.click();
+        // Refresh cron jobs list
+        setTimeout(() => {
+            refreshCronJobsTerminal();
+        }, 500);
+    }
+}
+</script>

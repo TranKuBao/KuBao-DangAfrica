@@ -14,7 +14,7 @@ from datetime import datetime
 from flask import render_template, jsonify, request, current_app, send_file
 from werkzeug.utils import secure_filename
 from apps.weevely import blueprint
-from apps.models import ShellConnection, ShellCommand, ShellStatus, ShellType, db, DataFile
+from apps.models import ShellConnection, ShellCommand, ShellStatus, ShellType, db, DataFile, CronJob
 from apps.exceptions.exception import InvalidUsage
 from apps.weevely.module_executor import WeevelyModuleExecutor, WeevelyPayloadGenerator
 import time
@@ -1479,6 +1479,326 @@ def upload_file_to_target():
     except Exception as e:
         print(f"Error uploading file: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# ==========================================
+# CRON JOB MANAGEMENT WITH DATABASE
+# ==========================================
+
+@blueprint.route('/api/weevely/cron-jobs', methods=['POST'])
+def create_cron_job():
+    """Create a new cron job"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        # Validate required fields
+        required_fields = ['name', 'cron_expression', 'job_type', 'job_data']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'success': False, 
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        # Create cron job
+        cron_job = CronJob(
+            name=data['name'],
+            description=data.get('description', ''),
+            cron_expression=data['cron_expression'],
+            timezone=data.get('timezone', 'UTC'),
+            job_type=data['job_type'],
+            job_data=data['job_data'],
+            weevely_connection_id=data.get('weevely_connection_id')
+        )
+        
+        cron_job.save()
+        
+        return jsonify({
+            'success': True,
+            'cron_job': cron_job.to_dict(),
+            'message': 'Cron job created successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error creating cron job: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/cron-jobs', methods=['GET'])
+def get_cron_jobs():
+    """Get all cron jobs with optional filtering"""
+    try:
+        weevely_id = request.args.get('weevely_id')
+        active_only = request.args.get('active_only', 'false').lower() == 'true'
+        
+        query = CronJob.query
+        
+        if weevely_id:
+            query = query.filter_by(weevely_connection_id=weevely_id)
+        
+        if active_only:
+            query = query.filter_by(is_active=True)
+        
+        cron_jobs = query.order_by(CronJob.created_at.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'cron_jobs': [job.to_dict() for job in cron_jobs],
+            'total_count': len(cron_jobs)
+        })
+        
+    except Exception as e:
+        print(f"Error getting cron jobs: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/cron-jobs/<int:job_id>', methods=['GET'])
+def get_cron_job(job_id):
+    """Get a specific cron job by ID"""
+    try:
+        cron_job = CronJob.find_by_id(job_id)
+        if not cron_job:
+            return jsonify({'success': False, 'error': 'Cron job not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'cron_job': cron_job.to_dict()
+        })
+        
+    except Exception as e:
+        print(f"Error getting cron job: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/cron-jobs/<int:job_id>', methods=['PUT'])
+def update_cron_job(job_id):
+    """Update a cron job"""
+    try:
+        cron_job = CronJob.find_by_id(job_id)
+        if not cron_job:
+            return jsonify({'success': False, 'error': 'Cron job not found'}), 404
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        # Update allowed fields
+        allowed_fields = [
+            'name', 'description', 'cron_expression', 'timezone', 
+            'job_type', 'job_data', 'weevely_connection_id', 'is_active'
+        ]
+        
+        for field in allowed_fields:
+            if field in data:
+                setattr(cron_job, field, data[field])
+        
+        cron_job.save()
+        
+        return jsonify({
+            'success': True,
+            'cron_job': cron_job.to_dict(),
+            'message': 'Cron job updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error updating cron job: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/cron-jobs/<int:job_id>', methods=['DELETE'])
+def delete_cron_job(job_id):
+    """Delete a cron job"""
+    try:
+        cron_job = CronJob.find_by_id(job_id)
+        if not cron_job:
+            return jsonify({'success': False, 'error': 'Cron job not found'}), 404
+        
+        cron_job.delete()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cron job deleted successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error deleting cron job: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/cron-jobs/<int:job_id>/toggle', methods=['POST'])
+def toggle_cron_job(job_id):
+    """Toggle cron job active status"""
+    try:
+        cron_job = CronJob.find_by_id(job_id)
+        if not cron_job:
+            return jsonify({'success': False, 'error': 'Cron job not found'}), 404
+        
+        cron_job.is_active = not cron_job.is_active
+        cron_job.save()
+        
+        status = 'activated' if cron_job.is_active else 'deactivated'
+        
+        return jsonify({
+            'success': True,
+            'cron_job': cron_job.to_dict(),
+            'message': f'Cron job {status} successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error toggling cron job: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/cron-jobs/<int:job_id>/execute', methods=['POST'])
+def execute_cron_job_now(job_id):
+    """Execute a cron job immediately"""
+    try:
+        cron_job = CronJob.find_by_id(job_id)
+        if not cron_job:
+            return jsonify({'success': False, 'error': 'Cron job not found'}), 404
+        
+        # Parse job data
+        import json
+        try:
+            job_params = json.loads(cron_job.job_data)
+        except json.JSONDecodeError:
+            return jsonify({'success': False, 'error': 'Invalid job data format'}), 400
+        
+        # Execute based on job type
+        if cron_job.job_type == 'file_operation':
+            result = execute_file_operation_job(cron_job, job_params)
+        elif cron_job.job_type == 'command':
+            result = execute_command_job(cron_job, job_params)
+        elif cron_job.job_type == 'download':
+            result = execute_download_job(cron_job, job_params)
+        elif cron_job.job_type == 'upload':
+            result = execute_upload_job(cron_job, job_params)
+        else:
+            return jsonify({'success': False, 'error': f'Unknown job type: {cron_job.job_type}'}), 400
+        
+        # Update job statistics
+        cron_job.run_count += 1
+        cron_job.last_run = dt.datetime.utcnow()
+        if result.get('success'):
+            cron_job.success_count += 1
+        else:
+            cron_job.failure_count += 1
+        cron_job.save()
+        
+        return jsonify({
+            'success': True,
+            'result': result,
+            'message': 'Cron job executed successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error executing cron job: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def execute_file_operation_job(cron_job, job_params):
+    """Execute file operation job"""
+    try:
+        if not executor:
+            return {'success': False, 'error': 'WeevelyModuleExecutor not initialized'}
+        
+        weevely_conn = ShellConnection.get_by_id(cron_job.weevely_connection_id)
+        if not weevely_conn:
+            return {'success': False, 'error': 'Weevely connection not found'}
+        
+        password = weevely_conn.password
+        if not password:
+            return {'success': False, 'error': 'Password not found'}
+        
+        operation = job_params.get('operation')
+        source = job_params.get('source')
+        destination = job_params.get('destination')
+        
+        if operation == 'copy':
+            command = f":file_cp {source} {destination}"
+        elif operation == 'move':
+            command = f":file_mv {source} {destination}"
+        elif operation == 'delete':
+            command = f":file_rm {source}"
+        elif operation == 'mkdir':
+            command = f":file_mkdir {source}"
+        else:
+            return {'success': False, 'error': f'Unknown operation: {operation}'}
+        
+        result = executor.execute_module(weevely_conn.url, password, command)
+        return result
+        
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_command_job(cron_job, job_params):
+    """Execute command job"""
+    try:
+        if not executor:
+            return {'success': False, 'error': 'WeevelyModuleExecutor not initialized'}
+        
+        weevely_conn = ShellConnection.get_by_id(cron_job.weevely_connection_id)
+        if not weevely_conn:
+            return {'success': False, 'error': 'Weevely connection not found'}
+        
+        password = weevely_conn.password
+        if not password:
+            return {'success': False, 'error': 'Password not found'}
+        
+        command = job_params.get('command')
+        if not command:
+            return {'success': False, 'error': 'No command specified'}
+        
+        result = executor.execute_module(weevely_conn.url, password, command)
+        return result
+        
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_download_job(cron_job, job_params):
+    """Execute download job"""
+    try:
+        if not executor:
+            return {'success': False, 'error': 'WeevelyModuleExecutor not initialized'}
+        
+        weevely_conn = ShellConnection.get_by_id(cron_job.weevely_connection_id)
+        if not weevely_conn:
+            return {'success': False, 'error': 'Weevely connection not found'}
+        
+        password = weevely_conn.password
+        if not password:
+            return {'success': False, 'error': 'Password not found'}
+        
+        target_path = job_params.get('target_path')
+        if not target_path:
+            return {'success': False, 'error': 'No target path specified'}
+        
+        command = f":file_download {target_path}"
+        result = executor.execute_module(weevely_conn.url, password, command)
+        return result
+        
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_upload_job(cron_job, job_params):
+    """Execute upload job"""
+    try:
+        if not executor:
+            return {'success': False, 'error': 'WeevelyModuleExecutor not initialized'}
+        
+        weevely_conn = ShellConnection.get_by_id(cron_job.weevely_connection_id)
+        if not weevely_conn:
+            return {'success': False, 'error': 'Weevely connection not found'}
+        
+        password = weevely_conn.password
+        if not password:
+            return {'success': False, 'error': 'Password not found'}
+        
+        source_path = job_params.get('source_path')
+        target_path = job_params.get('target_path')
+        if not source_path or not target_path:
+            return {'success': False, 'error': 'Source and target paths required'}
+        
+        command = f":file_upload {source_path} {target_path}"
+        result = executor.execute_module(weevely_conn.url, password, command)
+        return result
+        
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
 
 # ==========================================
 # CRON DOWNLOAD MANAGEMENT

@@ -1010,3 +1010,94 @@ class DataFile(db.Model):
             return f"{s} {size_name[i]}"
         except (ValueError, OverflowError):
             return f"{bytes_size} B" 
+
+
+class CronJob(db.Model):
+    """Model for managing cron jobs"""
+    __tablename__ = 'cron_jobs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    
+    # Cron scheduling
+    cron_expression = db.Column(db.String(100), nullable=False)  # e.g., "*/5 * * * *"
+    timezone = db.Column(db.String(50), default='UTC')
+    
+    # Job configuration
+    job_type = db.Column(db.String(50), nullable=False)  # 'file_operation', 'command', 'download', 'upload'
+    job_data = db.Column(db.Text, nullable=False)  # JSON string with job parameters
+    
+    # Weevely connection
+    weevely_connection_id = db.Column(db.String(255), nullable=True)
+    
+    # Status and execution
+    is_active = db.Column(db.Boolean, default=True)
+    last_run = db.Column(db.DateTime, nullable=True)
+    next_run = db.Column(db.DateTime, nullable=True)
+    run_count = db.Column(db.Integer, default=0)
+    success_count = db.Column(db.Integer, default=0)
+    failure_count = db.Column(db.Integer, default=0)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+    
+    def __init__(self, **kwargs):
+        super(CronJob, self).__init__(**kwargs)
+    
+    def __repr__(self):
+        return f"<CronJob {self.name} ({self.cron_expression})>"
+    
+    @classmethod
+    def find_by_id(cls, _id: int) -> "CronJob":
+        return cls.query.filter_by(id=_id).first()
+    
+    @classmethod
+    def get_active_jobs(cls):
+        return cls.query.filter_by(is_active=True).all()
+    
+    @classmethod
+    def get_by_weevely_connection(cls, connection_id: str):
+        return cls.query.filter_by(weevely_connection_id=connection_id).all()
+    
+    def save(self) -> None:
+        try:
+            db.session.add(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            db.session.close()
+            error = str(e.__dict__['orig'])
+            raise InvalidUsage(error, 422)
+    
+    def delete(self) -> None:
+        try:
+            db.session.delete(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            db.session.close()
+            error = str(e.__dict__['orig'])
+            raise InvalidUsage(error, 422)
+    
+    def to_dict(self):
+        """Convert to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'cron_expression': self.cron_expression,
+            'timezone': self.timezone,
+            'job_type': self.job_type,
+            'job_data': self.job_data,
+            'weevely_connection_id': self.weevely_connection_id,
+            'is_active': self.is_active,
+            'last_run': self.last_run.isoformat() if self.last_run else None,
+            'next_run': self.next_run.isoformat() if self.next_run else None,
+            'run_count': self.run_count,
+            'success_count': self.success_count,
+            'failure_count': self.failure_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        } 

@@ -350,7 +350,7 @@ function executeShellCommand() {
         return;
     }
     
-    executeWeevelyModule(`:shell_sh ${command}`);
+    executeWeevelyModule(':shell_sh "'+ command +'"');
     document.getElementById('shell_command').value = '';
 }
 
@@ -380,15 +380,6 @@ function executeScan() {
     executeWeevelyModule(`:net_scan ${target}`);
 }
 
-function executeCurl() {
-    const url = document.getElementById('curl_url').value.trim();
-    if (!url) {
-        appendToTerminal('Please enter a URL to fetch', 'error');
-        return;
-    }
-    
-    executeWeevelyModule(`:net_curl ${url}`);
-}
 
 function executeWebDownload() {
     const url = document.getElementById('download_url').value.trim();
@@ -504,13 +495,27 @@ function showFileReadModal() {
 }
 
 function showFileOperationsModal() {
-    // TODO: Implement file operations modal
-    appendToTerminal('File operations modal coming soon...', 'info');
+    // Check if modal exists and show it
+    const modalElement = document.getElementById('fileOperationsModal');
+    if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        appendToTerminal('File Operations modal opened', 'info');
+    } else {
+        appendToTerminal('File Operations modal not found. Please ensure enhanced-modals.html is included.', 'error');
+    }
 }
 
 function showBatchModal() {
-    // TODO: Implement batch commands editor modal
-    appendToTerminal('Batch commands editor coming soon...', 'info');
+    // Check if modal exists and show it
+    const modalElement = document.getElementById('batchCommandsModal');
+    if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        appendToTerminal('Batch Commands modal opened', 'info');
+    } else {
+        appendToTerminal('Batch Commands modal not found. Please ensure enhanced-modals.html is included.', 'error');
+    }
 }
 
 // Initialize on page load

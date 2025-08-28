@@ -122,6 +122,12 @@
                         onclick="viewWeevelyDetails('{{weevely.connection_id}}')">
                         <i class="fa fa-eye"></i> View
                       </button>
+                      
+                      <!-- View Cron Jobs -->
+                      <button class="btn btn-sm btn-outline-warning" title="View Cron Jobs"
+                        onclick="viewWeevelyCronJobs('{{weevely.connection_id}}', '{{weevely.name}}')">
+                        <i class="fa fa-clock"></i> Cron Jobs
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -269,5 +275,48 @@ function viewWeevelyDetails(weevelyId) {
       alert('Error loading connection details');
     });
   
+}
+
+// View weevely cron jobs
+function viewWeevelyCronJobs(weevelyId, weevelyName) {
+  // Show terminal if hidden
+  showWeevelyModuleTerminal();
+  
+  // Initialize terminal with connection data
+  setTimeout(() => {
+    if (typeof WeevelyModuleTerminal !== 'undefined') {
+      // Load weevely connection details first
+      fetch(`/api/weevely/${weevelyId}/details`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.weevely) {
+            WeevelyModuleTerminal.initialize({
+              url: data.weevely.url,
+              password: data.weevely.password,
+              autoTest: false
+            });
+            
+            // Switch to cron jobs tab after initialization
+            setTimeout(() => {
+              // Switch to cron jobs tab
+              const cronTab = document.getElementById('cron-jobs-tab');
+              if (cronTab) {
+                cronTab.click();
+                // Load cron jobs for this weevely connection
+                loadWeevelyCronJobs(weevelyId, weevelyName);
+              }
+            }, 1000);
+          } else {
+            alert('Failed to load weevely connection details');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading weevely connection:', error);
+          alert('Error loading connection details');
+        });
+    } else {
+      alert('Weevely Module Terminal not available');
+    }
+  }, 500);
 }
 </script>
