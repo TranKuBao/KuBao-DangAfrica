@@ -811,3 +811,139 @@ class WeevelyModuleExecutor:
                     session_info['php_config'] = result.get('parsed_output', {})
         
         return session_info
+
+
+class CronWeevelyRunner:
+    """Runner class that executes cron jobs by ID using module executor.
+    Resolves URL/password/functions from database at runtime and ensures
+    downloads are saved to dataserver/download with DataFile logging.
+    """
+
+    @staticmethod
+    def _download_folder() -> str:
+        from flask import current_app
+        import os
+        # Use singular 'download' folder per requirement
+        path = os.path.join(current_app.root_path, '..', 'dataserver', 'download')
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    @staticmethod
+    def _build_download_command(job_params: dict) -> str:
+        # Expect remote path and optional vector
+        remote_path = job_params.get('remote_path') or job_params.get('target_path')
+        vector = job_params.get('vector')
+        if not remote_path:
+            raise ValueError('No remote path specified for download job')
+        import os
+        local_path = os.path.join(CronWeevelyRunner._download_folder(), os.path.basename(remote_path))
+        if vector:
+            return f":file_download -vector {vector} {remote_path} {local_path}", local_path, remote_path
+        return f":file_download {remote_path} {local_path}", local_path, remote_path
+
+    @staticmethod
+    def _log_data_file(local_path: str, remote_path: str, connection_id: str) -> int:
+        from apps.models import db, DataFile
+        from datetime import datetime
+        from hashlib import sha256
+        import os
+        try:
+            file_size = os.path.getsize(local_path)
+            with open(local_path, 'rb') as f:
+                file_hash = sha256(f.read()).hexdigest()
+            data_file = DataFile(
+                file_name=os.path.basename(local_path),
+                source_path=remote_path or '',
+                local_path=local_path,
+                file_type='download',
+                file_size=file_size,
+                file_hash=file_hash,
+                connection_id=connection_id,
+                file_created_at=datetime.utcnow(),
+                file_updated_at=datetime.utcnow(),
+                password=''
+            )
+            db.session.add(data_file)
+            db.session.commit()
+            return data_file.file_id
+        except Exception:
+            db.session.rollback()
+            return 0
+
+    @staticmethod
+    def run_cron_job(job_id: int) -> dict:
+        from apps.models import CronJob, ShellConnection
+        from flask import current_app
+        import json as _json
+
+        cron_job = CronJob.find_by_id(job_id)
+        if not cron_job:
+            return {'success': False, 'error': 'Cron job not found'}
+        if not cron_job.is_active:
+            return {'success': False, 'error': 'Cron job is inactive'}
+
+        try:
+            params = _json.loads(cron_job.job_data) if cron_job.job_data else {}
+        except Exception:
+            params = {}
+
+        # Resolve weevely connection
+        weevely_conn = None
+        if cron_job.weevely_connection_id:
+            weevely_conn = ShellConnection.get_by_id(cron_job.weevely_connection_id)
+        if not weevely_conn or not weevely_conn.password or not weevely_conn.url:
+            return {'success': False, 'error': 'Weevely connection not found or missing credentials'}
+
+        executor = WeevelyModuleExecutor()
+
+        # Map job type to module command
+        module_command = None
+        local_path = None
+        remote_path = None
+        if cron_job.job_type == 'command':
+            module_command = params.get('command')
+        elif cron_job.job_type == 'download':
+            module_command, local_path, remote_path = CronWeevelyRunner._build_download_command(params)
+        elif cron_job.job_type == 'upload':
+            source_path = params.get('source_path')
+            target_path = params.get('target_path')
+            vector = params.get('vector')
+            if not source_path or not target_path:
+                return {'success': False, 'error': 'Source and target paths required for upload job'}
+            if vector:
+                module_command = f":file_upload -vector {vector} {source_path} {target_path}"
+            else:
+                module_command = f":file_upload {source_path} {target_path}"
+        elif cron_job.job_type == 'file_operation':
+            operation = params.get('operation')
+            source = params.get('source')
+            dest = params.get('destination')
+            if operation == 'copy':
+                module_command = f":file_cp {source} {dest}"
+            elif operation == 'move':
+                module_command = f":file_mv {source} {dest}"
+            elif operation == 'delete':
+                module_command = f":file_rm {source}"
+            elif operation == 'mkdir':
+                module_command = f":file_mkdir {source}"
+            else:
+                return {'success': False, 'error': f'Unknown operation: {operation}'}
+        else:
+            return {'success': False, 'error': f'Unknown job type: {cron_job.job_type}'}
+
+        if not module_command or not module_command.startswith(':'):
+            return {'success': False, 'error': 'Invalid or missing module command'}
+
+        # Execute via executor
+        result = executor.execute_module(weevely_conn.url, weevely_conn.password, module_command)
+
+        # On successful download, log to DB
+        if result.get('success') and local_path:
+            try:
+                file_id = CronWeevelyRunner._log_data_file(local_path, remote_path, weevely_conn.connection_id)
+                result['saved_to'] = local_path
+                result['data_file_id'] = file_id
+            except Exception:
+                pass
+
+        return result

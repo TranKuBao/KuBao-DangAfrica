@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 from apps.weevely import blueprint
 from apps.models import ShellConnection, ShellCommand, ShellStatus, ShellType, db, DataFile, CronJob
 from apps.exceptions.exception import InvalidUsage
-from apps.weevely.module_executor import WeevelyModuleExecutor, WeevelyPayloadGenerator
+from apps.weevely.module_executor import WeevelyModuleExecutor, WeevelyPayloadGenerator, CronWeevelyRunner
 import time
 import datetime as dt
 
@@ -1261,9 +1261,70 @@ def execute_weevely_module():
                 'error': 'Missing required parameters: url, password, module_command'
             }), 400
         
-        # Execute module
+        # Intercept file download to force-save into dataserver/downloads and record DB
+        adjusted_local_path = None
+        try:
+            if module_command.startswith(':file_download'):
+                # Expected formats:
+                # :file_download -vector <vec> <remote> <local>
+                # :file_download <remote> <local>
+                parts = module_command.split()
+                # Extract remote path (last or second last depending on -vector)
+                vector = None
+                remote_path = None
+                # detect -vector
+                if len(parts) >= 5 and parts[1] == '-vector':
+                    vector = parts[2]
+                    remote_path = parts[-2]
+                else:
+                    # no vector specified
+                    remote_path = parts[-2] if len(parts) >= 3 else None
+                # Compute destination path inside dataserver/downloads
+                download_folder = get_folder_file_download()
+                os.makedirs(download_folder, exist_ok=True)
+                filename = os.path.basename(remote_path or 'downloaded_file')
+                adjusted_local_path = os.path.join(download_folder, filename)
+                # Rebuild command
+                if vector:
+                    module_command = f":file_download -vector {vector} {remote_path} {adjusted_local_path}"
+                else:
+                    module_command = f":file_download {remote_path} {adjusted_local_path}"
+        except Exception as _:
+            pass
+
+        # Execute module (possibly adjusted)
         result = executor.execute_module(url, password, module_command, timeout, retries)
         
+        # On successful file download, update DataFile in DB
+        try:
+            if result.get('success') and module_command.startswith(':file_download') and adjusted_local_path and os.path.exists(adjusted_local_path):
+                from hashlib import sha256
+                file_size = os.path.getsize(adjusted_local_path)
+                with open(adjusted_local_path, 'rb') as f:
+                    file_hash = sha256(f.read()).hexdigest()
+                # find connection by URL if possible
+                conn = ShellConnection.query.filter_by(url=url).first()
+                connection_id = conn.connection_id if conn else 'unknown'
+                data_file = DataFile(
+                    file_name=os.path.basename(adjusted_local_path),
+                    source_path=remote_path or '',
+                    local_path=adjusted_local_path,
+                    file_type='download',
+                    file_size=file_size,
+                    file_hash=file_hash,
+                    connection_id=connection_id,
+                    file_created_at=datetime.now(),
+                    file_updated_at=datetime.now(),
+                    password=''
+                )
+                db.session.add(data_file)
+                db.session.commit()
+                result['saved_to'] = adjusted_local_path
+                result['data_file_id'] = data_file.file_id
+        except Exception as e:
+            db.session.rollback()
+            result['db_error'] = str(e)
+
         return jsonify(result)
         
     except Exception as e:
@@ -1652,24 +1713,8 @@ def execute_cron_job_now(job_id):
         if not cron_job:
             return jsonify({'success': False, 'error': 'Cron job not found'}), 404
         
-        # Parse job data
-        import json
-        try:
-            job_params = json.loads(cron_job.job_data)
-        except json.JSONDecodeError:
-            return jsonify({'success': False, 'error': 'Invalid job data format'}), 400
-        
-        # Execute based on job type
-        if cron_job.job_type == 'file_operation':
-            result = execute_file_operation_job(cron_job, job_params)
-        elif cron_job.job_type == 'command':
-            result = execute_command_job(cron_job, job_params)
-        elif cron_job.job_type == 'download':
-            result = execute_download_job(cron_job, job_params)
-        elif cron_job.job_type == 'upload':
-            result = execute_upload_job(cron_job, job_params)
-        else:
-            return jsonify({'success': False, 'error': f'Unknown job type: {cron_job.job_type}'}), 400
+        # Execute using CronWeevelyRunner so URL/password/functions are resolved from DB
+        result = CronWeevelyRunner.run_cron_job(cron_job.id)
         
         # Update job statistics
         cron_job.run_count += 1

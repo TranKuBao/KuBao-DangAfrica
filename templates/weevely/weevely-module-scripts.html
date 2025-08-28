@@ -153,6 +153,12 @@ function executeModuleWithDisplay(moduleCommand) {
             const content = stderrText || stdoutText || '';
             appendToTerminal('=== STDERR OUTPUT ===');
             appendToTerminal(content || 'No output', content ? 'output' : 'info');
+            if (result.saved_to) {
+                appendToTerminal(`Saved to: ${result.saved_to}`, 'info');
+            }
+            if (result.data_file_id) {
+                appendToTerminal(`DataFile ID: ${result.data_file_id}`, 'info');
+            }
         } else {
             updateStatus('Failed', 'error');
             appendToTerminal(`Module execution failed: ${result.error}`, 'error');
@@ -223,6 +229,12 @@ async function executeWeevelyModule(moduleCommand, params = {}) {
             const content = stderrText || stdoutText || '';
             appendToTerminal('=== STDERR OUTPUT ===');
             appendToTerminal(content || 'No output', content ? 'output' : 'info');
+            if (result.saved_to) {
+                appendToTerminal(`Saved to: ${result.saved_to}`, 'info');
+            }
+            if (result.data_file_id) {
+                appendToTerminal(`DataFile ID: ${result.data_file_id}`, 'info');
+            }
             
             // Display execution info
             appendToTerminal(`Execution time: ${result.execution_time}s`, 'info');

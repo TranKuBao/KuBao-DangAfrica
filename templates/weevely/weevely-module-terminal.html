@@ -470,6 +470,11 @@
                     Welcome to Weevely Module Terminal
                     Enter connection details above and select modules to execute...
                   </div>
+                  <div class="mt-3 d-flex gap-2">
+                    <button class="btn btn-outline-info btn-sm" onclick="showDownloadedFilesModal()">
+                      <i class="fas fa-folder-open"></i> Downloaded Files
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -492,8 +497,84 @@
   </div>
 </div>
 
+<!-- Downloaded Files Modal -->
+<div class="modal fade" id="downloadedFilesModal" tabindex="-1" aria-labelledby="downloadedFilesLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="downloadedFilesLabel"><i class="fas fa-download"></i> Downloaded Files</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Size</th>
+                <th>Created</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="downloadedFilesTable">
+              <tr><td colspan="4" class="text-center text-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+  
+</div>
+
+<script>
+function showDownloadedFilesModal() {
+  const modal = new bootstrap.Modal(document.getElementById('downloadedFilesModal'));
+  modal.show();
+  loadDownloadedFiles();
+}
+
+function loadDownloadedFiles() {
+  const tbody = document.getElementById('downloadedFilesTable');
+  tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Loading...</td></tr>';
+  fetch('/api/dataserver/list-file?folder=download')
+    .then(r => r.json())
+    .then(data => {
+      const files = data.files || data.file_list || [];
+      if (!Array.isArray(files) || files.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No files</td></tr>';
+        return;
+      }
+      const rows = files.map(f => {
+        const name = f.name || f.file_name || '';
+        const size = f.size_readable || f.size || '';
+        const created = f.created_at || f.file_created_at || '';
+        const href = `/api/dataserver/download-download-file?filename=${encodeURIComponent(name)}&folder=download`;
+        return `
+          <tr>
+            <td><code>${name}</code></td>
+            <td>${size}</td>
+            <td><small class="text-muted">${created}</small></td>
+            <td>
+              <a class="btn btn-sm btn-outline-primary" href="${href}"><i class="fas fa-download"></i></a>
+            </td>
+          </tr>`;
+      }).join('');
+      tbody.innerHTML = rows;
+    })
+    .catch(err => {
+      console.error('Error loading downloaded files:', err);
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error loading files</td></tr>';
+    });
+}
+</script>
+
 <!-- Cron Jobs JavaScript Functions -->
 <script>
+let currentWeevelyConnectionId = null;
 // Initialize cron jobs form
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('createCronJobFormTerminal');
@@ -627,28 +708,79 @@ function displayCronJobsTerminal(cronJobs) {
     
     let html = '';
     cronJobs.forEach(job => {
+        // Status styling
         const statusClass = job.is_active ? 'success' : 'secondary';
         const statusText = job.is_active ? 'Active' : 'Inactive';
+        const statusIcon = job.is_active ? 'fa-toggle-on' : 'fa-toggle-off';
+        
+        // Next run info
+        const nextRun = job.next_run ? new Date(job.next_run).toLocaleString() : 'Unknown';
+        const lastRun = job.last_run ? new Date(job.last_run).toLocaleString() : 'Never';
         
         html += `
-            <div class="card mb-2">
-                <div class="card-body p-2">
+            <div class="card mb-2 border-${job.is_active ? 'success' : 'secondary'} cron-job-card ${job.is_active ? 'status-active' : 'status-inactive'}">
+                <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <h6 class="mb-1 text-sm">${job.name}</h6>
-                            <p class="mb-1 text-muted small">${job.description || 'No description'}</p>
-                            <div class="d-flex gap-2 text-muted small">
-                                <span><i class="fas fa-clock"></i> ${job.cron_expression}</span>
-                                <span><i class="fas fa-tag"></i> ${job.job_type}</span>
-                                <span class="badge bg-${statusClass}">${statusText}</span>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <h6 class="mb-0 text-sm fw-bold">${job.name}</h6>
+                                <span class="badge bg-${statusClass} fs-6 cron-status-badge">
+                                    <i class="fas ${statusIcon} me-1"></i>${statusText}
+                                </span>
+                            </div>
+                            
+                            <p class="mb-3 text-muted small">${job.description || 'No description'}</p>
+                            
+                            <div class="row text-muted small mb-3">
+                                <div class="col-md-6">
+                                    <div class="cron-info-row mb-2">
+                                        <div class="cron-info-label">Schedule</div>
+                                        <div class="cron-info-value">
+                                            <i class="fas fa-clock text-primary me-2"></i>
+                                            <code class="cron-schedule-code">${job.cron_expression}</code>
+                                        </div>
+                                    </div>
+                                    <div class="cron-info-row mb-2">
+                                        <div class="cron-info-label">Job Type</div>
+                                        <div class="cron-info-value">
+                                            <i class="fas fa-tag text-info me-2"></i>
+                                            <span class="text-capitalize">${job.job_type.replace('_', ' ')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="cron-info-row mb-2">
+                                        <div class="cron-info-label">Next Run</div>
+                                        <div class="cron-info-value">
+                                            <i class="fas fa-calendar-alt text-success me-2"></i>
+                                            <span>${nextRun}</span>
+                                        </div>
+                                    </div>
+                                    <div class="cron-info-row mb-2">
+                                        <div class="cron-info-label">Last Run</div>
+                                        <div class="cron-info-value">
+                                            <i class="fas fa-history text-warning me-2"></i>
+                                            <span>${lastRun}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="d-flex gap-1">
+                        
+                        <div class="cron-action-buttons">
                             <button class="btn btn-sm btn-outline-success" onclick="executeCronJobNowTerminal(${job.id})" title="Execute Now">
-                                <i class="fas fa-play"></i>
+                                <i class="fas fa-play me-1"></i>Run Now
                             </button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="toggleCronJobTerminal(${job.id})" title="Toggle Status">
-                                <i class="fas fa-toggle-${job.is_active ? 'on' : 'off'}"></i>
+                            
+                            <button class="btn btn-sm btn-${job.is_active ? 'warning' : 'success'}" 
+                                    onclick="toggleCronJobTerminal(${job.id})" 
+                                    title="${job.is_active ? 'Disable' : 'Enable'} Cron Job">
+                                <i class="fas ${statusIcon} me-1"></i>
+                                ${job.is_active ? 'Disable' : 'Enable'}
+                            </button>
+                            
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCronJobTerminal(${job.id})" title="Delete Cron Job">
+                                <i class="fas fa-trash me-1"></i>Delete
                             </button>
                         </div>
                     </div>
@@ -667,7 +799,7 @@ function createCronJobTerminal() {
         cron_expression: document.getElementById('cron_expression_terminal').value,
         timezone: 'UTC', // Default timezone
         job_type: document.getElementById('cron_job_type_terminal').value,
-        weevely_connection_id: null // Will be set based on current connection
+        weevely_connection_id: currentWeevelyConnectionId // set based on current connection
     };
     
     // Get job-specific data
@@ -701,7 +833,7 @@ function createCronJobTerminal() {
     }
     
     // Validate required fields
-    if (!formData.name || !formData.cron_expression || !formData.job_type) {
+    if (!formData.name || !formData.cron_expression || !formData.job_type || !formData.weevely_connection_id) {
         alert('Please fill in all required fields');
         return;
     }
@@ -751,25 +883,68 @@ function executeCronJobNowTerminal(jobId) {
 }
 
 function toggleCronJobTerminal(jobId) {
+    // Show loading state
+    const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+    
     fetch(`/api/weevely/cron-jobs/${jobId}/toggle`, { method: 'POST' })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                appendToTerminal(`Cron job ${data.message}`, 'info');
-                refreshCronJobsTerminal();
+                const newStatus = data.is_active ? 'enabled' : 'disabled';
+                const statusIcon = data.is_active ? 'fa-toggle-on text-success' : 'fa-toggle-off text-secondary';
+                
+                appendToTerminal(`✅ Cron job "${data.name}" ${newStatus} successfully!`, 'success');
+                
+                // Update button appearance immediately for better UX
+                button.className = `btn btn-sm btn-${data.is_active ? 'warning' : 'success'}`;
+                button.innerHTML = `<i class="fas ${statusIcon} me-1"></i>${data.is_active ? 'Disable' : 'Enable'}`;
+                button.title = `${data.is_active ? 'Disable' : 'Enable'} Cron Job`;
+                
+                // Refresh the entire list to show updated status
+                setTimeout(() => {
+                    refreshCronJobsTerminal();
+                }, 1000);
             } else {
-                appendToTerminal(`Error: ${data.error}`, 'error');
+                appendToTerminal(`❌ Error: ${data.error}`, 'error');
+                // Restore button
+                button.disabled = false;
+                button.innerHTML = originalContent;
             }
         })
         .catch(error => {
             console.error('Error toggling cron job:', error);
-            appendToTerminal(`Error toggling cron job: ${error.message}`, 'error');
+            appendToTerminal(`❌ Error toggling cron job: ${error.message}`, 'error');
+            // Restore button
+            button.disabled = false;
+            button.innerHTML = originalContent;
+        });
+}
+
+function deleteCronJobTerminal(jobId) {
+    if (!confirm('Delete this cron job?')) return;
+    fetch(`/api/weevely/cron-jobs/${jobId}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                appendToTerminal('Cron job deleted successfully', 'info');
+                refreshCronJobsTerminal();
+            } else {
+                appendToTerminal(`Error deleting cron job: ${data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting cron job:', error);
+            appendToTerminal(`Error deleting cron job: ${error.message}`, 'error');
         });
 }
 
 // Function to load cron jobs for specific weevely connection
 function loadWeevelyCronJobs(weevelyId, weevelyName) {
     appendToTerminal(`Loading cron jobs for ${weevelyName}...`, 'info');
+    currentWeevelyConnectionId = weevelyId;
     
     // Switch to cron jobs tab
     const cronTab = document.getElementById('cron-jobs-tab');
@@ -781,4 +956,128 @@ function loadWeevelyCronJobs(weevelyId, weevelyName) {
         }, 500);
     }
 }
+
+// Add CSS for cron job styling
+const cronJobStyles = `
+<style>
+/* Cron Job specific styling */
+.cron-job-card {
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+}
+
+.cron-job-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.cron-job-card.border-success {
+  border-left-color: #28a745;
+}
+
+.cron-job-card.border-secondary {
+  border-left-color: #6c757d;
+}
+
+.cron-status-badge {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.cron-info-row {
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 4px 0;
+}
+
+.cron-info-label {
+  font-weight: 600;
+  color: #adb5bd;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cron-info-value {
+  color: #f8f9fa;
+  font-weight: 500;
+}
+
+.cron-schedule-code {
+  background: rgba(0,123,255,0.1);
+  border: 1px solid rgba(0,123,255,0.3);
+  color: #007bff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.8rem;
+}
+
+.cron-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cron-action-buttons .btn {
+  min-width: 100px;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.75rem;
+}
+
+/* Status indicator animations */
+.status-active {
+  animation: pulse-green 2s infinite;
+}
+
+.status-inactive {
+  opacity: 0.7;
+}
+
+@keyframes pulse-green {
+  0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+
+/* Loading states */
+.btn-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+`;
+
+// Inject styles when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    if (!document.getElementById('cron-job-styles')) {
+        const styleElement = document.createElement('div');
+        styleElement.id = 'cron-job-styles';
+        styleElement.innerHTML = cronJobStyles;
+        document.head.appendChild(styleElement);
+    }
+});
 </script>
