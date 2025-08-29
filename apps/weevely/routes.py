@@ -1988,3 +1988,84 @@ def quick_scan(weevely_id):
         
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ==========================================
+# CRON SCHEDULER MANAGEMENT
+# ==========================================
+
+@blueprint.route('/api/weevely/scheduler/start', methods=['POST'])
+def start_cron_scheduler():
+    """Start the cron scheduler"""
+    try:
+        from apps.weevely.cron_scheduler import start_cron_scheduler as start_scheduler
+        
+        success = start_scheduler()
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Cron scheduler started successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to start cron scheduler'
+            }), 500
+            
+    except Exception as e:
+        print(f"Error starting cron scheduler: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/scheduler/stop', methods=['POST'])
+def stop_cron_scheduler():
+    """Stop the cron scheduler"""
+    try:
+        from apps.weevely.cron_scheduler import stop_cron_scheduler as stop_scheduler
+        
+        success = stop_scheduler()
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Cron scheduler stopped successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to stop cron scheduler'
+            }), 500
+            
+    except Exception as e:
+        print(f"Error stopping cron scheduler: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/scheduler/status', methods=['GET'])
+def get_cron_scheduler_status():
+    """Get cron scheduler status"""
+    try:
+        from apps.weevely.cron_scheduler import get_scheduler_status
+        
+        status = get_scheduler_status()
+        
+        return jsonify({
+            'success': True,
+            'status': status
+        })
+        
+    except Exception as e:
+        print(f"Error getting scheduler status: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/scheduler/force-run/<int:job_id>', methods=['POST'])
+def force_run_cron_job(job_id):
+    """Force run a specific cron job immediately"""
+    try:
+        from apps.weevely.cron_scheduler import force_run_job
+        
+        result = force_run_job(job_id)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error force running cron job: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500

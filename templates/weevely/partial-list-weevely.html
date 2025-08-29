@@ -243,6 +243,7 @@ function downloadWeevelyBackdoor(weevelyId) {
 
 // View weevely details (placeholder)
 function viewWeevelyDetails(weevelyId) {  
+  currentWeevelyConnectionId = weevelyId;
   // Load weevely connection details and populate terminal
   fetch(`/api/weevely/${weevelyId}/details`)
     .then(response => response.json())

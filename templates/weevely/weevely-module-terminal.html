@@ -801,7 +801,7 @@ function createCronJobTerminal() {
         job_type: document.getElementById('cron_job_type_terminal').value,
         weevely_connection_id: currentWeevelyConnectionId // set based on current connection
     };
-    
+    console.log("[+]formData's create cron:", formData);
     // Get job-specific data
     switch(formData.job_type) {
         case 'file_operation':

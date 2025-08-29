@@ -51,6 +51,9 @@ flask-socketio
 #quản lý shell
 psutil
 
+# Cron scheduling
+croniter==1.4.1
+
 # :file_find -vector sh_find -ftype f / wp-config.php                                                         =>search filename and folder name
 # :file_read /var/www/html/wp-config.php                                                                      =>read file
 # :file_download -vector base64 /var/www/html/wp-config.php /home/kali/Desktop/test_all_thing/wp-config.php

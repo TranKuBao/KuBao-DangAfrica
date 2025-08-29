@@ -847,26 +847,62 @@ class CronWeevelyRunner:
         from datetime import datetime
         from hashlib import sha256
         import os
+        
         try:
             file_size = os.path.getsize(local_path)
             with open(local_path, 'rb') as f:
                 file_hash = sha256(f.read()).hexdigest()
-            data_file = DataFile(
-                file_name=os.path.basename(local_path),
-                source_path=remote_path or '',
-                local_path=local_path,
-                file_type='download',
-                file_size=file_size,
-                file_hash=file_hash,
-                connection_id=connection_id,
-                file_created_at=datetime.utcnow(),
-                file_updated_at=datetime.utcnow(),
-                password=''
-            )
-            db.session.add(data_file)
-            db.session.commit()
-            return data_file.file_id
-        except Exception:
+            
+            # Kiểm tra xem file đã tồn tại trong database chưa (dựa trên hash)
+            existing_file = DataFile.get_by_file_hash(file_hash)
+            
+            if existing_file:
+                # File đã tồn tại, chỉ update thời gian
+                existing_file.file_updated_at = datetime.utcnow()
+                db.session.commit()
+                print(f"[+] File already exists (hash: {file_hash[:8]}...), updated timestamp only")
+                return existing_file.file_id
+            else:
+                # File mới, tạo record mới với tên file duy nhất
+                base_filename = os.path.basename(local_path)
+                name, ext = os.path.splitext(base_filename)
+                
+                # Tìm tên file duy nhất nếu có trùng tên
+                counter = 1
+                new_filename = base_filename
+                
+                while DataFile.get_by_file_name(new_filename):
+                    new_filename = f"{name}_{counter}{ext}"
+                    counter += 1
+                
+                # Tạo tên file mới trên disk nếu cần
+                if new_filename != base_filename:
+                    new_local_path = os.path.join(os.path.dirname(local_path), new_filename)
+                    os.rename(local_path, new_local_path)
+                    local_path = new_local_path
+                    print(f"[+] Renamed file to avoid conflict: {base_filename} -> {new_filename}")
+                
+                # Tạo record mới trong database
+                data_file = DataFile(
+                    file_name=new_filename,
+                    source_path=remote_path or '',
+                    local_path=local_path,
+                    file_type='download',
+                    file_size=file_size,
+                    file_hash=file_hash,
+                    connection_id=connection_id,
+                    file_created_at=datetime.utcnow(),
+                    file_updated_at=datetime.utcnow(),
+                    password=''
+                )
+                
+                db.session.add(data_file)
+                db.session.commit()
+                print(f"[+] New file logged to database: {new_filename} (hash: {file_hash[:8]}...)")
+                return data_file.file_id
+                
+        except Exception as e:
+            print(f"[-] Error logging data file: {str(e)}")
             db.session.rollback()
             return 0
 
