@@ -1120,9 +1120,17 @@ function viewFileContent(fileId) {
   }
   
   // Xác định API endpoint dựa trên loại file
-  const apiEndpoint = isDownloadFile 
-    ? `/api/dataserver/view-download-file?id=${fileIdNum}` 
-    : `/api/dataserver/view-upload-file?id=${fileIdNum}`;
+  let apiEndpoint = '';
+  if (isDownloadFile) {
+    const dlFilename = fileInfo.name || fileInfo.file_name;
+    if (!dlFilename) {
+      alert('Filename not found for downloaded file');
+      return;
+    }
+    apiEndpoint = `/api/dataserver/view-file?filename=${encodeURIComponent(dlFilename)}&folder=download`;
+  } else {
+    apiEndpoint = `/api/dataserver/view-upload-file?id=${fileIdNum}`;
+  }
   
   // Gọi API để lấy nội dung file thực tế
   fetch(apiEndpoint)
@@ -1139,7 +1147,7 @@ function viewFileContent(fileId) {
         
         // Set download button action
         const downloadAction = isDownloadFile 
-          ? `downloadDownloadFileContent("${fileIdNum}")` 
+          ? `downloadDownloadFileContent("${encodeURIComponent(fileInfo.name || fileInfo.file_name || '')}")` 
           : `downloadFileContent("${fileIdNum}")`;
         document.getElementById('saveFileBtn').setAttribute("onclick", downloadAction);
         
@@ -1224,8 +1232,8 @@ async function downloadFileContent(fileId) {
 }
 
 // Download file from download folder
-async function downloadDownloadFileContent(fileId) {
-  const url = `/api/dataserver/download-download-file?filename=${encodeURIComponent(fileId)}&folder=download`;
+async function downloadDownloadFileContent(filenameParam) {
+  const url = `/api/dataserver/download-download-file?filename=${filenameParam}&folder=download`;
 
   try {
     const res = await fetch(url, { method: 'GET' });
@@ -1241,7 +1249,7 @@ async function downloadDownloadFileContent(fileId) {
 
     // 2) Fallback: lấy từ DOM data-file-info (nếu có)
     if (!filename) {
-      const sel = `[data-file-id="download-${fileId}"]`;
+      const sel = `[data-file-id="download-${filenameParam}"]`;
       const row = document.querySelector(sel);
       if (row) {
         try {
@@ -1252,7 +1260,7 @@ async function downloadDownloadFileContent(fileId) {
     }
 
     // 3) Fallback cuối
-    if (!filename) filename = `downloaded_file_${fileId}`;
+    if (!filename) filename = `downloaded_file_${filenameParam}`;
 
     // Tải blob và trigger download
     const blob = await res.blob();
@@ -1873,8 +1881,49 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (confirm(`Are you sure you want to delete ${window.checkedDownloadFiles.length} selected file(s)?`)) {
       console.log('Deleting download files:', window.checkedDownloadFiles);
-      // Implement bulk delete logic
-      alert('Bulk delete functionality will be implemented!');
+      let deletedCount = 0;
+      let failedCount = 0;
+      const toDelete = [...window.checkedDownloadFiles];
+      toDelete.forEach((fileId) => {
+        const fileRow = document.querySelector(`[data-file-id="${fileId}"]`);
+        if (!fileRow) {
+          failedCount++;
+          return;
+        }
+        const info = JSON.parse(fileRow.getAttribute('data-file-info') || '{}');
+        const filename = info.name || info.file_name;
+        if (!filename) {
+          failedCount++;
+          return;
+        }
+        fetch(`/api/dataserver/delete-download-file?filename=${encodeURIComponent(filename)}&folder=download`, { method: 'DELETE' })
+          .then(r => r.json())
+          .then(resp => {
+            if (resp && (resp.status === 'success' || resp.status === '1')) {
+              deletedCount++;
+              fileRow.remove();
+            } else {
+              failedCount++;
+            }
+            if (deletedCount + failedCount === toDelete.length) {
+              window.checkedDownloadFiles = [];
+              updateDownloadSelectAllCheckbox();
+              if (failedCount === 0) {
+                showToast(`Successfully deleted ${deletedCount} file(s)!`, 'success');
+              } else {
+                showToast(`${deletedCount} files deleted, ${failedCount} failed.`, 'warning');
+              }
+            }
+          })
+          .catch(() => {
+            failedCount++;
+            if (deletedCount + failedCount === toDelete.length) {
+              window.checkedDownloadFiles = [];
+              updateDownloadSelectAllCheckbox();
+              showToast(`${deletedCount} files deleted, ${failedCount} failed.`, 'warning');
+            }
+          });
+      });
     }
   });
   
@@ -1892,14 +1941,14 @@ document.addEventListener('DOMContentLoaded', function() {
       const fileRow = document.querySelector(`[data-file-id="${fileId}"]`);
       if (fileRow) {
         const fileInfo = JSON.parse(fileRow.getAttribute('data-file-info') || '{}');
-        const fileIdNum = fileInfo.id;
+        const filename = fileInfo.name || fileInfo.file_name;
         
-        if (fileIdNum) {
+        if (filename) {
           // Tạo link download
-          const downloadUrl = `/api/dataserver/download-download-file?filename=${encodeURIComponent(fileIdNum)}&folder=download`;
+          const downloadUrl = `/api/dataserver/download-download-file?filename=${encodeURIComponent(filename)}&folder=download`;
           const a = document.createElement('a');
           a.href = downloadUrl;
-          a.download = fileInfo.name || fileInfo.file_name || `file_${fileIdNum}`;
+          a.download = fileInfo.name || fileInfo.file_name || `file_${Date.now()}`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);

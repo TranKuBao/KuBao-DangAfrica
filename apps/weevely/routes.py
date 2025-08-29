@@ -59,7 +59,7 @@ def get_folder_file_upload():
 
 def get_folder_file_download():
     """Get download folder path"""
-    return os.path.join(current_app.root_path, '..', 'dataserver', 'downloads')
+    return os.path.join(current_app.root_path, '..', 'dataserver', 'download')
 
 #Chức năng download file và upload file lên server từ CLIENT request
 @blueprint.route('/api/dataserver/list-file', methods=['GET'])
