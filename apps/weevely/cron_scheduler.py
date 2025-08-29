@@ -18,9 +18,6 @@ import logging
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from apps.models import CronJob, ShellConnection, db
-from apps.weevely.module_executor import CronWeevelyRunner
-
 # Configure logging
 def setup_logging():
     """Setup logging with proper directory creation"""
@@ -60,6 +57,12 @@ class WeevelyCronScheduler:
         self.jobs = {}
         self.last_check = None
         self.check_interval = 60  # Kiểm tra mỗi 60 giây
+        self.app = None  # Store Flask app instance for context
+        
+    def set_app(self, app):
+        """Set Flask app instance for context management"""
+        self.app = app
+        logger.info("Flask app instance set for cron scheduler")
         
     def start(self):
         """Bắt đầu scheduler"""
@@ -67,10 +70,14 @@ class WeevelyCronScheduler:
             logger.warning("Scheduler is already running")
             return
             
+        if not self.app:
+            logger.error("Cannot start scheduler: Flask app not set. Call set_app() first.")
+            return
+            
         self.running = True
         self.scheduler_thread = threading.Thread(target=self._run_scheduler, daemon=True)
         self.scheduler_thread.start()
-        logger.info("Cron scheduler started")
+        logger.info("Cron scheduler started with Flask app context")
         
     def stop(self):
         """Dừng scheduler"""
@@ -85,7 +92,13 @@ class WeevelyCronScheduler:
         
         while self.running:
             try:
-                self._check_and_run_jobs()
+                # Sử dụng app instance đã được set để tạo context
+                if self.app:
+                    with self.app.app_context():
+                        self._check_and_run_jobs()
+                else:
+                    logger.warning("No Flask app instance available")
+                    
                 time.sleep(self.check_interval)
             except Exception as e:
                 logger.error(f"Error in scheduler loop: {str(e)}")
@@ -95,6 +108,9 @@ class WeevelyCronScheduler:
         """Kiểm tra và chạy các cron jobs cần thiết"""
         try:
             current_time = dt.datetime.utcnow()
+            
+            # Import models trong app context
+            from apps.models import CronJob
             
             # Lấy tất cả cron jobs đang active
             active_jobs = CronJob.get_active_jobs()
@@ -131,17 +147,21 @@ class WeevelyCronScheduler:
         except Exception as e:
             logger.error(f"Error checking cron jobs: {str(e)}")
             
-    def _should_run_job(self, job: CronJob, current_time: dt.datetime) -> bool:
+    def _should_run_job(self, job, current_time: dt.datetime) -> bool:
         """Kiểm tra xem job có cần chạy không dựa trên cron expression"""
         try:
             # Parse cron expression
-            cron = croniter(job.cron_expression, current_time)
+            cron = croniter(job.cron_expression, job.last_run or current_time)
             next_run = cron.get_next(dt.datetime)
             
-            # Nếu next_run đã qua và job chưa chạy lần nào hoặc đã chạy lần cuối trước next_run
-            if next_run <= current_time:
-                if not job.last_run or job.last_run < next_run:
-                    return True
+            # Job cần chạy nếu:
+            # 1. Chưa chạy lần nào (last_run = None)
+            # 2. Hoặc đã đến thời gian chạy tiếp theo
+            if not job.last_run:
+                return True
+            
+            if current_time >= next_run:
+                return True
                     
             return False
             
@@ -152,63 +172,98 @@ class WeevelyCronScheduler:
     def _execute_job_safe(self, job_id: int):
         """Chạy job một cách an toàn với error handling"""
         try:
-            result = CronWeevelyRunner.run_cron_job(job_id)
-            
-            # Update job statistics
-            job = CronJob.find_by_id(job_id)
-            if job:
-                if result.get('success'):
-                    job.success_count += 1
-                else:
-                    job.failure_count += 1
-                job.save()
+            # Sử dụng app instance để tạo context cho job execution
+            if self.app:
+                with self.app.app_context():
+                    from apps.weevely.module_executor import CronWeevelyRunner
+                    from apps.models import CronJob
+                    
+                    result = CronWeevelyRunner.run_cron_job(job_id)
+                    
+                    # Update job statistics
+                    job = CronJob.find_by_id(job_id)
+                    if job:
+                        if result.get('success'):
+                            job.success_count += 1
+                        else:
+                            job.failure_count += 1
+                        job.save()
+            else:
+                logger.error("No Flask app instance available for job execution")
                 
         except Exception as e:
             logger.error(f"Error executing cron job {job_id}: {str(e)}")
             
     def get_scheduler_status(self) -> Dict:
         """Lấy trạng thái của scheduler"""
-        active_jobs = CronJob.get_active_jobs()
-        
-        return {
-            'running': self.running,
-            'last_check': self.last_check.isoformat() if self.last_check else None,
-            'active_jobs_count': len(active_jobs),
-            'total_jobs_count': CronJob.query.count(),
-            'check_interval_seconds': self.check_interval
-        }
+        try:
+            if self.app:
+                with self.app.app_context():
+                    from apps.models import CronJob
+                    active_jobs = CronJob.get_active_jobs()
+                    
+                    return {
+                        'running': self.running,
+                        'last_check': self.last_check.isoformat() if self.last_check else None,
+                        'active_jobs_count': len(active_jobs),
+                        'total_jobs_count': CronJob.query.count(),
+                        'check_interval_seconds': self.check_interval,
+                        'app_context': 'Available'
+                    }
+            else:
+                return {
+                    'running': self.running,
+                    'last_check': self.last_check.isoformat() if self.last_check else None,
+                    'active_jobs_count': 0,
+                    'total_jobs_count': 0,
+                    'check_interval_seconds': self.check_interval,
+                    'app_context': 'Not Available'
+                }
+        except Exception as e:
+            logger.error(f"Error getting scheduler status: {str(e)}")
+            return {
+                'running': self.running,
+                'error': str(e)
+            }
         
     def force_run_job(self, job_id: int) -> Dict:
         """Chạy job ngay lập tức (manual execution)"""
         try:
-            job = CronJob.find_by_id(job_id)
-            if not job:
-                return {'success': False, 'error': 'Job not found'}
+            if not self.app:
+                return {'success': False, 'error': 'No Flask app instance available'}
                 
-            if not job.is_active:
-                return {'success': False, 'error': 'Job is inactive'}
+            with self.app.app_context():
+                from apps.models import CronJob
+                from apps.weevely.module_executor import CronWeevelyRunner
                 
-            logger.info(f"Force running cron job: {job.name} (ID: {job.id})")
-            
-            # Execute job
-            result = CronWeevelyRunner.run_cron_job(job_id)
-            
-            # Update statistics
-            job.run_count += 1
-            job.last_run = dt.datetime.utcnow()
-            if result.get('success'):
-                job.success_count += 1
-            else:
-                job.failure_count += 1
-            job.save()
-            
-            return {
-                'success': True,
-                'job_name': job.name,
-                'result': result,
-                'message': 'Job executed successfully'
-            }
-            
+                job = CronJob.find_by_id(job_id)
+                if not job:
+                    return {'success': False, 'error': 'Job not found'}
+                    
+                if not job.is_active:
+                    return {'success': False, 'error': 'Job is inactive'}
+                    
+                logger.info(f"Force running cron job: {job.name} (ID: {job.id})")
+                
+                # Execute job
+                result = CronWeevelyRunner.run_cron_job(job_id)
+                
+                # Update statistics
+                job.run_count += 1
+                job.last_run = dt.datetime.utcnow()
+                if result.get('success'):
+                    job.success_count += 1
+                else:
+                    job.failure_count += 1
+                job.save()
+                
+                return {
+                    'success': True,
+                    'job_name': job.name,
+                    'result': result,
+                    'message': 'Job executed successfully'
+                }
+                
         except Exception as e:
             logger.error(f"Error force running job {job_id}: {str(e)}")
             return {'success': False, 'error': str(e)}
@@ -224,6 +279,16 @@ class WeevelyCronScheduler:
 
 # Global scheduler instance
 cron_scheduler = WeevelyCronScheduler()
+
+def init_scheduler_with_app(app):
+    """Initialize scheduler with Flask app instance"""
+    try:
+        cron_scheduler.set_app(app)
+        logger.info("Cron scheduler initialized with Flask app")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to initialize cron scheduler with app: {str(e)}")
+        return False
 
 def start_cron_scheduler():
     """Start cron scheduler (called from main app)"""

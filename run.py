@@ -27,20 +27,8 @@ except KeyError:
 
 app = create_app(app_config)
 
-# Start cron scheduler when app starts
-def start_cron_scheduler():
-    """Start cron scheduler on app startup"""
-    try:
-        from apps.weevely.cron_scheduler import start_cron_scheduler
-        start_cron_scheduler()  # Không truyền app parameter
-        print("[+] Cron scheduler started successfully")
-    except Exception as e:
-        print(f"[-] Failed to start cron scheduler: {str(e)}")
-
 # Create tables & Fallback to SQLite
 with app.app_context():
-    # Start cron scheduler in app context
-    start_cron_scheduler()
     
     try:
         db.create_all()
@@ -67,5 +55,16 @@ if DEBUG:
     app.logger.info('DBMS             = ' + app_config.SQLALCHEMY_DATABASE_URI)
 
 if __name__ == "__main__":
+    # Bắt đầu cron scheduler sau khi app context đã sẵn sàng
+    from apps.weevely.cron_scheduler import start_cron_scheduler, get_scheduler_status
+    
+    with app.app_context():
+        scheduler_started = start_cron_scheduler()
+        if scheduler_started:
+            status = get_scheduler_status()
+            print(f"[+] Cron scheduler started successfully: {status}")
+        else:
+            print("[-] Failed to start cron scheduler")
+    
     #app.run(host="0.0.0.0", port=5000)
     socketio.run(app, host="0.0.0.0", port=5000)

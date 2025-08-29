@@ -62,9 +62,21 @@ def create_app(config):
     app.register_blueprint(google_blueprint, url_prefix="/login")    
 
 
+    ######################################
+    #|| Khởi tạo cron scheduler với app (delay start)
+    ######################################
+    # Import scheduler nhưng không start ngay
+    # Việc start sẽ được thực hiện trong run.py sau khi app context sẵn sàng
+    from apps.weevely.cron_scheduler import init_scheduler_with_app
+    init_scheduler_with_app(app)
+    print("[+] Cron scheduler initialized (will start after app context ready)")
+
+    ######################################
+    #|| Khởi tạo socketio với app
+    ######################################
     # Khởi tạo socketio với app
     socketio.init_app(app, cors_allowed_origins="*")
-    
+
     # Đảm bảo shell_manager được khởi tạo với app instance
     from apps.managershell.pwncat import init_shell_manager
     shell_manager = init_shell_manager(app)

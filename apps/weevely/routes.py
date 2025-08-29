@@ -2069,3 +2069,49 @@ def force_run_cron_job(job_id):
     except Exception as e:
         print(f"Error force running cron job: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/weevely/scheduler/debug', methods=['GET'])
+def debug_scheduler():
+    """Debug endpoint để kiểm tra scheduler"""
+    try:
+        from apps.weevely.cron_scheduler import get_scheduler_status
+        from apps.models import CronJob
+        
+        # Lấy trạng thái scheduler
+        scheduler_status = get_scheduler_status()
+        
+        # Lấy danh sách jobs
+        active_jobs = CronJob.get_active_jobs()
+        all_jobs = CronJob.query.all()
+        
+        debug_info = {
+            'scheduler_status': scheduler_status,
+            'active_jobs_count': len(active_jobs),
+            'total_jobs_count': len(all_jobs),
+            'active_jobs': [
+                {
+                    'id': job.id,
+                    'name': job.name,
+                    'cron_expression': job.cron_expression,
+                    'job_type': job.job_type,
+                    'is_active': job.is_active,
+                    'run_count': job.run_count,
+                    'success_count': job.success_count,
+                    'failure_count': job.failure_count,
+                    'last_run': job.last_run.isoformat() if job.last_run else None,
+                    'created_at': job.created_at.isoformat() if job.created_at else None
+                }
+                for job in active_jobs
+            ],
+            'flask_app_context': bool(current_app),
+            'current_time': dt.datetime.utcnow().isoformat()
+        }
+        
+        return jsonify({
+            'success': True,
+            'debug_info': debug_info
+        })
+        
+    except Exception as e:
+        print(f"Error in debug scheduler: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
