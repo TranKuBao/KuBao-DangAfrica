@@ -1,0 +1,964 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+  <!-- Header Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h4 class="mb-3">📊 Dashboard system statistics
+    </h4>
+    </div>
+  </div>
+
+  <!-- Quick Stats Cards - Similar to index.html -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 col-12 mb-3">
+      <div class="card">
+        <span class="mask bg-primary opacity-10 border-radius-lg"></span>
+        <div class="card-body p-3 position-relative">
+          <div class="row">
+            <div class="col-8 text-start">
+              <div class="icon icon-shape bg-white shadow text-center border-radius-2xl">
+                <i class="ni ni-bug text-dark text-gradient text-lg opacity-10" aria-hidden="true"></i>
+              </div>
+              <h5 class="text-white font-weight-bolder mb-0 mt-3" id="total-pocs">0</h5>
+              <span class="text-white text-sm">Tổng POC</span>
+            </div>
+            <div class="col-4">
+              <div class="dropdown text-end mb-6">
+                <a href="javascript:;" class="cursor-pointer" id="dropdownPocs" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="fa fa-ellipsis-h text-white"></i>
+                </a>
+                <ul class="dropdown-menu px-2 py-3" aria-labelledby="dropdownPocs">
+                  <li><a class="dropdown-item border-radius-md" href="javascript:;">Xem chi tiết</a></li>
+                  <li><a class="dropdown-item border-radius-md" href="javascript:;">Cập nhật</a></li>
+                </ul>
+              </div>
+              <p class="text-white text-sm text-end font-weight-bolder mt-auto mb-0" id="poc-trend">+0%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 col-12 mb-3">
+      <div class="card">
+        <span class="mask bg-dark opacity-10 border-radius-lg"></span>
+        <div class="card-body p-3 position-relative">
+          <div class="row">
+            <div class="col-8 text-start">
+              <div class="icon icon-shape bg-white shadow text-center border-radius-2xl">
+                <i class="ni ni-world text-dark text-gradient text-lg opacity-10" aria-hidden="true"></i>
+              </div>
+              <h5 class="text-white font-weight-bolder mb-0 mt-3" id="total-targets">0</h5>
+              <span class="text-white text-sm">Targets</span>
+            </div>
+            <div class="col-4">
+              <div class="dropstart text-end mb-6">
+                <a href="javascript:;" class="cursor-pointer" id="dropdownTargets" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="fa fa-ellipsis-h text-white"></i>
+                </a>
+                <ul class="dropdown-menu px-2 py-3" aria-labelledby="dropdownTargets">
+                  <li><a class="dropdown-item border-radius-md" href="javascript:;">Xem chi tiết</a></li>
+                  <li><a class="dropdown-item border-radius-md" href="javascript:;">Cập nhật</a></li>
+                </ul>
+              </div>
+              <p class="text-white text-sm text-end font-weight-bolder mt-auto mb-0" id="target-trend">+0%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 col-12 mb-3">
+      <div class="card">
+        <span class="mask bg-primary opacity-10 border-radius-lg"></span>
+        <div class="card-body p-3 position-relative">
+          <div class="row">
+            <div class="col-8 text-start">
+              <div class="icon icon-shape bg-white shadow text-center border-radius-2xl">
+                <i class="ni ni-laptop text-dark text-gradient text-lg opacity-10" aria-hidden="true"></i>
+              </div>
+              <h5 class="text-white font-weight-bolder mb-0 mt-3" id="total-shells">0</h5>
+              <span class="text-white text-sm">Shell Connections</span>
+            </div>
+            <div class="col-4">
+              <div class="dropdown text-end mb-6">
+                <a href="javascript:;" class="cursor-pointer" id="dropdownShells" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="fa fa-ellipsis-h text-white"></i>
+                </a>
+                <ul class="dropdown-menu px-2 py-3" aria-labelledby="dropdownShells">
+                  <li><a class="dropdown-item border-radius-md" href="javascript:;">Xem chi tiết</a></li>
+                  <li><a class="dropdown-item border-radius-md" href="javascript:;">Cập nhật</a></li>
+                </ul>
+              </div>
+              <p class="text-white text-sm text-end font-weight-bolder mt-auto mb-0" id="shell-trend">+0%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 col-12 mb-3">
+      <div class="card">
+        <span class="mask bg-dark opacity-10 border-radius-lg"></span>
+        <div class="card-body p-3 position-relative">
+          <div class="row">
+            <div class="col-8 text-start">
+              <div class="icon icon-shape bg-white shadow text-center border-radius-2xl">
+                <i class="ni ni-folder-17 text-dark text-gradient text-lg opacity-10" aria-hidden="true"></i>
+              </div>
+              <h5 class="text-white font-weight-bolder mb-0 mt-3" id="total-files">0</h5>
+              <span class="text-white text-sm">Data Files</span>
+            </div>
+            <div class="col-4">
+              <div class="dropstart text-end mb-6">
+                <a href="javascript:;" class="cursor-pointer" id="dropdownFiles" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="fa fa-ellipsis-h text-white"></i>
+                </a>
+                <ul class="dropdown-menu px-2 py-3" aria-labelledby="dropdownFiles">
+                  <li><a class="dropdown-item border-radius-md" href="javascript:;">Xem chi tiết</a></li>
+                  <li><a class="dropdown-item border-radius-md" href="javascript:;">Cập nhật</a></li>
+                </ul>
+              </div>
+              <p class="text-white text-sm text-end font-weight-bolder mt-auto mb-0" id="file-trend">+0%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Charts Section - Đưa lên đầu -->
+  <div class="row mb-4">
+    <div class="col-lg-6 col-12 mb-4">
+      <div class="card">
+        <div class="card-header pb-0">
+          <h6>🔍 POC Categories</h6>
+          <p class="text-sm text-muted mb-0">Phân loại POC theo công nghệ</p>
+        </div>
+        <div class="card-body">
+          <div class="chart">
+            <canvas id="poc-pie-chart" class="chart-canvas" height="250"></canvas>
+          </div>
+          <div class="row mt-3">
+            <div class="col-6 text-center">
+              <h4 class="text-primary" id="total-cves">0</h4>
+              <p class="text-sm text-muted mb-0">Tổng số CVE</p>
+            </div>
+            <div class="col-6">
+              <h6 class="text-sm font-weight-bold mb-2">POC Mới Nhất</h6>
+              <div id="recent-pocs" class="text-sm">
+                <!-- Recent POCs will be populated here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6 col-12 mb-4">
+      <div class="card">
+        <div class="card-header pb-0">
+          <h6>🖥️ Shell Status & Types</h6>
+          <p class="text-sm text-muted mb-0">Trạng thái và loại shell</p>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-6">
+              <div class="chart">
+                <canvas id="shell-status-pie-chart" class="chart-canvas" height="200"></canvas>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="chart">
+                <canvas id="shell-type-bar-chart" class="chart-canvas" height="200"></canvas>
+              </div>
+              <div class="mt-3 text-center">
+                <h6 class="text-sm font-weight-bold mb-2">Shell 7 ngày qua</h6>
+                <h4 class="text-primary" id="shell-recent">0</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-lg-6 col-12 mb-4">
+      <div class="card">
+        <div class="card-header pb-0">
+          <h6>🎯 Server Types</h6>
+          <p class="text-sm text-muted mb-0">Phân loại server theo công nghệ</p>
+        </div>
+        <div class="card-body">
+          <div class="chart">
+            <canvas id="server-type-pie-chart" class="chart-canvas" height="250"></canvas>
+          </div>
+          <div class="mt-3 text-center">
+            <h6 class="text-sm font-weight-bold mb-2">Targets mới (7 ngày)</h6>
+            <h4 class="text-success" id="targets-recent">0</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6 col-12 mb-4">
+      <div class="card">
+        <div class="card-header pb-0">
+          <h6>💾 File Types</h6>
+          <p class="text-sm text-muted mb-0">Phân loại file theo loại</p>
+        </div>
+        <div class="card-body">
+          <div class="chart">
+            <canvas id="file-type-pie-chart" class="chart-canvas" height="250"></canvas>
+          </div>
+          <div class="mt-3 text-center">
+            <h6 class="text-sm font-weight-bold mb-2">Tổng dung lượng</h6>
+            <h3 class="text-warning" id="total-size">0 MB</h3>
+            <p class="text-sm text-muted">Tổng cộng</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-lg-6 col-12 mb-4">
+      <div class="card">
+        <div class="card-header pb-0">
+          <h6>📊 File Sizes</h6>
+          <p class="text-sm text-muted mb-0">Dung lượng file theo loại</p>
+        </div>
+        <div class="card-body">
+          <div class="chart">
+            <canvas id="file-size-bar-chart" class="chart-canvas" height="250"></canvas>
+          </div>
+          <div class="mt-3 text-center">
+            <h6 class="text-sm font-weight-bold mb-2">Files mới (7 ngày)</h6>
+            <h4 class="text-info" id="files-recent">0</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6 col-12 mb-4">
+      <div class="card">
+        <div class="card-header pb-0">
+          <h6>🖥️ OS Distribution</h6>
+          <p class="text-sm text-muted mb-0">Phân bố hệ điều hành</p>
+        </div>
+        <div class="card-body">
+          <div class="chart">
+            <canvas id="os-distribution-bar-chart" class="chart-canvas" height="250"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Charts Row -->
+  <div class="row">
+    <div class="col-lg-8 col-12 mb-4">
+      <div class="card">
+        <div class="card-header pb-0">
+          <h6>📈 Hoạt Động Theo Thời Gian (7 ngày qua)</h6>
+          <p class="text-sm text-muted mb-0">Số lượng targets, shells và files theo ngày</p>
+        </div>
+        <div class="card-body">
+          <div class="chart">
+            <canvas id="time-chart" class="chart-canvas" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-12 mb-4">
+      <div class="card">
+        <div class="card-header pb-0">
+          <h6>⚠️ Log Đặc Biệt</h6>
+          <p class="text-sm text-muted mb-0">Các sự kiện quan trọng</p>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush" id="special-logs">
+            <!-- Special logs will be populated here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Top Targets Table -->
+  <div class="row">
+    <div class="col-12 mb-4">
+      <div class="card">
+        <div class="card-header pb-0">
+          <h6>�� Top Targets Có Nhiều Shell Connections</h6>
+          <p class="text-sm text-muted mb-0">Các targets có nhiều kết nối shell nhất</p>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table align-items-center mb-0">
+              <thead>
+                <tr>
+                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Target</th>
+                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Shell Count</th>
+                  <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+                  <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Last Activity</th>
+                </tr>
+              </thead>
+              <tbody id="top-targets-table">
+                <!-- Top targets will be populated here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% include "includes/footer.html" %}
+</div>
+
+{% endblock content %}
+
+{% block extra_js %}
+
+<script src="{{ url_for('static', filename='assets/js/plugins/chartjs.min.js') }}"></script>
+<script>
+// Global variables
+let dashboardData = {};
+let timeChart = null;
+let pocPieChart = null;
+let shellStatusPieChart = null;
+let shellTypeBarChart = null;
+let serverTypePieChart = null;
+let osDistributionBarChart = null;
+let fileTypePieChart = null;
+let fileSizeBarChart = null;
+
+// Initialize dashboard
+document.addEventListener("DOMContentLoaded", function () {
+    loadDashboardData();
+    setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
+    
+    // Add collapse/expand functionality
+    initializeCollapseButtons();
+});
+
+// Initialize collapse buttons
+function initializeCollapseButtons() {
+    // Add collapse buttons to all chart cards
+    const chartCards = document.querySelectorAll('.card');
+    
+    chartCards.forEach((card, index) => {
+        const header = card.querySelector('.card-header');
+        if (header && !header.querySelector('.collapse-btn')) {
+            // Create collapse button
+            const collapseBtn = document.createElement('button');
+            collapseBtn.className = 'btn btn-sm btn-outline-primary collapse-btn';
+            collapseBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            collapseBtn.style.position = 'absolute';
+            collapseBtn.style.right = '1rem';
+            collapseBtn.style.top = '50%';
+            collapseBtn.style.transform = 'translateY(-50%)';
+            
+            // Make header relative for button positioning
+            header.style.position = 'relative';
+            
+            // Add click event
+            collapseBtn.addEventListener('click', function() {
+                const cardBody = card.querySelector('.card-body');
+                const icon = this.querySelector('i');
+                
+                if (cardBody.style.display === 'none') {
+                    cardBody.style.display = 'block';
+                    icon.className = 'fas fa-chevron-up';
+                    this.classList.remove('btn-outline-secondary');
+                    this.classList.add('btn-outline-primary');
+                } else {
+                    cardBody.style.display = 'none';
+                    icon.className = 'fas fa-chevron-down';
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-outline-secondary');
+                }
+            });
+            
+            header.appendChild(collapseBtn);
+        }
+    });
+}
+
+// Load dashboard data
+function loadDashboardData() {
+    fetch('/dashboard_stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                dashboardData = data;
+                updateDashboardUI();
+                updateCharts();
+            } else {
+                console.error('Error loading dashboard data:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching dashboard data:', error);
+        });
+}
+
+// Update dashboard UI
+function updateDashboardUI() {
+    // Update quick stats
+    document.getElementById('total-pocs').textContent = dashboardData.poc_statistics?.total_pocs || 0;
+    document.getElementById('total-targets').textContent = dashboardData.target_statistics?.total_targets || 0;
+    document.getElementById('total-shells').textContent = dashboardData.shell_statistics?.total_connections || 0;
+    document.getElementById('total-files').textContent = dashboardData.data_statistics?.total_files || 0;
+
+    // Update POC categories
+    updatePOCCategories();
+    
+    // Update shell statistics
+    updateShellStatistics();
+    
+    // Update target statistics
+    updateTargetStatistics();
+    
+    // Update data statistics
+    updateDataStatistics();
+    
+    // Update special logs
+    updateSpecialLogs();
+    
+    // Update top targets table
+    updateTopTargetsTable();
+}
+
+// Update POC categories
+function updatePOCCategories() {
+    const categories = dashboardData.poc_statistics?.categories || {};
+    
+    // Update total CVEs
+    document.getElementById('total-cves').textContent = dashboardData.poc_statistics?.cve_count || 0;
+    
+    // Update recent POCs
+    const recentPOCs = dashboardData.poc_statistics?.recent_pocs || [];
+    const recentPOCsDiv = document.getElementById('recent-pocs');
+    recentPOCsDiv.innerHTML = recentPOCs.slice(0, 3).map(poc => 
+        `<div class="text-sm text-muted mb-1">• ${poc.name.substring(0, 30)}...</div>`
+    ).join('');
+}
+
+// Update shell statistics
+function updateShellStatistics() {
+    const shellStats = dashboardData.shell_statistics || {};
+    document.getElementById('shell-recent').textContent = shellStats.recent_shells_7days || 0;
+}
+
+// Update target statistics
+function updateTargetStatistics() {
+    const targetStats = dashboardData.target_statistics || {};
+    document.getElementById('targets-recent').textContent = targetStats.recent_targets_7days || 0;
+}
+
+// Update data statistics
+function updateDataStatistics() {
+    const dataStats = dashboardData.data_statistics || {};
+    document.getElementById('total-size').textContent = `${dataStats.total_size_mb || 0} MB`;
+    document.getElementById('files-recent').textContent = dataStats.recent_files_7days || 0;
+}
+
+// Update special logs
+function updateSpecialLogs() {
+    const specialLogs = dashboardData.special_logs || [];
+    const logsDiv = document.getElementById('special-logs');
+    
+    logsDiv.innerHTML = specialLogs.map(log => {
+        const logClass = log.type === 'error' ? 'text-danger' : 
+                        log.type === 'warning' ? 'text-warning' : 'text-info';
+        const icon = log.type === 'error' ? '⚠️' : 
+                    log.type === 'warning' ? '⚡' : 'ℹ️';
+        
+        return `<div class="list-group-item border-0 d-flex align-items-center px-3 py-2">
+            <div class="me-3">
+                <span class="text-lg">${icon}</span>
+            </div>
+            <div class="flex-grow-1">
+                <h6 class="text-sm font-weight-bold mb-0 ${logClass}">${log.message}</h6>
+                <p class="text-xs text-muted mb-0">${log.details}</p>
+                <small class="text-xs text-muted">${log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}</small>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Update top targets table
+function updateTopTargetsTable() {
+    const topTargets = dashboardData.shell_statistics?.top_targets || [];
+    const tableBody = document.getElementById('top-targets-table');
+    
+    tableBody.innerHTML = topTargets.map(target => 
+        `<tr>
+            <td>
+                <div class="d-flex px-2 py-1">
+                    <div class="d-flex flex-column justify-content-center">
+                        <h6 class="mb-0 text-sm">${target.hostname || 'Unknown'}</h6>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <span class="text-xs font-weight-bold">${target.count}</span>
+            </td>
+            <td class="align-middle text-center text-sm">
+                <span class="badge badge-sm bg-gradient-success">Active</span>
+            </td>
+            <td class="align-middle text-center">
+                <span class="text-xs text-muted">Recent</span>
+            </td>
+        </tr>`
+    ).join('');
+}
+
+// Update charts
+function updateCharts() {
+    updateTimeChart();
+    updatePOCPieChart();
+    updateShellStatusPieChart();
+    updateShellTypeBarChart();
+    updateServerTypePieChart();
+    updateOSDistributionBarChart();
+    updateFileTypePieChart();
+    updateFileSizeBarChart();
+}
+
+// Update POC Pie Chart
+function updatePOCPieChart() {
+    const categories = dashboardData.poc_statistics?.categories || {};
+    const labels = Object.keys(categories);
+    const data = Object.values(categories);
+    
+    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+    
+    if (pocPieChart) {
+        pocPieChart.destroy();
+    }
+    
+    const ctx = document.getElementById('poc-pie-chart').getContext('2d');
+    pocPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update Shell Status Pie Chart
+function updateShellStatusPieChart() {
+    const statusDist = dashboardData.shell_statistics?.status_distribution || {};
+    const labels = Object.keys(statusDist);
+    const data = Object.values(statusDist);
+    
+    const colors = ['#4BC0C0', '#36A2EB', '#FFCE56', '#FF6384', '#9966FF'];
+    
+    if (shellStatusPieChart) {
+        shellStatusPieChart.destroy();
+    }
+    
+    const ctx = document.getElementById('shell-status-pie-chart').getContext('2d');
+    shellStatusPieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update Shell Type Bar Chart
+function updateShellTypeBarChart() {
+    const typeDist = dashboardData.shell_statistics?.type_distribution || {};
+    const labels = Object.keys(typeDist);
+    const data = Object.values(typeDist);
+    
+    if (shellTypeBarChart) {
+        shellTypeBarChart.destroy();
+    }
+    
+    const ctx = document.getElementById('shell-type-bar-chart').getContext('2d');
+    shellTypeBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Shell Count',
+                data: data,
+                backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        display: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update Server Type Pie Chart
+function updateServerTypePieChart() {
+    const serverTypes = dashboardData.target_statistics?.server_type_distribution || {};
+    const labels = Object.keys(serverTypes);
+    const data = Object.values(serverTypes);
+    
+    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+    
+    if (serverTypePieChart) {
+        serverTypePieChart.destroy();
+    }
+    
+    const ctx = document.getElementById('server-type-pie-chart').getContext('2d');
+    serverTypePieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update OS Distribution Bar Chart
+function updateOSDistributionBarChart() {
+    const osDist = dashboardData.target_statistics?.os_distribution || {};
+    const labels = Object.keys(osDist);
+    const data = Object.values(osDist);
+    
+    if (osDistributionBarChart) {
+        osDistributionBarChart.destroy();
+    }
+    
+    const ctx = document.getElementById('os-distribution-bar-chart').getContext('2d');
+    osDistributionBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'OS Count',
+                data: data,
+                backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update File Type Pie Chart
+function updateFileTypePieChart() {
+    const fileTypes = dashboardData.data_statistics?.file_type_distribution || {};
+    const labels = Object.keys(fileTypes);
+    const data = Object.values(fileTypes);
+    
+    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+    
+    if (fileTypePieChart) {
+        fileTypePieChart.destroy();
+    }
+    
+    const ctx = document.getElementById('file-type-pie-chart').getContext('2d');
+    fileTypePieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update File Size Bar Chart
+function updateFileSizeBarChart() {
+    const sizeByType = dashboardData.data_statistics?.size_by_type || {};
+    const labels = Object.keys(sizeByType);
+    const data = Object.values(sizeByType).map(size => Math.round(size / (1024 * 1024))); // Convert to MB
+    
+    if (fileSizeBarChart) {
+        fileSizeBarChart.destroy();
+    }
+    
+    const ctx = document.getElementById('file-size-bar-chart').getContext('2d');
+    fileSizeBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Size (MB)',
+                data: data,
+                backgroundColor: 'rgba(255, 159, 64, 0.8)',
+                borderColor: 'rgba(255, 159, 64, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        display: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update time-based chart
+function updateTimeChart() {
+    const timeStats = dashboardData.time_statistics || {};
+    const targetsData = timeStats.targets_by_day || [];
+    const shellsData = timeStats.shells_by_day || [];
+    const filesData = timeStats.files_by_day || [];
+    
+    // Prepare labels (last 7 days)
+    const labels = [];
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' }));
+    }
+    
+    // Prepare datasets
+    const targetsDataset = labels.map(label => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - labels.indexOf(label)));
+        const dateStr = date.toISOString().split('T')[0];
+        const match = targetsData.find(item => item.date === dateStr);
+        return match ? match.count : 0;
+    });
+    
+    const shellsDataset = labels.map(label => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - labels.indexOf(label)));
+        const dateStr = date.toISOString().split('T')[0];
+        const match = shellsData.find(item => item.date === dateStr);
+        return match ? match.count : 0;
+    });
+    
+    const filesDataset = labels.map(label => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - labels.indexOf(label)));
+        const dateStr = date.toISOString().split('T')[0];
+        const match = filesData.find(item => item.date === dateStr);
+        return match ? match.count : 0;
+    });
+    
+    // Destroy existing chart if it exists
+    if (timeChart) {
+        timeChart.destroy();
+    }
+    
+    // Create new chart
+    const ctx = document.getElementById('time-chart').getContext('2d');
+    timeChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Targets',
+                data: targetsDataset,
+                borderColor: '#cb0c9f',
+                backgroundColor: 'rgba(203, 12, 159, 0.2)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Shell Connections',
+                data: shellsDataset,
+                borderColor: '#3A416F',
+                backgroundColor: 'rgba(58, 65, 111, 0.2)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Data Files',
+                data: filesDataset,
+                borderColor: '#fb6340',
+                backgroundColor: 'rgba(251, 99, 64, 0.2)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        drawBorder: false,
+                        display: true,
+                        drawOnChartArea: true,
+                        drawTicks: false,
+                        borderDash: [5, 5]
+                    }
+                },
+                x: {
+                    grid: {
+                        drawBorder: false,
+                        display: false,
+                        drawOnChartArea: false,
+                        drawTicks: false
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+
+{% endblock extra_js %}

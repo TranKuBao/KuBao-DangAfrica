@@ -374,6 +374,7 @@
               document.getElementById('sql_username_tab').value = '';
               document.getElementById('sql_password_tab').value = '';
               document.getElementById('sql_host_tab').value = 'localhost';
+              document.getElementById('sql_port_tab').value = '3306';
               document.getElementById('sql_dbms_tab').value = 'mysql';
               document.getElementById('sql_database_tab').value = '';
               document.getElementById('sql_query_tab').value = '';
@@ -383,12 +384,13 @@
               const username = document.getElementById('sql_username_tab').value.trim();
               const password = document.getElementById('sql_password_tab').value.trim();
               const host = document.getElementById('sql_host_tab').value.trim();
+              const port = document.getElementById('sql_port_tab').value.trim();
               const dbms = document.getElementById('sql_dbms_tab').value.trim();
               const database = document.getElementById('sql_database_tab').value.trim();
               const query = document.getElementById('sql_query_tab').value.trim();
               
               // Validation
-              if (!username || !password || !host || !dbms || !database || !query) {
+              if (!username || !password || !host || !dbms || !query) {
                 alert('Please fill in all required fields (marked with *)');
                 return;
               }
