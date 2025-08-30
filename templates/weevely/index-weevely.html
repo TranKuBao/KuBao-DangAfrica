@@ -588,6 +588,29 @@
         <div class="card-body" id="weevely-terminal-container" style="display: none;">
           <!-- Include the complete weevely module terminal -->
           {% include 'weevely/partial-weevely-module-terminal.html' %}
+          <div class="mt-3">
+            <button class="btn btn-outline-primary btn-sm" onclick="showSqlConsoleModal()">
+              <i class="fas fa-database"></i> Open SQL Console
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="testSqlModal()">
+              <i class="fas fa-bug"></i> Test SQL Modal
+            </button>
+          </div>
+          
+          <script>
+          function testSqlModal() {
+            console.log('=== SQL Modal Debug ===');
+            console.log('1. Checking if function exists:', typeof showSqlConsoleModal);
+            console.log('2. Checking modal element:', document.getElementById('sqlConsoleModal'));
+            console.log('3. Checking bootstrap:', typeof bootstrap);
+            
+            if (typeof showSqlConsoleModal === 'function') {
+              showSqlConsoleModal();
+            } else {
+              alert('showSqlConsoleModal function not found!');
+            }
+          }
+          </script>
         </div>
       </div>
     </div>

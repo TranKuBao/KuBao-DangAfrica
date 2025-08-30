@@ -841,6 +841,68 @@ function executeWeevelyModule(moduleCommand, params = {}) {
     }
 }
 
+// SQL Console Modal Functions
+function showSqlConsoleModal() {
+    console.log('showSqlConsoleModal called');
+    const modalElement = document.getElementById('sqlConsoleModal');
+    console.log('Modal element found:', modalElement);
+    
+    if (!modalElement) {
+        alert('SQL Console modal not found! Please ensure the modal HTML is loaded.');
+        return;
+    }
+    
+    try {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        console.log('SQL Console modal shown successfully');
+    } catch (error) {
+        console.error('Error showing modal:', error);
+        alert('Error opening SQL Console modal: ' + error.message);
+    }
+}
+
+function setSqlQuery(query) {
+    const textarea = document.getElementById('sql_query');
+    if (textarea) textarea.value = query;
+}
+
+function executeSqlConsole() {
+    const user = (document.getElementById('sql_user')?.value || '').trim();
+    const passwd = (document.getElementById('sql_passwd')?.value || '').trim();
+    const host = (document.getElementById('sql_host')?.value || '').trim();
+    const dbms = (document.getElementById('sql_dbms')?.value || 'mysql').trim();
+    const database = (document.getElementById('sql_database')?.value || '').trim();
+    const query = (document.getElementById('sql_query')?.value || '').trim();
+
+    console.log('SQL Console - Collected params:', {user, passwd: passwd ? '***' : '', host, dbms, database, query});
+
+    if (!user || !host || !dbms || !database || !query) {
+        alert('Please fill in user, host, DBMS, database and query');
+        return;
+    }
+
+    // Escape single quotes properly for shell
+    const escapedQuery = query.replace(/'/g, "'\"'\"'");
+    const command = `:sql_console -user ${user} -passwd ${passwd} -host ${host} -dbms ${dbms} -database ${database} -query '${escapedQuery}'`;
+    
+    console.log('SQL Console - Generated command:', command);
+
+    // Check if executeWeevelyModule function exists
+    if (typeof executeWeevelyModule === 'function') {
+        executeWeevelyModule(command);
+    } else if (typeof executeModuleWithDisplay === 'function') {
+        executeModuleWithDisplay(command);
+    } else {
+        alert('SQL execution function not available. Please ensure the terminal is loaded and a connection is established.');
+        return;
+    }
+
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('sqlConsoleModal'));
+    if (modal) modal.hide();
+}
+
 // Cron Job Management Functions
 function showCronJobModal() {
     const modal = new bootstrap.Modal(document.getElementById('cronJobModal'));

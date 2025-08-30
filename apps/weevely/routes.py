@@ -740,6 +740,7 @@ def weevely():
     """Main weevely management page"""
     return render_template('weevely/index-weevely.html', segment='index_weevely')
 
+#Lấy các connect weevely từ CSDL để hiển thị dữ liệu
 @blueprint.route('/api/weevely', methods=['GET'])
 def get_weevely_connections():
     """Get and search weevely connections list"""
@@ -830,6 +831,7 @@ def create_weevely_payload():
         print(f"[##] Error in create_weevely_payload: {str(e)}")
         return jsonify({'message': str(e)}), 500
 
+#Thêm connect weevely mới vào CSDL
 @blueprint.route('/api/weevely/add-weevely', methods=['POST'])
 def add_weevely():
     """Add new weevely connection"""

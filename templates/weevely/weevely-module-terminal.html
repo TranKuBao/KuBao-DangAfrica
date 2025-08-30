@@ -74,6 +74,11 @@
                     </a>
                   </li>
                   <li class="nav-item">
+                    <a class="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#sql-console" role="tab">
+                      <i class="fas fa-database"></i> SQL Console
+                    </a>
+                  </li>
+                  <li class="nav-item">
                     <a class="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#network-ops" role="tab">
                       <i class="fas fa-network-wired"></i> Network
                     </a>
@@ -264,6 +269,148 @@
                 </div>
               </div>
             </div>
+
+            <!-- SQL Console Tab -->
+            <div class="tab-pane fade" id="sql-console" role="tabpanel">
+              <div class="row">
+                <div class="col-12">
+                  <div class="card border">
+                    <div class="card-header pb-0">
+                      <h6><i class="fas fa-database text-primary"></i> SQL Console</h6>
+                      <p class="text-sm text-muted mb-0">Execute SQL queries via Weevely <code>:sql_console</code> module</p>
+                    </div>
+                    <div class="card-body">
+                      <!-- SQL Connection Parameters -->
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="form-group mb-3">
+                            <label class="form-label text-sm font-weight-bold">Username *</label>
+                            <input type="text" id="sql_username_tab" class="form-control" placeholder="wp_user" value="wp_user">
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group mb-3">
+                            <label class="form-label text-sm font-weight-bold">Password *</label>
+                            <input type="password" id="sql_password_tab" class="form-control" placeholder="password" value="password">
+                          </div>
+                        </div
+                      </div>
+
+                      <div class="row">
+                        <div class="col-md-4">
+                          <div class="form-group mb-3">
+                            <label class="form-label text-sm font-weight-bold">Host *</label>
+                            <input type="text" id="sql_host_tab" class="form-control" placeholder="localhost" value="localhost">
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <div class="form-group mb-3">
+                            <label class="form-label text-sm font-weight-bold">PORT *</label>
+                            <input type="text" id="sql_port_tab" class="form-control" placeholder="3306" value="3306">
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="row">
+                        <div class="col-md-4">
+                          <div class="form-group mb-3">
+                            <label class="form-label text-sm font-weight-bold">DBMS *</label>
+                            <select id="sql_dbms_tab" class="form-control">
+                              <option value="mysql" selected>MySQL</option>
+                              <option value="pgsql">PostgreSQL</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <div class="form-group mb-3">
+                            <label class="form-label text-sm font-weight-bold">Database *</label>
+                            <input type="text" id="sql_database_tab" class="form-control" placeholder="wordpress" value="wordpress">
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- SQL Query -->
+                      <div class="form-group mb-3">
+                        <label class="form-label text-sm font-weight-bold">SQL Query *</label>
+                        <textarea id="sql_query_tab" class="form-control" rows="4" placeholder="SHOW TABLES;">SHOW TABLES;</textarea>
+                        <small class="text-muted">Enter your SQL query here</small>
+                      </div>
+                      
+                      <!-- Quick Query Buttons -->
+                      <div class="mb-3">
+                        <label class="form-label text-sm font-weight-bold">Quick Queries:</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                          <button class="btn btn-sm btn-outline-secondary" onclick="setSqlQueryTab('SHOW TABLES;')">SHOW TABLES</button>
+                          <button class="btn btn-sm btn-outline-secondary" onclick="setSqlQueryTab('SELECT NOW();')">SELECT NOW()</button>
+                          <button class="btn btn-sm btn-outline-secondary" onclick="setSqlQueryTab('SHOW DATABASES;')">SHOW DATABASES</button>
+                          <button class="btn btn-sm btn-outline-secondary" onclick="setSqlQueryTab('SELECT USER();')">SELECT USER()</button>
+                          <button class="btn btn-sm btn-outline-secondary" onclick="setSqlQueryTab('SELECT VERSION();')">VERSION</button>
+                        </div>
+                      </div>
+                      
+                      <!-- Execute Button -->
+                      <div class="text-center">
+                        <button class="btn btn-primary btn-lg" onclick="executeSqlConsoleTab()">
+                          <i class="fas fa-play"></i> Run SQL Query
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="clearSqlForm()">
+                          <i class="fas fa-eraser"></i> Clear Form
+                        </button>
+                      </div>
+                    </div>  
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <script>
+            // SQL Console Tab Functions
+            function setSqlQueryTab(query) {
+              document.getElementById('sql_query_tab').value = query;
+            }
+            
+            function clearSqlForm() {
+              document.getElementById('sql_username_tab').value = '';
+              document.getElementById('sql_password_tab').value = '';
+              document.getElementById('sql_host_tab').value = 'localhost';
+              document.getElementById('sql_dbms_tab').value = 'mysql';
+              document.getElementById('sql_database_tab').value = '';
+              document.getElementById('sql_query_tab').value = '';
+            }
+            
+            function executeSqlConsoleTab() {
+              const username = document.getElementById('sql_username_tab').value.trim();
+              const password = document.getElementById('sql_password_tab').value.trim();
+              const host = document.getElementById('sql_host_tab').value.trim();
+              const dbms = document.getElementById('sql_dbms_tab').value.trim();
+              const database = document.getElementById('sql_database_tab').value.trim();
+              const query = document.getElementById('sql_query_tab').value.trim();
+              
+              // Validation
+              if (!username || !password || !host || !dbms || !database || !query) {
+                alert('Please fill in all required fields (marked with *)');
+                return;
+              }
+              
+              // Escape query for shell
+              const escapedQuery = query.replace(/'/g, "'\"'\"'");
+              const command = `:sql_console -user ${username} -passwd ${password} -host ${host} -dbms ${dbms} -database ${database} -query '${escapedQuery}'`;
+              
+              console.log('SQL Console Command:', command);
+              appendToTerminal(`Executing SQL: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`, 'command');
+              
+              // Execute command
+              if (typeof executeModuleWithDisplay === 'function') {
+                executeModuleWithDisplay(command);
+              } else if (typeof executeWeevelyModule === 'function') {
+                executeWeevelyModule(command);
+              } else {
+                alert('Execution function not available. Please ensure weevely connection is loaded.');
+                appendToTerminal('Error: No execution function available', 'error');
+              }
+            }
+            </script>
 
             <!-- Network Operations Tab -->
             <div class="tab-pane fade" id="network-ops" role="tabpanel">
