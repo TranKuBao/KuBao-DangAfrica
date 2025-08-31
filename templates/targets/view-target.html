@@ -374,83 +374,64 @@
       <div class="card h-100">
         <div class="card-header pb-0 p-3">
           <div class="row">
-            <div class="col-6 d-flex align-items-sao ddos justify-content-center">
-              <h6 class="mb-0">Invoices</h6>
+            <div class="col-6 d-flex align-items-center justify-content-center">
+              <h6 class="mb-0">Files Collected</h6>
             </div>
             <div class="col-6 d-flex justify-content-center align-items-center" style="margin-top: -5px !important;">
-              <button class="btn btn-sm mb-0 tools-btn tools-btn-orange">File Collect</button>
+              <button class="btn btn-sm mb-0 tools-btn tools-btn-orange" onclick="refreshFiles()">
+                <i class="fas fa-sync-alt me-1"></i> Refresh
+              </button>
             </div>
           </div>
         </div>
         <div class="card-body p-3 pb-0">
           <!-- Các file thu thập được sẽ được ghi ở đây-->
-          <ul class="list-group">
-            <li
-              class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 bg-gray-100 border-radius-lg"
-            >
-              <div
-                class="d-flex flex-column"
-                style="margin-left: 10px !important"
+          {% if target_files and target_files|length > 0 %}
+            <ul class="list-group">
+              {% for file in target_files %}
+              <li
+                class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 bg-gray-100 border-radius-lg"
               >
-                <h6 class="mb-1 text-dark font-weight-bold text-sm">
-                  March, 01, 2020
-                </h6>
-                <span class="text-xs">#MS-415646</span>
+                <div
+                  class="d-flex flex-column"
+                  style="margin-left: 10px !important"
+                >
+                  <h6 class="mb-1 text-dark font-weight-bold text-sm" title="{{ file.file_name }}">
+                    {{ file.file_name[:25] }}{% if file.file_name|length > 25 %}...{% endif %}
+                  </h6>
+                  <span class="text-xs">
+                    <i class="fas fa-file-{{ 'image' if file.file_type in ['jpg', 'jpeg', 'png', 'gif'] else 'code' if file.file_type in ['php', 'html', 'js', 'css'] else 'file' }} me-1"></i>
+                    {{ file.file_type|upper }} • {{ (file.file_size / 1024)|round(1) }} KB
+                  </span>
+                  <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    {{ file.file_created_at.strftime('%d/%m/%Y %H:%M') if file.file_created_at else 'N/A' }}
+                  </small>
+                </div>
+                <div
+                  class="d-flex align-items-center text-sm justify-content-center"
+                >
+                  <div class="d-flex flex-column align-items-end">
+                    <button class="btn btn-link text-dark text-sm mb-0 px-0 ms-4" 
+                            onclick="downloadFile('{{ file.file_id }}', '{{ file.file_name }}')"
+                            title="Download {{ file.file_name }}">
+                      <i class="fas fa-download text-lg me-1"></i> Download
+                    </button>
+                    <small class="text-muted text-xs">{{ file.source_path[:20] }}{% if file.source_path|length > 20 %}...{% endif %}</small>
+                  </div>
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="text-center py-4">
+              <div class="icon icon-shape icon-lg bg-gradient-warning shadow text-center border-radius-xl mt-n4 mx-auto">
+                <i class="fas fa-file-alt"></i>
               </div>
-              <div
-                class="d-flex align-items-center text-sm justify-content-center"
-              >
-                $180
-                <button class="btn btn-link text-dark text-sm mb-0 px-0 ms-4">
-                  <i class="fas fa-file-pdf text-lg me-1"></i> PDF
-                </button>
-              </div>
-            </li>
-            <li
-              class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 bg-gray-100 border-radius-lg"
-            >
-              <div
-                class="d-flex flex-column"
-                style="margin-left: 10px !important"
-              >
-                <h6 class="mb-1 text-dark font-weight-bold text-sm">
-                  March, 01, 2020
-                </h6>
-                <span class="text-xs">#MS-415646</span>
-              </div>
-              <div
-                class="d-flex align-items-center text-sm"
-                style="margin-right: -15px !important"
-              >
-                $180
-                <button class="btn btn-link text-dark text-sm mb-0 px-0 ms-4">
-                  <i class="fas fa-file-pdf text-lg me-1"></i> PDF
-                </button>
-              </div>
-            </li>
-            <li
-              class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 bg-gray-100 border-radius-lg"
-            >
-              <div
-                class="d-flex flex-column"
-                style="margin-left: 10px !important"
-              >
-                <h6 class="mb-1 text-dark font-weight-bold text-sm">
-                  March, 01, 2020
-                </h6>
-                <span class="text-xs">#MS-415646</span>
-              </div>
-              <div
-                class="d-flex align-items-center text-sm"
-                style="margin-right: -15px !important"
-              >
-                $180
-                <button class="btn btn-link text-dark text-sm mb-0 px-0 ms-4">
-                  <i class="fas fa-file-pdf text-lg me-1"></i> PDF
-                </button>
-              </div>
-            </li>
-          </ul>
+              <h6 class="mt-3">Chưa có file nào</h6>
+              <p class="text-sm">Chưa có file nào được thu thập từ target này. Hãy sử dụng các công cụ recon và exploit để thu thập dữ liệu.</p>
+            </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -687,6 +668,77 @@
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('edittargetModal'));
     modal.show();
+  }
+
+  // Hàm download file
+  function downloadFile(fileId, fileName) {
+    console.log(`Downloading file: ${fileName} (ID: ${fileId})`);
+    
+    // Tạo URL download
+    const downloadUrl = `/api/download_file/${fileId}`;
+    
+    // Tạo link download ẩn
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = fileName;
+    link.style.display = 'none';
+    
+    // Thêm vào DOM và click
+    document.body.appendChild(link);
+    link.click();
+    
+    // Dọn dẹp
+    document.body.removeChild(link);
+    
+    // Hiển thị thông báo
+    showNotification('success', `Đang tải xuống file: ${fileName}`);
+  }
+
+  // Hàm hiển thị thông báo
+  function showNotification(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
+    
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+      <i class="${icon} me-2"></i>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Tự động ẩn sau 3 giây
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 3000);
+  }
+
+  // Hàm refresh danh sách files
+  function refreshFiles() {
+    console.log('Refreshing files...');
+    
+    // Hiển thị loading
+    const fileContainer = document.querySelector('.card-body .list-group');
+    if (fileContainer) {
+      fileContainer.innerHTML = `
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Đang tải danh sách files...</p>
+        </div>
+      `;
+    }
+    
+    // Reload trang để lấy dữ liệu mới
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   }
 
   

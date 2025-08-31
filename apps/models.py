@@ -337,6 +337,8 @@ class Reports(db.Model):
     update_wpscan = db.Column(db.String(255), nullable=True)
     update_pocs = db.Column(db.String(255), nullable=True)
     
+    # Relationship với Targets (sử dụng backref đã có sẵn từ model Targets)
+    # server = relationship("Targets", backref="reports")  # Đã có sẵn từ model Targets
 
     def __init__(self, server_id, nmap=None, dirsearch=None, wappalyzer=None, wpscan=None, pocs=None, 
                  update_nmap=None, update_dirsearch=None, update_wappalyzer=None, update_wpscan=None, update_pocs=None):

@@ -338,6 +338,13 @@ def view_target():
     # Lấy danh sách shells có liên quan đến target hiện tại
     shells = ShellConnection.query.filter_by(target_id=idtarget).all()
     
+    # Lấy danh sách files có liên quan đến target thông qua shell connections
+    target_files = []
+    if shells:
+        connection_ids = [shell.connection_id for shell in shells]
+        from apps.models import DataFile
+        target_files = DataFile.query.filter(DataFile.connection_id.in_(connection_ids)).order_by(DataFile.file_created_at.desc()).limit(20).all()
+    
     list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
     return render_template(
                             'targets/view-target.html', 
@@ -348,7 +355,8 @@ def view_target():
                             exploitable=exploitable,
                             unexploitable=unexploitable,
                             other=other,
-                            shells=shells
+                            shells=shells,
+                            target_files=target_files
                         )
 
 
@@ -365,4 +373,39 @@ def run_cmd():
     except Exception as e:
         output = str(e)
     return jsonify({"output": output})
+
+
+@blueprint.route('/api/download_file/<int:file_id>', methods=['GET'])
+def download_file(file_id):
+    """Download file từ DataFile"""
+    try:
+        from apps.models import DataFile
+        from flask import send_file, abort
+        
+        # Lấy thông tin file
+        data_file = DataFile.get_by_id(file_id)
+        if not data_file:
+            abort(404, description="File not found")
+        
+        # Kiểm tra xem file có tồn tại trên disk không
+        if not os.path.exists(data_file.local_path):
+            abort(404, description="File not found on disk")
+        
+        # Kiểm tra xem file có liên quan đến target hiện tại không
+        # (có thể thêm logic kiểm tra quyền truy cập ở đây)
+        
+        # Gửi file
+        return send_file(
+            data_file.local_path,
+            as_attachment=True,
+            download_name=data_file.file_name,
+            mimetype='application/octet-stream'
+        )
+        
+    except Exception as e:
+        print(f"Error downloading file {file_id}: {e}")
+        abort(500, description="Internal server error")
+
+
+#================================================================================================
 

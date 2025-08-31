@@ -18,7 +18,7 @@ from apps import db
 poc_core = PocsuiteInterpreter()
 
 @blueprint.route('/')
-def index():
+def dashboard_stats():
     """Render dashboard page"""
     return render_template('pages/dashboard.html', segment='dashboard_stats')
 
@@ -59,7 +59,7 @@ def charts():
         })
 
 @blueprint.route('/dashboard_stats', methods=['GET'])
-def dashboard_stats():
+def dashboard_sumary():
     """Endpoint chính cho dashboard thống kê chi tiết"""
     try:
         # 1. Thống kê POC theo loại
@@ -240,11 +240,14 @@ def get_target_statistics():
 def get_data_statistics():
     """Thống kê Data Files"""
     try:
+        print("=== DEBUG: Starting get_data_statistics ===")
+        
         # Thống kê theo file type
         file_type_stats = db.session.query(
             DataFile.file_type,
             func.count(DataFile.file_id)
         ).group_by(DataFile.file_type).all()
+        print(f"File type stats: {file_type_stats}")
         
         # Thống kê theo connection
         connection_stats = db.session.query(
@@ -253,15 +256,39 @@ def get_data_statistics():
         ).group_by(DataFile.connection_id).order_by(
             desc(func.count(DataFile.file_id))
         ).limit(5).all()
+        print(f"Connection stats: {connection_stats}")
         
-        # Tổng dung lượng file
-        total_size = db.session.query(func.sum(DataFile.file_size)).scalar() or 0
+        # Tổng dung lượng file - xử lý NULL values
+        total_size_raw = db.session.query(func.sum(DataFile.file_size)).scalar()
+        print(f"Raw total_size from DB: {total_size_raw} (type: {type(total_size_raw)})")
+        
+        # Kiểm tra nếu có files nhưng file_size bị NULL
+        if total_size_raw is None:
+            print("Warning: total_size is None, checking individual files...")
+            # Lấy tất cả files để kiểm tra
+            all_files = DataFile.query.all()
+            files_with_size = [f.file_size for f in all_files if f.file_size is not None and f.file_size > 0]
+            files_without_size = [f.file_id for f in all_files if f.file_size is None or f.file_size <= 0]
+            
+            print(f"Files with valid size: {len(files_with_size)}")
+            print(f"Files without size: {len(files_without_size)}")
+            
+            if files_without_size:
+                print(f"Warning: Found {len(files_without_size)} files with NULL or invalid file_size")
+                print(f"Files without size: {files_without_size[:5]}")  # Chỉ in 5 file đầu
+            
+            total_size = sum(files_with_size) if files_with_size else 0
+            print(f"Calculated total_size from individual files: {total_size}")
+        else:
+            total_size = total_size_raw
+            print(f"Using total_size from DB: {total_size}")
         
         # Files mới (7 ngày gần đây)
         seven_days_ago = dt.datetime.utcnow() - dt.timedelta(days=7)
         recent_files = DataFile.query.filter(
             DataFile.file_created_at >= seven_days_ago
         ).count()
+        print(f"Recent files (7 days): {recent_files}")
         
         # Top file types theo dung lượng
         size_by_type = db.session.query(
@@ -270,19 +297,71 @@ def get_data_statistics():
         ).group_by(DataFile.file_type).order_by(
             desc(func.sum(DataFile.file_size))
         ).all()
+        print(f"Size by type: {size_by_type}")
         
-        return {
-            'total_files': DataFile.query.count(),
+        # Tổng số files
+        total_files = DataFile.query.count()
+        print(f"Total files count: {total_files}")
+        
+        # Validation dữ liệu
+        if total_size < 0:
+            total_size = 0
+        if total_files < 0:
+            total_files = 0
+        
+        # Tính toán dung lượng với xử lý edge cases
+        total_size_mb = 0
+        total_size_gb = 0
+        average_file_size = 0
+        
+        if total_size > 0:
+            total_size_mb = round(float(total_size) / (1024 * 1024), 2)
+            total_size_gb = round(float(total_size) / (1024 * 1024 * 1024), 2)
+            average_file_size = round(float(total_size) / total_files, 2) if total_files > 0 else 0
+        
+        print(f"Calculated sizes - MB: {total_size_mb}, GB: {total_size_gb}, Avg: {average_file_size}")
+        
+        result = {
+            'total_files': total_files,
             'total_size_bytes': int(total_size),
-            'total_size_mb': round(float(total_size) / (1024 * 1024), 2),
-            'file_type_distribution': {str(file_type): int(count) for file_type, count in file_type_stats},
+            'total_size_mb': total_size_mb,
+            'total_size_gb': total_size_gb,
+            'file_type_distribution': {str(file_type): int(count) for file_type, count in file_type_stats if file_type and count > 0},
             'recent_files_7days': recent_files,
-            'top_connections': [{'connection_id': str(conn_id), 'count': int(count)} for conn_id, count in connection_stats],
-            'size_by_type': {str(file_type): int(size) for file_type, size in size_by_type}
+            'top_connections': [{'connection_id': str(conn_id), 'count': int(count)} for conn_id, count in connection_stats if conn_id and count > 0],
+            'size_by_type': {str(file_type): int(size) for file_type, size in size_by_type if file_type and size and size > 0},
+            'average_file_size': average_file_size,
+            'files_with_valid_size': len([f for f in DataFile.query.all() if f.file_size and f.file_size > 0]),
+            'files_without_size': len([f for f in DataFile.query.all() if not f.file_size or f.file_size <= 0])
         }
+        
+        print(f"Final result: {result}")
+        print("=== END DEBUG ===")
+        
+        if total_size == 0 and total_files > 0:
+            print(f"Warning: {total_files} files found but total size is 0. Check file_size field values.")
+        
+        return result
+        
     except Exception as e:
         print(f"Error in get_data_statistics: {e}")
-        return {}
+        import traceback
+        traceback.print_exc()
+        # Trả về dữ liệu mặc định thay vì dict rỗng
+        return {
+            'total_files': 0,
+            'total_size_bytes': 0,
+            'total_size_mb': 0,
+            'total_size_gb': 0,
+            'file_type_distribution': {},
+            'recent_files_7days': 0,
+            'top_connections': [],
+            'size_by_type': {},
+            'average_file_size': 0,
+            'files_with_valid_size': 0,
+            'files_without_size': 0,
+            'error': str(e)
+        }
 
 def get_time_based_statistics():
     """Thống kê theo thời gian"""

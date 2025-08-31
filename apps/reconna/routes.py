@@ -169,7 +169,28 @@ def save_recon():
 
         report = Reports.query.filter_by(server_id=server_id).first()
         if not report:
-            return jsonify({'status': -1, 'msg': 'No information found server_ID'})
+            # Tự động tạo record Reports nếu chưa có
+            try:
+                report = Reports(
+                    server_id=server_id,
+                    nmap=None,
+                    dirsearch=None,
+                    wappalyzer=None,
+                    wpscan=None,
+                    pocs=None,
+                    update_nmap=None,
+                    update_dirsearch=None,
+                    update_wappalyzer=None,
+                    update_wpscan=None,
+                    update_pocs=None
+                )
+                db.session.add(report)
+                db.session.commit()
+                print(f"Đã tạo record Reports mới cho server_id: {server_id}")
+            except Exception as e:
+                db.session.rollback()
+                print(f"Lỗi tạo record Reports: {e}")
+                return jsonify({'status': -1, 'msg': f'Lỗi tạo record Reports: {e}'})
 
         now_time = dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         update_fields = {}
@@ -183,26 +204,33 @@ def save_recon():
         elif tool == 'wpscan':
             update_fields = {'wpscan': data_scan, 'update_wpscan': now_time}
         elif tool == 'pocs':
-            # Chỉ lưu số lượng POC đã verify, không lưu toàn bộ dữ liệu
-            pocs = []
-            if data_scan:
-                try:
-                    pocs = json.loads(data_scan)
-                except Exception:
-                    pocs = []
+            # Lưu dữ liệu POC scan vào bảng Reports
+            update_fields = {'pocs': data_scan, 'update_pocs': now_time}
             
-            # Chỉ lưu số lượng POC đã verify
-            poc_count = len(pocs)
-            poc_dir = os.path.join(os.path.dirname(__file__), '../../pocsuite3/pocs')
-            total_poc = len([
-                f for f in os.listdir(os.path.abspath(poc_dir))
-                if f.endswith('.py') and not f.startswith('__')
-            ])
-            target = Targets.get_by_id(server_id=server_id)
-            if target:
-                target.exploitation_level = str(poc_count) + "/" + str(total_poc)
-                target.updated_at = dt.datetime.now(dt.timezone.utc)
-                db.session.commit()
+            # Đồng thời cập nhật exploitation_level của target
+            try:
+                pocs = []
+                if data_scan:
+                    try:
+                        pocs = json.loads(data_scan)
+                    except Exception:
+                        pocs = []
+                
+                # Chỉ lưu số lượng POC đã verify
+                poc_count = len(pocs)
+                poc_dir = os.path.join(os.path.dirname(__file__), '../../pocsuite3/pocs')
+                total_poc = len([
+                    f for f in os.listdir(os.path.abspath(poc_dir))
+                    if f.endswith('.py') and not f.startswith('__')
+                ])
+                target = Targets.get_by_id(server_id=server_id)
+                if target:
+                    target.exploitation_level = str(poc_count) + "/" + str(total_poc)
+                    target.updated_at = dt.datetime.utcnow()
+                    db.session.commit()
+            except Exception as e:
+                print(f'Lỗi cập nhật exploitation_level: {e}')
+                # Không rollback vì vẫn muốn lưu dữ liệu scan
 
         try:
             report.update(**update_fields)
@@ -218,6 +246,39 @@ def save_recon():
         print(f'Lỗi ở hàm lưu dữ liệu lưu... {e}')
         return jsonify({'status': -1, 'msg': str(e), 'error': str(e)})
 
+
+@blueprint.route('/api/get_poc_report', methods=['GET'])
+def get_poc_report():
+    """Lấy dữ liệu POC scan đã lưu cho một target cụ thể"""
+    try:
+        server_id = request.args.get('server_id', type=int)
+        if not server_id:
+            return jsonify({'status': -1, 'msg': 'Thiếu server_id'}), 400
+        
+        report = Reports.query.filter_by(server_id=server_id).first()
+        if not report:
+            return jsonify({'status': -1, 'msg': 'Không tìm thấy report cho server này'})
+        
+        poc_data = None
+        if report.pocs:
+            try:
+                poc_data = json.loads(report.pocs)
+            except Exception:
+                poc_data = report.pocs  # Giữ nguyên nếu không parse được JSON
+        
+        return jsonify({
+            'status': 0,
+            'data': {
+                'server_id': server_id,
+                'poc_data': poc_data,
+                'update_pocs': report.update_pocs,
+                'exploitation_level': report.target.exploitation_level if report.target else None
+            }
+        })
+        
+    except Exception as e:
+        print(f'Lỗi lấy POC report: {e}')
+        return jsonify({'status': -1, 'msg': str(e), 'error': str(e)})
 
 
 #================================================================================================

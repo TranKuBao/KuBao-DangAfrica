@@ -290,6 +290,9 @@
           <button type="button" class="btn btn-hacker px-4" onclick="saveVerificationResults()">
             <i class="fas fa-save"></i> Save
           </button>
+          <button type="button" class="btn btn-info px-4" onclick="showSavedPocDataForSelectedTargets()">
+            <i class="fas fa-database"></i> View Saved
+          </button>
           <button type="button" class="btn btn-hacker-danger px-4" data-bs-dismiss="modal">
             <i class="fas fa-times"></i> Close
           </button>
@@ -949,6 +952,106 @@
 
   // Hàm lưu toàn bộ verifiedReports vào DB
   
+
+  // Hàm để hiển thị dữ liệu POC đã lưu
+  async function showSavedPocData(serverId) {
+    try {
+      const response = await fetch(`/api/get_poc_report?server_id=${serverId}`);
+      const data = await response.json();
+      
+      if (data.status === 0 && data.data.poc_data) {
+        let html = '<h6>Dữ liệu POC đã lưu:</h6>';
+        html += '<div class="alert alert-info">';
+        html += `<strong>Cập nhật lần cuối:</strong> ${data.data.update_pocs || 'N/A'}<br>`;
+        html += `<strong>Exploitation Level:</strong> ${data.data.exploitation_level || 'N/A'}<br>`;
+        html += '</div>';
+        
+        html += '<table class="table table-bordered table-sm">';
+        html += '<thead><tr><th>POC</th><th>Target</th><th>Kết quả</th></tr></thead><tbody>';
+        
+        const pocData = Array.isArray(data.data.poc_data) ? data.data.poc_data : [];
+        pocData.forEach(item => {
+          html += `<tr>
+            <td>${item.poc?.name || item.poc?.id || 'N/A'}</td>
+            <td>${item.target || 'N/A'}</td>
+            <td><pre class="small">${JSON.stringify(item.result, null, 2)}</pre></td>
+          </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        
+        // Hiển thị trong modal hoặc div
+        const resultDiv = document.getElementById('verifyResult');
+        if (resultDiv) {
+          resultDiv.innerHTML = html;
+        }
+        
+        showSuccess('Đã tải dữ liệu POC đã lưu!');
+      } else {
+        showError('Không có dữ liệu POC nào được lưu cho target này.');
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải dữ liệu POC:', error);
+      showError('Lỗi khi tải dữ liệu POC đã lưu.');
+    }
+  }
+
+  // Hàm để hiển thị dữ liệu POC đã lưu cho các target đã chọn
+  async function showSavedPocDataForSelectedTargets() {
+    const targetIds = getCheckedTargetIds();
+    if (targetIds.length === 0) {
+      showError('Vui lòng chọn ít nhất một target để xem dữ liệu POC đã lưu.');
+      return;
+    }
+
+    if (targetIds.length === 1) {
+      // Nếu chỉ chọn 1 target, hiển thị trực tiếp
+      await showSavedPocData(targetIds[0]);
+    } else {
+      // Nếu chọn nhiều target, hiển thị danh sách
+      let html = '<h6>Dữ liệu POC đã lưu cho các target đã chọn:</h6>';
+      html += '<div class="row">';
+      
+      for (const serverId of targetIds) {
+        try {
+          const response = await fetch(`/api/get_poc_report?server_id=${serverId}`);
+          const data = await response.json();
+          
+          if (data.status === 0 && data.data.poc_data) {
+            const target = allTargets.find(t => t.server_id.toString() === serverId);
+            const targetName = target ? (target.hostname || target.ip_address) : `Server ${serverId}`;
+            
+            html += `<div class="col-md-6 mb-3">
+              <div class="card">
+                <div class="card-header">
+                  <strong>${targetName}</strong>
+                  <small class="text-muted float-end">${data.data.update_pocs || 'N/A'}</small>
+                </div>
+                <div class="card-body">
+                  <p><strong>Exploitation Level:</strong> ${data.data.exploitation_level || 'N/A'}</p>
+                  <p><strong>Số POC đã verify:</strong> ${Array.isArray(data.data.poc_data) ? data.data.poc_data.length : 0}</p>
+                  <button class="btn btn-sm btn-outline-primary" onclick="showSavedPocData('${serverId}')">
+                    Xem chi tiết
+                  </button>
+                </div>
+              </div>
+            </div>`;
+          }
+        } catch (error) {
+          console.error(`Lỗi khi tải dữ liệu cho server ${serverId}:`, error);
+        }
+      }
+      
+      html += '</div>';
+      
+      const resultDiv = document.getElementById('verifyResult');
+      if (resultDiv) {
+        resultDiv.innerHTML = html;
+      }
+      
+      showSuccess('Đã tải danh sách dữ liệu POC đã lưu!');
+    }
+  }
 
   // Show error message
   function showError(message) {
