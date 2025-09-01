@@ -183,6 +183,164 @@
     --color4: rgba(17, 205, 239, 0.9);
     --color5: rgba(245, 54, 92, 0.9);
   }
+  
+  /* CSS cho phần thống kê file đẹp mắt */
+  .file-stats-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 20px;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+  
+  .stats-header {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 15px;
+  }
+  
+  .stats-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+  }
+  
+  .total-files-badge {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .stats-size-section {
+    text-align: center;
+  }
+  
+  .size-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .size-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #ffd700;
+  }
+  
+  .size-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 5px;
+  }
+  
+  .size-label {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  .file-type-breakdown {
+    margin-top: 20px;
+  }
+  
+  .breakdown-title {
+    color: #fff;
+    font-weight: 600;
+    text-align: center;
+    font-size: 1.1rem;
+  }
+  
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+  }
+  
+  .type-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .type-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  }
+  
+  .type-header {
+    margin-bottom: 10px;
+  }
+  
+  .type-icon {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+    color: #ffd700;
+  }
+  
+  .type-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .type-stats {
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-top: 10px;
+  }
+  
+  .type-count {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 3px;
+  }
+  
+  .type-size {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  /* Màu sắc đặc biệt cho từng loại file */
+  .type-upload {
+    background: linear-gradient(135deg, rgba(46, 213, 115, 0.2) 0%, rgba(46, 213, 115, 0.1) 100%);
+    border-color: rgba(46, 213, 115, 0.3);
+  }
+  
+  .type-download {
+    background: linear-gradient(135deg, rgba(54, 123, 245, 0.2) 0%, rgba(54, 123, 245, 0.1) 100%);
+    border-color: rgba(54, 123, 245, 0.3);
+  }
+  
+  .type-image {
+    background: linear-gradient(135deg, rgba(255, 71, 87, 0.2) 0%, rgba(255, 71, 87, 0.1) 100%);
+    border-color: rgba(255, 71, 87, 0.3);
+  }
+  
+  .type-code {
+    background: linear-gradient(135deg, rgba(255, 165, 2, 0.2) 0%, rgba(255, 165, 2, 0.1) 100%);
+    border-color: rgba(255, 165, 2, 0.3);
+  }
+  
+  .type-file {
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.2) 0%, rgba(108, 92, 231, 0.1) 100%);
+    border-color: rgba(108, 92, 231, 0.3);
+  }
   /*css của thằng terminal hacker*/
 
   #terminal {
@@ -282,8 +440,7 @@
         labels: ["Exploitable", "Unexploitable","Other"],
         datasets: [
           {
-            {% set total = exploitable + unexploitable + other %}
-            data: [{{ ((exploitable / total * 100) if total else 0) | round(2) }}, {{ ((unexploitable / total * 100) if total else 0) | round(2) }}, {{ ((other / total * 100) if total else 0) | round(2) }}],
+            data: [{{ exploitable }}, {{ unexploitable }}, {{ other }}],
             backgroundColor: [
               "rgba(130, 94, 228, 0.9)",
               "rgba(251, 99, 64, 0.9)",
@@ -723,7 +880,7 @@
     console.log('Refreshing files...');
     
     // Hiển thị loading
-    const fileContainer = document.querySelector('.card-body .list-group');
+    const fileContainer = document.querySelector('.card-body');
     if (fileContainer) {
       fileContainer.innerHTML = `
         <div class="text-center py-4">
@@ -735,10 +892,139 @@
       `;
     }
     
-    // Reload trang để lấy dữ liệu mới
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
+    // Gọi API để lấy dữ liệu mới
+    const targetId = '{{ target.server_id }}';
+    fetch(`/api/refresh-file-stats?target_id=${targetId}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Cập nhật thống kê file
+          updateFileStats(data.file_stats);
+          
+          // Cập nhật danh sách file
+          updateFileList(data.target_files);
+          
+          showNotification('success', 'Đã cập nhật danh sách files thành công!');
+        } else {
+          throw new Error(data.error || 'Có lỗi xảy ra');
+        }
+      })
+      .catch(error => {
+        console.error('Error refreshing files:', error);
+        showNotification('error', `Lỗi khi tải files: ${error.message}`);
+        
+        // Fallback: reload trang
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      });
+  }
+  
+  // Hàm cập nhật thống kê file
+  function updateFileStats(fileStats) {
+    // Tìm container thống kê
+    const statsContainer = document.querySelector('.card-body .row.mb-3');
+    if (!statsContainer) return;
+    
+    // Cập nhật tổng số file và dung lượng
+    const totalFilesBadge = statsContainer.querySelector('.badge');
+    const totalSizeSpan = statsContainer.querySelector('.text-success');
+    
+    if (totalFilesBadge) {
+      totalFilesBadge.textContent = `${fileStats.total_files} files`;
+    }
+    
+    if (totalSizeSpan) {
+      totalSizeSpan.textContent = `${fileStats.total_size_mb} MB`;
+    }
+    
+    // Cập nhật phân loại theo loại
+    const typeContainer = document.querySelector('.mb-3 .row');
+    if (typeContainer && fileStats.by_type) {
+      let typeHtml = '';
+      for (const [fileType, stats] of Object.entries(fileStats.by_type)) {
+        typeHtml += `
+          <div class="col-6 mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-xs text-muted">${fileType.toUpperCase()}:</span>
+              <div class="text-end">
+                <div class="text-xs font-weight-bold">${stats.count} files</div>
+                <div class="text-xs text-muted">${stats.size_mb} MB</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      typeContainer.innerHTML = typeHtml;
+    }
+  }
+  
+  // Hàm cập nhật danh sách file
+  function updateFileList(targetFiles) {
+    const fileListContainer = document.querySelector('.card-body .list-group');
+    if (!fileListContainer) return;
+    
+    if (targetFiles && targetFiles.length > 0) {
+      let fileHtml = '';
+      targetFiles.forEach(file => {
+        const fileIcon = getFileIcon(file.file_type);
+        const fileSize = (file.file_size / 1024).toFixed(1);
+        const createdDate = file.file_created_at ? new Date(file.file_created_at).toLocaleDateString('vi-VN') : 'N/A';
+        
+        fileHtml += `
+          <li class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 bg-gray-100 border-radius-lg">
+            <div class="d-flex flex-column" style="margin-left: 10px !important">
+              <h6 class="mb-1 text-dark font-weight-bold text-sm" title="${file.file_name}">
+                ${file.file_name.length > 25 ? file.file_name.substring(0, 25) + '...' : file.file_name}
+              </h6>
+              <span class="text-xs">
+                <i class="fas fa-file-${fileIcon} me-1"></i>
+                ${file.file_type.toUpperCase()} • ${fileSize} KB
+              </span>
+              <small class="text-muted">
+                <i class="fas fa-clock me-1"></i>
+                ${createdDate}
+              </small>
+            </div>
+            <div class="d-flex align-items-center text-sm justify-content-center">
+              <div class="d-flex flex-column align-items-end">
+                <button class="btn btn-link text-dark text-sm mb-0 px-0 ms-4" 
+                        onclick="downloadFile('${file.file_id}', '${file.file_name}')"
+                        title="Download ${file.file_name}">
+                  <i class="fas fa-download text-lg me-1"></i> Download
+                </button>
+                <small class="text-muted text-xs">${file.source_path.length > 20 ? file.source_path.substring(0, 20) + '...' : file.source_path}</small>
+              </div>
+            </div>
+          </li>
+        `;
+      });
+      fileListContainer.innerHTML = fileHtml;
+    } else {
+      fileListContainer.innerHTML = `
+        <div class="text-center py-4">
+          <div class="icon icon-shape icon-lg bg-gradient-warning shadow text-center border-radius-xl mt-n4 mx-auto">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <h6 class="mt-3">Chưa có file nào</h6>
+          <p class="text-sm">Chưa có file nào được thu thập từ target này. Hãy sử dụng các công cụ recon và exploit để thu thập dữ liệu.</p>
+        </div>
+      `;
+    }
+  }
+  
+  // Hàm lấy icon cho loại file
+  function getFileIcon(fileType) {
+    const imageTypes = ['jpg', 'jpeg', 'png', 'gif'];
+    const codeTypes = ['php', 'html', 'js', 'css'];
+    
+    if (imageTypes.includes(fileType.toLowerCase())) {
+      return 'image';
+    } else if (codeTypes.includes(fileType.toLowerCase())) {
+      return 'code';
+    } else {
+      return 'file';
+    }
   }
 
   

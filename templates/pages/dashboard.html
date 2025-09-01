@@ -5,9 +5,14 @@
 <div class="container-fluid py-4">
   <!-- Header Statistics Cards -->
   <div class="row mb-4">
-    <div class="col-12">
+    <div class="col-8">
       <h4 class="mb-3">📊 Dashboard system statistics
     </h4>
+    </div>
+    <div class="col-4 text-end">
+      <button class="btn btn-sm btn-primary" onclick="forceDashboardReload()">
+        <i class="fas fa-sync-alt me-1"></i> Force Reload
+      </button>
     </div>
   </div>
 
@@ -208,17 +213,27 @@
     <div class="col-lg-6 col-12 mb-4">
       <div class="card">
         <div class="card-header pb-0">
-          <h6>💾 File Types</h6>
-          <p class="text-sm text-muted mb-0">Phân loại file theo loại</p>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6>💾 THỐNG KÊ FILE CHI TIẾT</h6>
+              <p class="text-sm text-muted mb-0">Tổng quan dữ liệu đã thu thập</p>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" onclick="loadFileStatistics()">
+                <i class="fas fa-sync-alt me-1"></i> Refresh
+              </button>
+            </div>
+          </div>
         </div>
         <div class="card-body">
-          <div class="chart">
-            <canvas id="file-type-pie-chart" class="chart-canvas" height="250"></canvas>
-          </div>
-          <div class="mt-3 text-center">
-            <h6 class="text-sm font-weight-bold mb-2">Tổng dung lượng</h6>
-            <h3 class="text-warning" id="total-size">0 MB</h3>
-            <p class="text-sm text-muted">Tổng cộng</p>
+          <!-- File Statistics Container -->
+          <div id="file-statistics-container">
+            <div class="text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Đang tải thống kê file...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -328,6 +343,380 @@
 
 {% endblock content %}
 
+{% block extra_css %}
+<style>
+/* CSS cho phần thống kê file đẹp mắt */
+.file-stats-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 25px;
+  color: white;
+  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.file-stats-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.stats-header {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  padding-bottom: 20px;
+  margin-bottom: 25px;
+  position: relative;
+  z-index: 1;
+}
+
+.stats-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.total-files-badge {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(45deg, #ffd700, #ffed4e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stats-size-section {
+  margin-bottom: 25px;
+  position: relative;
+  z-index: 1;
+}
+
+.size-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-radius: 16px;
+  padding: 25px 20px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.size-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.size-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.size-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.size-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.size-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+
+.file-type-breakdown {
+  margin-top: 20px;
+}
+
+.breakdown-title {
+  color: #fff;
+  font-weight: 600;
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+}
+
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.type-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border-radius: 16px;
+  padding: 20px 15px;
+  text-align: center;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.type-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.type-card:hover::before {
+  transform: translateX(100%);
+}
+
+.type-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.type-header {
+  margin-bottom: 15px;
+}
+
+.type-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.type-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.type-stats {
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  padding-top: 15px;
+  margin-top: 10px;
+}
+
+.type-count {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.type-size {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Màu sắc đặc biệt cho từng loại file */
+.type-upload {
+  background: linear-gradient(135deg, rgba(46, 213, 115, 0.2) 0%, rgba(46, 213, 115, 0.1) 100%);
+  border-color: rgba(46, 213, 115, 0.3);
+}
+
+.type-download {
+  background: linear-gradient(135deg, rgba(54, 123, 245, 0.2) 0%, rgba(54, 123, 245, 0.1) 100%);
+  border-color: rgba(54, 123, 245, 0.3);
+}
+
+.type-image {
+  background: linear-gradient(135deg, rgba(255, 71, 87, 0.2) 0%, rgba(255, 71, 87, 0.1) 100%);
+  border-color: rgba(255, 71, 87, 0.3);
+}
+
+.type-code {
+  background: linear-gradient(135deg, rgba(255, 165, 2, 0.2) 0%, rgba(255, 165, 2, 0.1) 100%);
+  border-color: rgba(255, 165, 2, 0.3);
+}
+
+.type-file {
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.2) 0%, rgba(108, 92, 231, 0.1) 100%);
+  border-color: rgba(108, 92, 231, 0.3);
+}
+
+.recent-files-section {
+  margin-top: 20px;
+}
+
+.recent-files-title {
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.recent-file-item {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 12px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.recent-file-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #4facfe, #00f2fe);
+}
+
+.recent-file-item:hover {
+  transform: translateX(8px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.recent-file-name {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+}
+
+.recent-file-name::before {
+  content: '📄';
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+.recent-file-info {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Animation cho recent files */
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.recent-file-item {
+  animation: slideInFromLeft 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+}
+
+.stats-icon-wrapper {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Pulse animation cho total files badge */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.total-files-badge {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Button fixes for header */
+.card-header .d-flex.gap-2 {
+  align-items: center;
+}
+
+.card-header .btn {
+  font-size: 0.8rem;
+}
+
+/* Collapse button styles */
+.collapse-btn {
+  min-width: auto;
+  padding: 0.25rem 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.collapse-btn:hover {
+  transform: scale(1.1);
+}
+
+.card-header {
+  position: relative;
+}
+
+.card-header .d-flex.gap-2[style*="position: absolute"] {
+  z-index: 10;
+}
+
+
+</style>
+{% endblock extra_css %}
+
 {% block extra_js %}
 
 <script src="{{ url_for('static', filename='assets/js/plugins/chartjs.min.js') }}"></script>
@@ -345,81 +734,142 @@ let fileSizeBarChart = null;
 
 // Initialize dashboard
 document.addEventListener("DOMContentLoaded", function () {
+    console.log('Dashboard initializing...');
     loadDashboardData();
+    loadFileStatistics(); // Load file statistics
     setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
+    setInterval(loadFileStatistics, 60000); // Refresh file stats every 60 seconds
     
-    // Add collapse/expand functionality
+    // Add collapse functionality to all statistics cards
     initializeCollapseButtons();
 });
 
-// Initialize collapse buttons
+// Initialize collapse buttons for all statistics cards
 function initializeCollapseButtons() {
-    // Add collapse buttons to all chart cards
+    // Get all cards that have statistics/charts (exclude the top stats cards)
     const chartCards = document.querySelectorAll('.card');
     
     chartCards.forEach((card, index) => {
         const header = card.querySelector('.card-header');
+        // Skip the top summary cards (they don't have card-header)
         if (header && !header.querySelector('.collapse-btn')) {
-            // Create collapse button
-            const collapseBtn = document.createElement('button');
-            collapseBtn.className = 'btn btn-sm btn-outline-primary collapse-btn';
-            collapseBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
-            collapseBtn.style.position = 'absolute';
-            collapseBtn.style.right = '1rem';
-            collapseBtn.style.top = '50%';
-            collapseBtn.style.transform = 'translateY(-50%)';
-            
-            // Make header relative for button positioning
-            header.style.position = 'relative';
-            
-            // Add click event
-            collapseBtn.addEventListener('click', function() {
-                const cardBody = card.querySelector('.card-body');
-                const icon = this.querySelector('i');
-                
-                if (cardBody.style.display === 'none') {
-                    cardBody.style.display = 'block';
-                    icon.className = 'fas fa-chevron-up';
-                    this.classList.remove('btn-outline-secondary');
-                    this.classList.add('btn-outline-primary');
-                } else {
-                    cardBody.style.display = 'none';
-                    icon.className = 'fas fa-chevron-down';
-                    this.classList.remove('btn-outline-primary');
-                    this.classList.add('btn-outline-secondary');
-                }
-            });
-            
-            header.appendChild(collapseBtn);
+            addCollapseButtonToCard(card);
         }
     });
 }
 
+function addCollapseButtonToCard(card) {
+    const header = card.querySelector('.card-header');
+    if (!header) return;
+    
+    // Create collapse button
+    const collapseBtn = document.createElement('button');
+    collapseBtn.className = 'btn btn-sm btn-outline-secondary collapse-btn';
+    collapseBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+    collapseBtn.title = 'Thu gọn/Mở rộng';
+    
+    // Add click event
+    collapseBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const cardBody = card.querySelector('.card-body');
+        const icon = this.querySelector('i');
+        
+        if (cardBody.style.display === 'none') {
+            cardBody.style.display = 'block';
+            icon.className = 'fas fa-chevron-up';
+            this.classList.remove('btn-outline-danger');
+            this.classList.add('btn-outline-secondary');
+        } else {
+            cardBody.style.display = 'none';
+            icon.className = 'fas fa-chevron-down';
+            this.classList.remove('btn-outline-secondary');
+            this.classList.add('btn-outline-danger');
+        }
+    });
+    
+    // Find existing button container or create new one
+    let buttonContainer = header.querySelector('.d-flex.gap-2');
+    
+    if (buttonContainer) {
+        // Add to existing container (like refresh button container)
+        buttonContainer.appendChild(collapseBtn);
+    } else {
+        // Create new container for collapse button
+        buttonContainer = document.createElement('div');
+        buttonContainer.className = 'd-flex gap-2 align-items-center';
+        buttonContainer.appendChild(collapseBtn);
+        
+        // Add to header with proper positioning
+        header.style.position = 'relative';
+        buttonContainer.style.position = 'absolute';
+        buttonContainer.style.right = '1rem';
+        buttonContainer.style.top = '50%';
+        buttonContainer.style.transform = 'translateY(-50%)';
+        
+        header.appendChild(buttonContainer);
+    }
+}
+
 // Load dashboard data
 function loadDashboardData() {
+    console.log('🔄 Loading dashboard data from API...');
     fetch('/dashboard_stats')
-        .then(response => response.json())
+        .then(response => {
+            console.log('📡 Response status:', response.status);
+            return response.json();
+        })
         .then(data => {
-            if (data.status === 'success') {
+            console.log('📊 Real dashboard data received:', data);
+            
+            // Verify we have the correct data structure
+            if (data.poc_statistics && data.poc_statistics.total_pocs) {
+                console.log('✅ Using REAL data - Total POCs:', data.poc_statistics.total_pocs);
                 dashboardData = data;
                 updateDashboardUI();
                 updateCharts();
             } else {
-                console.error('Error loading dashboard data:', data.message);
+                console.error('❌ Invalid data structure received:', data);
+                alert('Invalid data received from server!');
             }
         })
         .catch(error => {
-            console.error('Error fetching dashboard data:', error);
+            console.error('❌ Error loading dashboard data:', error);
+            alert('Failed to load dashboard data: ' + error.message);
         });
+}
+
+// Force dashboard reload
+function forceDashboardReload() {
+    console.log('🔄 Force reloading dashboard...');
+    dashboardData = {}; // Clear existing data
+    loadDashboardData();
+    loadFileStatistics();
 }
 
 // Update dashboard UI
 function updateDashboardUI() {
+    console.log('🔄 Updating dashboard UI with data:', dashboardData);
+    
     // Update quick stats
-    document.getElementById('total-pocs').textContent = dashboardData.poc_statistics?.total_pocs || 0;
-    document.getElementById('total-targets').textContent = dashboardData.target_statistics?.total_targets || 0;
-    document.getElementById('total-shells').textContent = dashboardData.shell_statistics?.total_connections || 0;
-    document.getElementById('total-files').textContent = dashboardData.data_statistics?.total_files || 0;
+    const totalPocs = dashboardData.poc_statistics?.total_pocs || 0;
+    const totalTargets = dashboardData.target_statistics?.total_targets || 0;
+    const totalShells = dashboardData.shell_statistics?.total_connections || 0;
+    const totalFiles = dashboardData.data_statistics?.total_files || 0;
+    
+    console.log('📊 Updating stats - POCs:', totalPocs, 'Targets:', totalTargets, 'Shells:', totalShells, 'Files:', totalFiles);
+    
+    // Safely update elements
+    const totalPocsElement = document.getElementById('total-pocs');
+    if (totalPocsElement) totalPocsElement.textContent = totalPocs;
+    
+    const totalTargetsElement = document.getElementById('total-targets');
+    if (totalTargetsElement) totalTargetsElement.textContent = totalTargets;
+    
+    const totalShellsElement = document.getElementById('total-shells');
+    if (totalShellsElement) totalShellsElement.textContent = totalShells;
+    
+    const totalFilesElement = document.getElementById('total-files');
+    if (totalFilesElement) totalFilesElement.textContent = totalFiles;
 
     // Update POC categories
     updatePOCCategories();
@@ -445,39 +895,65 @@ function updatePOCCategories() {
     const categories = dashboardData.poc_statistics?.categories || {};
     
     // Update total CVEs
-    document.getElementById('total-cves').textContent = dashboardData.poc_statistics?.cve_count || 0;
+    const totalCvesElement = document.getElementById('total-cves');
+    if (totalCvesElement) {
+        totalCvesElement.textContent = dashboardData.poc_statistics?.cve_count || 0;
+    }
     
     // Update recent POCs
     const recentPOCs = dashboardData.poc_statistics?.recent_pocs || [];
     const recentPOCsDiv = document.getElementById('recent-pocs');
-    recentPOCsDiv.innerHTML = recentPOCs.slice(0, 3).map(poc => 
-        `<div class="text-sm text-muted mb-1">• ${poc.name.substring(0, 30)}...</div>`
-    ).join('');
+    if (recentPOCsDiv) {
+        recentPOCsDiv.innerHTML = recentPOCs.slice(0, 3).map(poc => 
+            `<div class="text-sm text-muted mb-1">• ${poc.name.substring(0, 30)}...</div>`
+        ).join('');
+    }
 }
 
 // Update shell statistics
 function updateShellStatistics() {
     const shellStats = dashboardData.shell_statistics || {};
-    document.getElementById('shell-recent').textContent = shellStats.recent_shells_7days || 0;
+    const shellRecentElement = document.getElementById('shell-recent');
+    if (shellRecentElement) {
+        shellRecentElement.textContent = shellStats.recent_shells_7days || 0;
+    }
 }
 
 // Update target statistics
 function updateTargetStatistics() {
     const targetStats = dashboardData.target_statistics || {};
-    document.getElementById('targets-recent').textContent = targetStats.recent_targets_7days || 0;
+    const targetsRecentElement = document.getElementById('targets-recent');
+    if (targetsRecentElement) {
+        targetsRecentElement.textContent = targetStats.recent_targets_7days || 0;
+    }
 }
 
 // Update data statistics
 function updateDataStatistics() {
     const dataStats = dashboardData.data_statistics || {};
-    document.getElementById('total-size').textContent = `${dataStats.total_size_mb || 0} MB`;
-    document.getElementById('files-recent').textContent = dataStats.recent_files_7days || 0;
+    
+    // Safely update total-size if element exists
+    const totalSizeElement = document.getElementById('total-size');
+    if (totalSizeElement) {
+        totalSizeElement.textContent = `${dataStats.total_size_mb || 0} MB`;
+    }
+    
+    // Safely update files-recent if element exists
+    const filesRecentElement = document.getElementById('files-recent');
+    if (filesRecentElement) {
+        filesRecentElement.textContent = dataStats.recent_files_7days || 0;
+    }
 }
 
 // Update special logs
 function updateSpecialLogs() {
     const specialLogs = dashboardData.special_logs || [];
     const logsDiv = document.getElementById('special-logs');
+    
+    if (!logsDiv) {
+        console.warn('Element special-logs not found');
+        return;
+    }
     
     logsDiv.innerHTML = specialLogs.map(log => {
         const logClass = log.type === 'error' ? 'text-danger' : 
@@ -502,6 +978,11 @@ function updateSpecialLogs() {
 function updateTopTargetsTable() {
     const topTargets = dashboardData.shell_statistics?.top_targets || [];
     const tableBody = document.getElementById('top-targets-table');
+    
+    if (!tableBody) {
+        console.warn('Element top-targets-table not found');
+        return;
+    }
     
     tableBody.innerHTML = topTargets.map(target => 
         `<tr>
@@ -539,9 +1020,17 @@ function updateCharts() {
 
 // Update POC Pie Chart
 function updatePOCPieChart() {
+    console.log('🔄 Updating POC Pie Chart...');
     const categories = dashboardData.poc_statistics?.categories || {};
     const labels = Object.keys(categories);
     const data = Object.values(categories);
+    
+    console.log('📊 POC chart data - Categories:', categories, 'Labels:', labels, 'Data:', data);
+    
+    if (labels.length === 0) {
+        console.error('❌ No POC categories data available');
+        return;
+    }
     
     const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
     
@@ -549,7 +1038,14 @@ function updatePOCPieChart() {
         pocPieChart.destroy();
     }
     
-    const ctx = document.getElementById('poc-pie-chart').getContext('2d');
+    const canvas = document.getElementById('poc-pie-chart');
+    if (!canvas) {
+        console.error('❌ POC pie chart canvas not found');
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    console.log('🎨 Creating POC pie chart...');
     pocPieChart = new Chart(ctx, {
         type: 'pie',
         data: {
@@ -958,6 +1454,313 @@ function updateTimeChart() {
             }
         }
     });
+}
+
+// Load file statistics
+function loadFileStatistics() {
+    fetch('/file_statistics')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                displayFileStatistics(data.file_statistics);
+            } else {
+                console.error('Error loading file statistics:', data.message);
+                displayFileStatisticsError(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching file statistics:', error);
+            displayFileStatisticsError('Không thể tải thống kê file');
+        });
+}
+
+// Display file statistics
+function displayFileStatistics(fileStats) {
+    const container = document.getElementById('file-statistics-container');
+    
+    let html = `
+        <div class="row">
+            <!-- Biểu đồ File Types -->
+            <div class="col-lg-6 col-12 mb-4">
+                <div class="chart">
+                    <canvas id="file-type-pie-chart" class="chart-canvas" height="250"></canvas>
+                </div>
+                <div class="mt-3 text-center">
+                    <h6 class="text-sm font-weight-bold mb-2">Tổng dung lượng</h6>
+                    <h3 class="text-warning">${fileStats.total_size_mb} MB</h3>
+                    <p class="text-sm text-muted">Tổng cộng ${fileStats.total_files} files</p>
+                </div>
+            </div>
+            
+            <!-- Thống kê chi tiết -->
+            <div class="col-lg-6 col-12 mb-4">
+                <div class="file-stats-container">
+                    <!-- Header thống kê chính -->
+                    <div class="stats-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="stats-icon-wrapper me-3">
+                                    <i class="fas fa-chart-pie text-white"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 text-white font-weight-bold">📊 THỐNG KÊ</h6>
+                                    <small class="text-white-50">Download vs Upload</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="total-files-badge">${fileStats.total_files}</div>
+                                <small class="text-white-50">Tổng số file</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Thống kê dung lượng -->
+                    <div class="stats-size-section">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="size-card">
+                                    <div class="size-icon">
+                                        <i class="fas fa-download text-success"></i>
+                                    </div>
+                                    <div class="size-info">
+                                        <div class="size-value">${fileStats.download_files.size_mb}</div>
+                                        <div class="size-label">MB Download</div>
+                                        <small class="text-white-50">${fileStats.download_files.count} files</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="size-card">
+                                    <div class="size-icon">
+                                        <i class="fas fa-upload text-warning"></i>
+                                    </div>
+                                    <div class="size-info">
+                                        <div class="size-value">${fileStats.upload_files.size_mb}</div>
+                                        <div class="size-label">MB Upload</div>
+                                        <small class="text-white-50">${fileStats.upload_files.count} files</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    `;
+    
+    // Phân loại file theo loại
+    if (fileStats.by_type && Object.keys(fileStats.by_type).length > 0) {
+        html += `
+            <div class="file-type-breakdown">
+                <h6 class="breakdown-title">
+                    <i class="fas fa-layer-group me-2"></i>
+                    PHÂN LOẠI THEO LOẠI
+                </h6>
+                <div class="type-grid">
+        `;
+        
+        for (const [fileType, stats] of Object.entries(fileStats.by_type)) {
+            const fileIcon = getFileIcon(fileType);
+            html += `
+                <div class="type-card type-${fileType.toLowerCase()}">
+                    <div class="type-header">
+                        <div class="type-icon">
+                            <i class="fas fa-${fileIcon}"></i>
+                        </div>
+                        <div class="type-name">${fileType.toUpperCase()}</div>
+                    </div>
+                    <div class="type-stats">
+                        <div class="type-count">${stats.count}</div>
+                        <div class="type-size">${stats.size_mb} MB</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    // Files mới nhất
+    if (fileStats.recent_files && fileStats.recent_files.length > 0) {
+        html += `
+            <div class="recent-files-section">
+                <h6 class="recent-files-title">
+                    <i class="fas fa-clock me-2"></i>
+                    FILES MỚI NHẤT
+                </h6>
+        `;
+        
+        fileStats.recent_files.slice(0, 5).forEach((file, index) => {
+            const createdDate = file.created_at ? new Date(file.created_at).toLocaleDateString('vi-VN') : 'N/A';
+            const fileIcon = getFileTypeIcon(file.file_type);
+            const typeColor = getFileTypeColor(file.file_type);
+            html += `
+                <div class="recent-file-item" style="animation-delay: ${index * 0.1}s">
+                    <div class="recent-file-name">
+                        <span style="margin-right: 10px; font-size: 1.1rem;">${fileIcon}</span>
+                        ${file.file_name}
+                    </div>
+                    <div class="recent-file-info">
+                        <span style="color: ${typeColor}; font-weight: 600;">${file.file_type.toUpperCase()}</span> 
+                        • <strong>${file.file_size_mb} MB</strong> 
+                        • ${createdDate}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+    }
+    
+    html += `
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Tạo biểu đồ pie chart sau khi HTML được render
+    updateFileTypePieChartFromStats(fileStats);
+}
+
+// Display file statistics error
+function displayFileStatisticsError(message) {
+    const container = document.getElementById('file-statistics-container');
+    container.innerHTML = `
+        <div class="text-center py-4">
+            <div class="icon icon-shape icon-lg bg-gradient-danger shadow text-center border-radius-xl mt-n4 mx-auto">
+                <i class="fas fa-exclamation-triangle text-white"></i>
+            </div>
+            <h6 class="mt-3 text-danger">Lỗi tải thống kê</h6>
+            <p class="text-sm text-muted">${message}</p>
+            <button class="btn btn-primary btn-sm mt-2" onclick="loadFileStatistics()">
+                <i class="fas fa-redo me-1"></i> Thử lại
+            </button>
+        </div>
+    `;
+}
+
+// Update File Type Pie Chart from file statistics
+function updateFileTypePieChartFromStats(fileStats) {
+    const fileTypes = fileStats.by_type || {};
+    const labels = Object.keys(fileTypes);
+    const data = Object.values(fileTypes).map(stats => stats.count);
+    
+    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+    
+    if (fileTypePieChart) {
+        fileTypePieChart.destroy();
+    }
+    
+    const ctx = document.getElementById('file-type-pie-chart').getContext('2d');
+    fileTypePieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            const fileType = fileTypes[label];
+                            const sizeMB = fileType ? fileType.size_mb : 0;
+                            return `${label}: ${value} files (${percentage}%) - ${sizeMB} MB`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Get file icon based on type
+function getFileIcon(fileType) {
+    const imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'];
+    const codeTypes = ['php', 'html', 'js', 'css', 'py', 'java', 'cpp', 'c'];
+    const docTypes = ['pdf', 'doc', 'docx', 'txt', 'rtf'];
+    
+    if (imageTypes.includes(fileType.toLowerCase())) {
+        return 'image';
+    } else if (codeTypes.includes(fileType.toLowerCase())) {
+        return 'code';
+    } else if (docTypes.includes(fileType.toLowerCase())) {
+        return 'file-alt';
+    } else if (fileType.toLowerCase() === 'upload') {
+        return 'upload';
+    } else if (fileType.toLowerCase() === 'download') {
+        return 'download';
+    } else {
+        return 'file';
+    }
+}
+
+// Get file type emoji icon
+function getFileTypeIcon(fileType) {
+    const type = fileType.toLowerCase();
+    
+    switch(type) {
+        case 'download': return '⬇️';
+        case 'upload': return '⬆️';
+        case 'php': return '🐘';
+        case 'html': return '🌐';
+        case 'js': case 'javascript': return '⚡';
+        case 'css': return '🎨';
+        case 'py': case 'python': return '🐍';
+        case 'java': return '☕';
+        case 'txt': return '📝';
+        case 'pdf': return '📄';
+        case 'doc': case 'docx': return '📃';
+        case 'jpg': case 'jpeg': case 'png': case 'gif': return '🖼️';
+        case 'mp4': case 'avi': case 'mov': return '🎬';
+        case 'mp3': case 'wav': return '🎵';
+        case 'zip': case 'rar': case 'tar': return '📦';
+        case 'exe': return '⚙️';
+        case 'sh': return '💻';
+        default: return '📁';
+    }
+}
+
+// Get file type color
+function getFileTypeColor(fileType) {
+    const type = fileType.toLowerCase();
+    
+    switch(type) {
+        case 'download': return '#4facfe';
+        case 'upload': return '#43e97b';
+        case 'php': return '#8993be';
+        case 'html': return '#e34c26';
+        case 'js': case 'javascript': return '#f7df1e';
+        case 'css': return '#1572b6';
+        case 'py': case 'python': return '#3776ab';
+        case 'java': return '#ed8b00';
+        case 'txt': return '#ffffff';
+        case 'pdf': return '#ff0000';
+        case 'doc': case 'docx': return '#2b579a';
+        case 'jpg': case 'jpeg': case 'png': case 'gif': return '#ff6b6b';
+        case 'zip': case 'rar': case 'tar': return '#feca57';
+        default: return '#a4b0be';
+    }
 }
 </script>
 

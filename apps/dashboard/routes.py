@@ -447,3 +447,116 @@ def get_special_logs():
     except Exception as e:
         print(f"Error in get_special_logs: {e}")
         return []
+
+@blueprint.route('/file_statistics', methods=['GET'])
+def file_statistics():
+    """API endpoint để lấy thống kê file đẹp mắt cho dashboard"""
+    try:
+        # Lấy tất cả files
+        all_files = DataFile.query.all()
+        
+        # Tính toán thống kê chi tiết
+        file_stats = {
+            'total_files': len(all_files),
+            'total_size_mb': 0,
+            'total_size_gb': 0,
+            'by_type': {},
+            'download_files': {'count': 0, 'size_mb': 0},
+            'upload_files': {'count': 0, 'size_mb': 0},
+            'recent_files': [],
+            'top_connections': []
+        }
+        
+        # Tính tổng dung lượng và phân loại
+        for file in all_files:
+            if file.file_size and file.file_size > 0:
+                # Tính tổng dung lượng (convert KB to MB)
+                file_size_mb = file.file_size / 1024
+                file_stats['total_size_mb'] += file_size_mb
+                
+                # Phân loại theo loại file
+                file_type = file.file_type.lower() if file.file_type else 'unknown'
+                if file_type not in file_stats['by_type']:
+                    file_stats['by_type'][file_type] = {
+                        'count': 0,
+                        'size_mb': 0,
+                        'size_gb': 0
+                    }
+                
+                file_stats['by_type'][file_type]['count'] += 1
+                file_stats['by_type'][file_type]['size_mb'] += file_size_mb
+                
+                # Phân loại theo download/upload dựa trên source_path hoặc file_type
+                if file.source_path and ('download' in file.source_path.lower() or 'downloads' in file.source_path.lower()):
+                    file_stats['download_files']['count'] += 1
+                    file_stats['download_files']['size_mb'] += file_size_mb
+                elif file.source_path and ('upload' in file.source_path.lower() or 'uploads' in file.source_path.lower()):
+                    file_stats['upload_files']['count'] += 1
+                    file_stats['upload_files']['size_mb'] += file_size_mb
+                else:
+                    # Nếu không xác định được, phân loại theo file_type
+                    if file_type in ['download', 'downloaded']:
+                        file_stats['download_files']['count'] += 1
+                        file_stats['download_files']['size_mb'] += file_size_mb
+                    elif file_type in ['upload', 'uploaded']:
+                        file_stats['upload_files']['count'] += 1
+                        file_stats['upload_files']['size_mb'] += file_size_mb
+                    else:
+                        # Mặc định là download nếu không xác định được
+                        file_stats['download_files']['count'] += 1
+                        file_stats['download_files']['size_mb'] += file_size_mb
+        
+        # Convert MB to GB
+        file_stats['total_size_gb'] = round(file_stats['total_size_mb'] / 1024, 2)
+        file_stats['total_size_mb'] = round(file_stats['total_size_mb'], 2)
+        
+        # Làm tròn dung lượng cho từng loại
+        for file_type in file_stats['by_type']:
+            file_stats['by_type'][file_type]['size_mb'] = round(file_stats['by_type'][file_type]['size_mb'], 2)
+            file_stats['by_type'][file_type]['size_gb'] = round(file_stats['by_type'][file_type]['size_mb'] / 1024, 2)
+        
+        # Làm tròn dung lượng cho download/upload
+        file_stats['download_files']['size_mb'] = round(file_stats['download_files']['size_mb'], 2)
+        file_stats['upload_files']['size_mb'] = round(file_stats['upload_files']['size_mb'], 2)
+        
+        # Lấy files mới nhất
+        recent_files = DataFile.query.order_by(desc(DataFile.file_created_at)).limit(10).all()
+        file_stats['recent_files'] = [{
+            'file_id': f.file_id,
+            'file_name': f.file_name,
+            'file_type': f.file_type,
+            'file_size_mb': round(f.file_size / 1024, 2) if f.file_size else 0,
+            'created_at': f.file_created_at.isoformat() if f.file_created_at else None,
+            'connection_id': f.connection_id,
+            'source_path': f.source_path
+        } for f in recent_files]
+        
+        # Top connections theo số file
+        connection_stats = db.session.query(
+            DataFile.connection_id,
+            func.count(DataFile.file_id).label('file_count'),
+            func.sum(DataFile.file_size).label('total_size')
+        ).filter(
+            DataFile.connection_id.isnot(None),
+            DataFile.connection_id != ''
+        ).group_by(DataFile.connection_id).order_by(
+            desc(func.count(DataFile.file_id))
+        ).limit(10).all()
+        
+        file_stats['top_connections'] = [{
+            'connection_id': str(conn_id),
+            'file_count': int(count),
+            'total_size_mb': round(float(total_size) / 1024, 2) if total_size else 0
+        } for conn_id, count, total_size in connection_stats]
+        
+        return jsonify({
+            'status': 'success',
+            'file_statistics': file_stats
+        })
+        
+    except Exception as e:
+        print(f"Error in file_statistics: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })

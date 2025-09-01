@@ -339,11 +339,41 @@ def view_target():
     shells = ShellConnection.query.filter_by(target_id=idtarget).all()
     
     # Lấy danh sách files có liên quan đến target thông qua shell connections
+    from apps.models import DataFile
     target_files = []
+    
+    # Chỉ lấy files từ shell connections liên quan đến target
     if shells:
         connection_ids = [shell.connection_id for shell in shells]
-        from apps.models import DataFile
-        target_files = DataFile.query.filter(DataFile.connection_id.in_(connection_ids)).order_by(DataFile.file_created_at.desc()).limit(20).all()
+        if connection_ids:
+            target_files = DataFile.query.filter(DataFile.connection_id.in_(connection_ids)).order_by(DataFile.file_created_at.desc()).limit(20).all()
+    
+    # Tính toán thống kê file theo loại
+    file_stats = {
+        'total_files': len(target_files),
+        'total_size_mb': 0,
+        'by_type': {}
+    }
+    
+    for file in target_files:
+        # Tính tổng dung lượng
+        file_stats['total_size_mb'] += file.file_size / 1024  # Convert KB to MB
+        
+        # Phân loại theo loại file
+        file_type = file.file_type.lower()
+        if file_type not in file_stats['by_type']:
+            file_stats['by_type'][file_type] = {
+                'count': 0,
+                'size_mb': 0
+            }
+        
+        file_stats['by_type'][file_type]['count'] += 1
+        file_stats['by_type'][file_type]['size_mb'] += file.file_size / 1024
+    
+    # Làm tròn tổng dung lượng
+    file_stats['total_size_mb'] = round(file_stats['total_size_mb'], 2)
+    for file_type in file_stats['by_type']:
+        file_stats['by_type'][file_type]['size_mb'] = round(file_stats['by_type'][file_type]['size_mb'], 2)
     
     list_poc=["Trần Ku em", "Hello Các em", "Nguyễn Mlem Kem"]
     return render_template(
@@ -356,9 +386,9 @@ def view_target():
                             unexploitable=unexploitable,
                             other=other,
                             shells=shells,
-                            target_files=target_files
+                            target_files=target_files,
+                            file_stats=file_stats
                         )
-
 
 
 
