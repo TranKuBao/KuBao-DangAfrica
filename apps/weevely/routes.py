@@ -82,7 +82,8 @@ def list_file():
                 'type': file_obj.file_type,
                 'hash': file_obj.file_hash,
                 'uploaded_at': file_obj.file_created_at.strftime('%Y-%m-%d %H:%M:%S') if file_obj.file_created_at else 'Unknown',
-                'path': file_obj.local_path
+                'path': file_obj.local_path,
+                'source_path': file_obj.source_path
             }
             file_list.append(file_info)
 

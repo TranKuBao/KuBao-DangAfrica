@@ -39,6 +39,13 @@ function showWeevelyModuleTerminal() {
         terminalSection.style.display = 'block';
         terminalSection.scrollIntoView({ behavior: 'smooth' });
     }
+
+    // Set the connection
+    window.currentWeevelyConnection = {
+        url: url.trim(),
+        password: password.trim(),
+        timeout: 60
+    };
 }
 
 // Function to populate terminal from existing weevely connection

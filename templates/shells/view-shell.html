@@ -152,6 +152,16 @@
           </div>
         </div>
       </div>
+      
+      <div class="mb-4">
+        <button type="button" class="btn btn-outline-primary btn-sm" id="toggleFileManagerBtn">
+          <i class="fas fa-folder-open me-1"></i><span id="toggleFileManagerBtnText">Hiện Trình quản lý File</span>
+        </button>
+      </div>
+      
+      <div id="fileManagerContainer" style="display:none;">
+        {% include "weevely/partial-updown-file.html" %}
+      </div>
     </div>
   </div>
 </div>
@@ -2637,6 +2647,18 @@ window.updateCursor = improvedUpdateCursor;
 
 
 <script>
+  // Toggle show/hide for File Manager include
+  $('#toggleFileManagerBtn').on('click', function() {
+    const $container = $('#fileManagerContainer');
+    const isHidden = $container.is(':hidden');
+    $container.toggle();
+    $('#toggleFileManagerBtnText').text(isHidden ? 'Ẩn Trình quản lý File' : 'Hiện Trình quản lý File');
+    if (isHidden) {
+      const offsetTop = $container.offset() ? $container.offset().top - 80 : 0;
+      $('html, body').animate({ scrollTop: offsetTop }, 300);
+    }
+  });
+
   $('#updateTargetBtn').click(function() {
     const targetId = $('#targetSelect').val(); // ✅ Fix: targetId -> targetSelect
     const shellId = '{{shell.connection_id}}'; // ✅ Fix: Thêm quotes cho string

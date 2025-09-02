@@ -253,12 +253,11 @@ function viewWeevelyDetails(weevelyId) {
         showWeevelyModuleTerminal();
         
         // Initialize terminal with connection data
-        setTimeout(() => {
+        setTimeout(() => { 
           if (typeof WeevelyModuleTerminal !== 'undefined') {
             WeevelyModuleTerminal.initialize({
               url: data.weevely.url,
-              password: data.weevely.password,
-              autoTest: false
+              password: data.weevely.password
             });
           } else {
             // Fallback: populate fields manually

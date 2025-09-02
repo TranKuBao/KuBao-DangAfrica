@@ -110,7 +110,7 @@
                     </div>
                     <div class="card-body">
                       <div class="btn-group-vertical w-100" role="group">
-                        <button class="btn btn-outline-primary mb-2" onclick="executeWeevelyModule(':file_ls /')">
+                        <button class="btn btn-outline-primary mb-2" onclick="executeModuleWithDisplay(':file_ls /')">
                           <i class="fas fa-list"></i> List Root Directory
                         </button>
                         <button class="btn btn-outline-primary mb-2" onclick="showFileSearchModal()">
@@ -171,16 +171,16 @@
                     </div>
                     <div class="card-body">
                       <div class="btn-group-vertical w-100" role="group">
-                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(':system_info')">
+                        <button class="btn btn-outline-success mb-2" onclick="executeModuleWithDisplay(':system_info')">
                           <i class="fas fa-info-circle"></i> System Info
                         </button>
-                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(':system_extensions')">
+                        <button class="btn btn-outline-success mb-2" onclick="executeModuleWithDisplay(':system_extensions')">
                           <i class="fas fa-puzzle-piece"></i> PHP Extensions
                         </button>
-                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(`:shell_sh 'ps -aux'`)">
+                        <button class="btn btn-outline-success mb-2" onclick="executeModuleWithDisplay(`:shell_sh 'ps -aux'`)">
                           <i class="fas fa-tasks"></i> Running Processes
                         </button>
-                        <button class="btn btn-outline-success mb-2" onclick="executeWeevelyModule(`:shell_sh 'ifconfig'`)">
+                        <button class="btn btn-outline-success mb-2" onclick="executeModuleWithDisplay(`:shell_sh 'ifconfig'`)">
                           <i class="fas fa-network-wired"></i> Network Interfaces
                         </button>
                       </div>
@@ -194,16 +194,16 @@
                     </div>
                     <div class="card-body">
                       <div class="btn-group-vertical w-100" role="group">
-                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_phpconf')">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeModuleWithDisplay(':audit_phpconf')">
                           <i class="fas fa-shield-alt"></i> PHP Configuration
                         </button>
-                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_filesystem')">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeModuleWithDisplay(':audit_filesystem')">
                           <i class="fas fa-hdd"></i> Filesystem Audit
                         </button>
-                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_suidsgid /')">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeModuleWithDisplay(':audit_suidsgid /')">
                           <i class="fas fa-user-shield"></i> SUID/SGID Files
                         </button>
-                        <button class="btn btn-outline-warning mb-2" onclick="executeWeevelyModule(':audit_etcpasswd')">
+                        <button class="btn btn-outline-warning mb-2" onclick="executeModuleWithDisplay(':audit_etcpasswd')">
                           <i class="fas fa-users"></i> /etc/passwd Analysis
                         </button>
                       </div>

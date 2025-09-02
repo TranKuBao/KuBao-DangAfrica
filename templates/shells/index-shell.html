@@ -865,44 +865,6 @@ function updateSelectAllCheckbox() {
 }
 
 
-//verify 1 POC với nhiểu shell đã chọn
-document.getElementById('btn-verify-selected').addEventListener("click",function(){
-  const data = getCheckedshellIds();
-    if( data.length ==0 ){
-      alert('Please check the shell you want to Verify with POC.');
-      return ;
-    }
-    console.log(data); 
-    // Lấy thông tin modes từ API
-    
-    document.getElementById('selectedshellCount').textContent = window.checkedshellIds.length;
-    
-    // ... cập nhật các field khác
-    const modal = new bootstrap.Modal(document.getElementById('verifyPocWithshellsModal'));
-    modal.show();
-});
-
-//Chức năng Recon
-document.getElementById('btn-Recon-function').addEventListener("click",function(){
-  const data = getCheckedshellIds();
-    if( data.length == 0 ){
-      alert('Please check the shell you want to Reconnaissance.');
-      return ;
-    }    
-    
-    if(data.length >1) {
-      alert("Function only allowed with 1 shell")
-      return;
-    }
-
-    document.getElementById('reconScanLoading').style.display = 'none';
-    document.getElementById('reconScanResult').textContent += '\n[Data will be display in here]';
-
-    // ... cập nhật các field khác
-    const modal = new bootstrap.Modal(document.getElementById('reconshellsModal'));
-    modal.show();
-});
-
 //Xóa shell được chọn
 document.getElementById("btn-delete-selected").addEventListener("click", function(){
   if (confirm(`Are you sure you want to delete the selected shells?`)) {
@@ -915,30 +877,47 @@ document.getElementById("btn-delete-selected").addEventListener("click", functio
 
     let completed = 0;
     let failed = [];
-    ids.forEach(id => {
-      $.ajax({
+    const tryDelete = (id) => {
+      return $.ajax({
         url: `/api/shells/${id}`,
         type: 'DELETE',
-      })
-      .done(resp => {
-        if (resp['status'] !== 'success') {
-          failed.push(id);
+        dataType: 'json'
+      }).then(resp => {
+        if (!resp || resp.status !== 'success') {
+          return $.Deferred().reject(resp);
         }
-      })
-      .fail(() => {
-        failed.push(id);
-      })
-      .always(() => {
-        completed++;
-        if (completed === ids.length) {
-          if (failed.length === 0) {
-            alert('All selected shells deleted successfully!');
-          } else {
-            alert(`Some shells could not be deleted: ${failed.join(', ')}`);
-          }
-          showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
-        }
+        return resp;
       });
+    };
+
+    const tryCloseThenDelete = (id) => {
+      // Fallback: close shell first, then delete
+      return $.ajax({
+        url: `/api/shells/${id}/close`,
+        type: 'POST',
+        data: JSON.stringify({ action: 'close_completely' }),
+        contentType: 'application/json',
+        dataType: 'json'
+      }).always(() => {
+        return tryDelete(id);
+      });
+    };
+
+    ids.forEach(id => {
+      tryDelete(id)
+        .fail(() => tryCloseThenDelete(id))
+        .fail(() => { failed.push(id); })
+        .always(() => {
+          completed++;
+          if (completed === ids.length) {
+            if (failed.length === 0) {
+              alert('All selected shells deleted successfully!');
+            } else {
+              alert(`Some shells could not be deleted: ${failed.join(', ')}`);
+            }
+            showContent(currentPage, document.getElementById("id_search_shell").value, currentSortType);
+          }
+        });
     });    
     
 
