@@ -1252,6 +1252,7 @@ def execute_weevely_module():
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
         
+        id = data.get('id')
         url = data.get('url')
         password = data.get('password')
         module_command = data.get('module_command')
@@ -1278,10 +1279,8 @@ def execute_weevely_module():
                 # detect -vector
                 if len(parts) >= 5 and parts[1] == '-vector':
                     vector = parts[2]
-                    remote_path = parts[-2]
-                else:
-                    # no vector specified
-                    remote_path = parts[-2] if len(parts) >= 3 else None
+
+                remote_path = parts[-1]
                 # Compute destination path inside dataserver/downloads
                 download_folder = get_folder_file_download()
                 os.makedirs(download_folder, exist_ok=True)
@@ -1306,7 +1305,7 @@ def execute_weevely_module():
                 with open(adjusted_local_path, 'rb') as f:
                     file_hash = sha256(f.read()).hexdigest()
                 # find connection by URL if possible
-                conn = ShellConnection.query.filter_by(url=url).first()
+                conn = ShellConnection.get_by_id(id)
                 connection_id = conn.connection_id if conn else 'unknown'
                 data_file = DataFile(
                     file_name=os.path.basename(adjusted_local_path),

@@ -580,11 +580,9 @@ function showQuickWeevelySetup() {
     if (!password) return;
     
     // Set the connection
-    window.currentWeevelyConnection = {
-        url: url.trim(),
-        password: password.trim(),
-        timeout: 60
-    };
+    window.currentWeevelyConnection.url = url.trim();
+    window.currentWeevelyConnection.password = password.trim();
+    window.currentWeevelyConnection.timeout = 60;
     
     console.log('✅ Quick setup completed:', {
         url: url.trim(),
@@ -601,84 +599,8 @@ function showQuickWeevelySetup() {
     alert('✅ Weevely connection setup completed!\n\nURL: ' + url + '\nPassword: ***\n\nYou can now use File Operations.');
 }
 
-// Auto-initialize weevely connection from URL params or existing data
-function initializeWeevelyConnection() {
-    console.log('=== Initializing Weevely Connection ===');
-    
-    // Try to get from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const weevelyUrl = document.getElementById('weevely_url').value;
-    const weevelyPassword = document.getElementById('weevely_password').value;
-    
-    // Try to get from form inputs (if pre-filled)
-    const urlInput = document.querySelector('input[name="url"], input[id*="url"], input[placeholder*="URL"]');
-    const passwordInput = document.querySelector('input[name="password"], input[id*="password"], input[type="password"]');
-    
-    let finalUrl = weevelyUrl || (urlInput ? urlInput.value : null);
-    let finalPassword = weevelyPassword || (passwordInput ? passwordInput.value : null);
-    
-    console.log('URL from params:', weevelyUrl);
-    console.log('Password from params:', weevelyPassword ? '***' : null);
-    console.log('URL from input:', urlInput ? urlInput.value : null);
-    console.log('Password from input:', passwordInput ? '***' : null);
-    
-    // Try to get from page data attributes or window object
-    if (!finalUrl || !finalPassword) {
-        // Check if there's weevely data in window
-        if (window.weevelyData) {
-            finalUrl = finalUrl || window.weevelyData.url;
-            finalPassword = finalPassword || window.weevelyData.password;
-            console.log('Found weevely data in window:', window.weevelyData);
-        }
-        
-        // Check for data attributes on body
-        const body = document.body;
-        finalUrl = finalUrl || body.getAttribute('data-weevely-url');
-        finalPassword = finalPassword || body.getAttribute('data-weevely-password');
-    }
-    
-    // If we have both URL and password, initialize connection
-    if (finalUrl && finalPassword) {
-        window.currentWeevelyConnection = {
-            url: finalUrl,
-            password: finalPassword,
-            timeout: 60
-        };
-        
-        console.log('✅ Auto-initialized Weevely connection:', {
-            url: finalUrl,
-            password: '***',
-            source: 'auto-detected'
-        });
-        
-        // Fill in form fields if they exist and are empty
-        if (urlInput && !urlInput.value) {
-            urlInput.value = finalUrl;
-        }
-        if (passwordInput && !passwordInput.value) {
-            passwordInput.value = finalPassword;
-        }
-        
-        return true;
-    } else {
-        console.log('❌ Could not auto-initialize connection. Missing URL or password.');
-        console.log('Available URL:', finalUrl);
-        console.log('Available Password:', finalPassword ? '***' : null);
-        return false;
-    }
-}
 
-// Test when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== DOM Content Loaded ===');
-    console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
-    console.log('fileOperationsModal element:', document.getElementById('fileOperationsModal'));
-    
-    // Try to auto-initialize connection
-    setTimeout(() => {
-        initializeWeevelyConnection();
-    }, 1000);
-});
+
 // File Search Modal Functions
 function showFileSearchModal() {
     const modal = new bootstrap.Modal(document.getElementById('fileSearchModal'));
@@ -929,6 +851,7 @@ async function executeFileOpsDownload() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                id: weevelyConn.id,
                 url: weevelyConn.url,
                 password: weevelyConn.password,
                 module_command: cmd,

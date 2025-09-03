@@ -51,6 +51,7 @@
                        value="60" min="10" max="300">
               </div>
             </div>
+            <input type="hidden" id="weevely_id" value="">
           </div>
 
           <!-- Module Categories -->
@@ -830,6 +831,7 @@ function refreshCronJobsTerminal() {
     // Get current weevely connection ID from terminal
     const weevelyUrl = document.getElementById('weevely_url').value;
     const weevelyPassword = document.getElementById('weevely_password').value;
+    const weevelyId = document.getElementById('weevely_id').value;
     
     if (!weevelyUrl || !weevelyPassword) {
         container.innerHTML = '<div class="text-center text-warning">Please configure weevely connection first</div>';
@@ -948,7 +950,7 @@ function createCronJobTerminal() {
         cron_expression: document.getElementById('cron_expression_terminal').value,
         timezone: 'UTC', // Default timezone
         job_type: document.getElementById('cron_job_type_terminal').value,
-        weevely_connection_id: currentWeevelyConnectionId // set based on current connection
+        weevely_connection_id: window.currentWeevelyConnection.id // set based on current connection
     };
     console.log("[+]formData's create cron:", formData);
     // Get job-specific data
@@ -1093,7 +1095,7 @@ function deleteCronJobTerminal(jobId) {
 // Function to load cron jobs for specific weevely connection
 function loadWeevelyCronJobs(weevelyId, weevelyName) {
     appendToTerminal(`Loading cron jobs for ${weevelyName}...`, 'info');
-    currentWeevelyConnectionId = weevelyId;
+    window.currentWeevelyConnection.id = weevelyId;
     
     // Switch to cron jobs tab
     const cronTab = document.getElementById('cron-jobs-tab');

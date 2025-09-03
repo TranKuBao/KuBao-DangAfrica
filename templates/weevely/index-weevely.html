@@ -1055,12 +1055,14 @@ function loadSelectedWeevelyConnection() {
         setTimeout(() => {
           if (typeof WeevelyModuleTerminal !== 'undefined') {
             WeevelyModuleTerminal.initialize({
+              id: data.weevely.id,
               url: data.weevely.url,
               password: data.weevely.password,
               autoTest: false
             });
           } else {
             // Fallback: populate fields manually
+            document.getElementById('weevely_id').value = data.weevely.id || '';
             document.getElementById('weevely_url').value = data.weevely.url || '';
             document.getElementById('weevely_password').value = data.weevely.password || '';
             appendToTerminal(`Loaded connection: ${data.weevely.url}`, 'info');

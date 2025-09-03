@@ -28,7 +28,9 @@ function showUploadDownloadModal() {
         currentWeevelyConnection = data.weevely;
         document.getElementById('modal_connection_status').textContent = 
           `Connected to: ${data.weevely.url}`;
-        
+        window.currentWeevelyConnection.id = data.weevely.id;
+        window.currentWeevelyConnection.url = data.weevely.url;
+        window.currentWeevelyConnection.password = data.weevely.password;
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('uploadDownloadModal'));
         modal.show();
@@ -68,9 +70,10 @@ function executeFileUpload() {
   formData.append('file', file);
   formData.append('target_path', targetPath);
   formData.append('vector', vector);
-  formData.append('url', currentWeevelyConnection.url);
-  formData.append('password', currentWeevelyConnection.password);
-  
+  formData.append('url', window.currentWeevelyConnection.url);
+  formData.append('password', window.currentWeevelyConnection.password);
+  formData.append('id', window.currentWeevelyConnection.id);
+
   // Update UI
   document.getElementById('upload_btn').disabled = true;
   document.getElementById('upload_btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
@@ -142,7 +145,7 @@ function setWebDownloadUrl(url, path) {
 }
 
 function executeWebDownload() {
-  if (!currentWeevelyConnection) {
+  if (!window.currentWeevelyConnection) {
     alert('No weevely connection selected');
     return;
   }
@@ -159,6 +162,7 @@ function executeWebDownload() {
   }
   
   const payload = {
+    id: window.currentWeevelyConnection.id,
     url: currentWeevelyConnection.url,
     password: currentWeevelyConnection.password,
     module_command: `:file_webdownload ${url} ${path}`,
@@ -198,8 +202,9 @@ function checkDownloadProgress(filePath = null) {
   }
   
   const payload = {
-    url: currentWeevelyConnection.url,
-    password: currentWeevelyConnection.password,
+    id: window.currentWeevelyConnection.id,
+    url: window.currentWeevelyConnection.url,
+    password: window.currentWeevelyConnection.password,
     module_command: `:file_check ${path}`,
     timeout: 30
   };
@@ -249,8 +254,9 @@ function executeFileDownload() {
   }
   
   const payload = {
-    url: currentWeevelyConnection.url,
-    password: currentWeevelyConnection.password,
+    id: window.currentWeevelyConnection.id,
+    url: window.currentWeevelyConnection.url,
+    password: window.currentWeevelyConnection.password,
     module_command: `:file_download -vector ${vector} ${remotePath} ${localPath}`,
     timeout: 120
   };
@@ -373,7 +379,7 @@ function scheduleCronDownload() {
     cron_expression: cronExpression,
     schedule_type: scheduleType,
     auto_cleanup: autoCleanup,
-    weevely_connection: currentWeevelyConnection,
+    weevely_connection: window.currentWeevelyConnection,
     created_at: new Date().toISOString(),
     status: 'active'
   };
@@ -407,7 +413,7 @@ function scheduleCronDownload() {
 function refreshCronList() {
   if (!currentWeevelyConnection) return;
   
-  fetch(`/api/weevely/cron-downloads?weevely_id=${currentWeevelyConnection.id}`)
+  fetch(`/api/weevely/cron-downloads?weevely_id=${window.currentWeevelyConnection.id}`)
     .then(response => response.json())
     .then(data => {
       if (data.success) {
@@ -620,7 +626,7 @@ function updateFileSelectionCount() {
 }
 
 function quickReadFile(filePath) {
-  if (!currentWeevelyConnection) return;
+  if (!window.currentWeevelyConnection) return;
   
   // Use the weevely module terminal to read file
   const command = `:file_read -vector file_get_contents ${filePath}`;
@@ -635,7 +641,7 @@ function quickReadFile(filePath) {
 }
 
 function quickDownloadFile(filePath) {
-  if (!currentWeevelyConnection) return;
+  if (!window.currentWeevelyConnection) return;
   
   const filename = filePath.split('/').pop();
   const localPath = `./downloads/${filename}`;
@@ -731,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const ftype = document.getElementById('modal_file_type').value || 'f';
       const vector = document.getElementById('modal_search_vector').value || 'sh_find';
       
-      if (!currentWeevelyConnection) {
+      if (!window.currentWeevelyConnection) {
         alert('No weevely connection selected');
         return;
       }
@@ -743,8 +749,9 @@ document.addEventListener('DOMContentLoaded', function() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: currentWeevelyConnection.url,
-          password: currentWeevelyConnection.password,
+          id: window.currentWeevelyConnection.id,
+          url: window.currentWeevelyConnection.url,
+          password: window.currentWeevelyConnection.password,
           module_command: command,
           timeout: 60
         })

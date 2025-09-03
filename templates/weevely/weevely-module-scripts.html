@@ -2,6 +2,7 @@
 <script>
 // Global variables
 window.currentWeevelyConnection = {
+    id: '',
     url: '',
     password: '',
     timeout: 60
@@ -147,8 +148,9 @@ function executeModuleWithDisplay(moduleCommand) {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            url: conn.url,
-            password: conn.password,
+            id: window.currentWeevelyConnection.id,
+            url: window.currentWeevelyConnection.url,
+            password: window.currentWeevelyConnection.password,
             module_command: moduleCommand,
             timeout: conn.timeout
         })
@@ -209,7 +211,16 @@ function validateConnection() {
         return false;
     }
     
-    currentWeevelyConnection = conn;
+    // Preserve existing id and other fields; only update url/password/timeout
+    if (!window.currentWeevelyConnection) {
+        window.currentWeevelyConnection = { id: '', url: '', password: '', timeout: 60 };
+    }
+    window.currentWeevelyConnection.url = conn.url;
+    window.currentWeevelyConnection.password = conn.password;
+    window.currentWeevelyConnection.timeout = conn.timeout;
+
+    // Keep the non-window alias in sync
+    currentWeevelyConnection = window.currentWeevelyConnection;
     return true;
 }
 
@@ -227,11 +238,11 @@ async function executeWeevelyModule(moduleCommand, params = {}) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                url: currentWeevelyConnection.url,
-                password: currentWeevelyConnection.password,
+                id: window.currentWeevelyConnection.id,
+                url: window.currentWeevelyConnection.url,
+                password: window.currentWeevelyConnection.password,
                 module_command: moduleCommand,
-                timeout: currentWeevelyConnection.timeout,
-                ...params
+                timeout: currentWeevelyConnection.timeout
             })
         });
         
@@ -292,8 +303,9 @@ async function testWeevelyConnection() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                url: currentWeevelyConnection.url,
-                password: currentWeevelyConnection.password,
+                id: window.currentWeevelyConnection.id,
+                url: window.currentWeevelyConnection.url,
+                password: window.currentWeevelyConnection.password,
                 timeout: currentWeevelyConnection.timeout
             })
         });
@@ -335,8 +347,8 @@ async function getSessionInfo() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                url: currentWeevelyConnection.url,
-                password: currentWeevelyConnection.password
+                url: window.currentWeevelyConnection.url,
+                password: window.currentWeevelyConnection.password
             })
         });
         if (!ok || !json) {

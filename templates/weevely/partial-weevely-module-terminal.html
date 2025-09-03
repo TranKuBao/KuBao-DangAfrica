@@ -58,6 +58,7 @@ function loadWeevelyConnection(connectionId) {
         .then(data => {
             if (data.success) {
                 initializeWeevelyModuleTerminal({
+                    id: data.weevely.id,
                     url: data.weevely.url,
                     password: data.weevely.password,
                     autoTest: false

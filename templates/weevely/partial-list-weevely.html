@@ -256,11 +256,16 @@ function viewWeevelyDetails(weevelyId) {
         setTimeout(() => { 
           if (typeof WeevelyModuleTerminal !== 'undefined') {
             WeevelyModuleTerminal.initialize({
+              id: data.weevely.id,
               url: data.weevely.url,
               password: data.weevely.password
             });
+            window.currentWeevelyConnection.id = data.weevely.id;
+            window.currentWeevelyConnection.url = data.weevely.url;
+            window.currentWeevelyConnection.password = data.weevely.password;
           } else {
             // Fallback: populate fields manually
+            document.getElementById('weevely_id').value = data.weevely.id || '';
             document.getElementById('weevely_url').value = data.weevely.url || '';
             document.getElementById('weevely_password').value = data.weevely.password || '';
             appendToTerminal(`Loaded connection: ${data.weevely.url}`, 'info');
@@ -291,6 +296,7 @@ function viewWeevelyCronJobs(weevelyId, weevelyName) {
         .then(data => {
           if (data.success && data.weevely) {
             WeevelyModuleTerminal.initialize({
+              id: data.weevely.id,
               url: data.weevely.url,
               password: data.weevely.password,
               autoTest: false
